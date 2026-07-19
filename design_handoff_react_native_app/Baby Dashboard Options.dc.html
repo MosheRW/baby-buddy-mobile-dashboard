@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:oklch(0.965 0.012 70);font-family:'Nunito',system-ui,sans-serif}
+.dv-turn{padding:40px 44px 60px;scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+.dv-tid{font:700 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:oklch(0.3 0.02 50);color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:700 14px/1.2 'Nunito',sans-serif;color:oklch(0.3 0.02 50)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:700 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:oklch(0.9 0.03 30);color:oklch(0.3 0.02 50);border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:600 13px/1.3 'Nunito',sans-serif;color:oklch(0.4 0.02 50)}
+.dv-row{display:flex;gap:22px}
+.dv-next{margin:26px 0 0;font:13px/1.6 'Nunito',sans-serif;color:oklch(0.5 0.02 50)}
+a.dv-oid:hover{background:oklch(0.85 0.05 30)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Consolidated: 1-2 kids swipe (<a class="dv-oid" href="#1a">1a</a>), 3+ kids tabs (<a class="dv-oid" href="#1b">1b</a>) — shared editor + settings</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a> Dashboard, 2 children — swipe carousel</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Dashboard" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:18px 0 40px;box-sizing:border-box">
+  <div style="padding:0 18px 14px">
+    <div style="font:800 22px/1.2 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">Good afternoon</div>
+    <div style="font:600 13px/1.4 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">Tuesday, July 16</div>
+  </div>
+  <div style="position:relative;padding-left:18px">
+    <div style="display:flex;gap:12px;overflow:visible">
+      <div style="flex:0 0 300px;background:#fff;border-radius:24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.08);padding:20px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:44px;height:44px;border-radius:50%;background:oklch(0.93 0.05 30);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.5 0.1 30)">E</div>
+          <div>
+            <div style="font:800 17px/1.2 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">Emma</div>
+            <div style="font:600 11px/1.3 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">7 months old</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:oklch(0.97 0.015 220);border-radius:14px;padding:10px 12px">
+            <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 220);text-transform:uppercase;letter-spacing:.04em">Last pee</div>
+            <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">45m ago</div>
+          </div>
+          <div style="background:oklch(0.96 0.02 80);border-radius:14px;padding:10px 12px">
+            <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 80);text-transform:uppercase;letter-spacing:.04em">Last poo</div>
+            <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">3h ago</div>
+          </div>
+        </div>
+        <div style="background:oklch(0.94 0.04 30);border-radius:14px;padding:10px 12px;margin-bottom:14px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.45 0.1 30);text-transform:uppercase;letter-spacing:.04em">Last feeding</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">1h 20m ago · 120ml bottle</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.02 350);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">Eligible for Tylenol</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">now</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Amoxicillin due</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">in 2h 15m</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Food, last 4h</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">310 ml</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+          <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="width:18px;height:11px;border-radius:5px 5px 9px 9px;background:currentColor"></div>
+            <span>Diaper</span>
+          </button>
+          <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="width:6px;height:4px;background:currentColor;border-radius:2px 2px 0 0"></div>
+            <div style="width:13px;height:11px;background:currentColor;border-radius:3px;margin-top:-2px"></div>
+            <span>Food</span>
+          </button>
+          <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="width:20px;height:10px;border-radius:5px;border:1.5px solid currentColor;background:linear-gradient(to right, currentColor 50%, transparent 50%)"></div>
+            <span>Medication</span>
+          </button>
+          <button style="border:none;background:oklch(0.92 0.02 50);color:oklch(0.35 0.02 50);border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="display:flex;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div></div>
+            <span>More</span>
+          </button>
+        </div>
+      </div>
+      <div style="flex:0 0 40px;background:#fff;border-radius:24px 8px 8px 24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.06);opacity:.55;display:flex;align-items:center;justify-content:center">
+        <div style="writing-mode:vertical-rl;font:800 12px 'Nunito',sans-serif;color:oklch(0.5 0.08 30)">Noah</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:14px">
+      <div style="width:7px;height:7px;border-radius:50%;background:oklch(0.75 0.12 30)"></div>
+      <div style="width:7px;height:7px;border-radius:50%;background:oklch(0.85 0.02 50)"></div>
+    </div>
+  </div>
+  <div style="padding:22px 18px 0;font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em">Recent activity</div>
+  <div style="padding:10px 18px 0;display:flex;flex-direction:column;gap:8px">
+    <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+      <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.94 0.04 30);flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Bottle · 120 ml</div>
+        <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">1h 20m ago</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a> Dashboard, 4 children — tab switcher</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Baby Buddy" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 0 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;padding:0 18px 16px;overflow-x:auto">
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:9px 16px;border-radius:20px;flex:none">Emma</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:9px 16px;border-radius:20px;flex:none">Noah</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:9px 16px;border-radius:20px;flex:none">Lily</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:9px 16px;border-radius:20px;flex:none">Max</span>
+  </div>
+  <div style="padding:0 18px">
+    <div style="background:#fff;border-radius:24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.08);padding:20px;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="background:oklch(0.97 0.015 220);border-radius:14px;padding:10px 12px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 220);text-transform:uppercase;letter-spacing:.04em">Last pee</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">45m ago</div>
+        </div>
+        <div style="background:oklch(0.96 0.02 80);border-radius:14px;padding:10px 12px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 80);text-transform:uppercase;letter-spacing:.04em">Last poo</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">3h ago</div>
+        </div>
+      </div>
+      <div style="background:oklch(0.94 0.04 30);border-radius:14px;padding:10px 12px;margin-bottom:10px">
+        <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.45 0.1 30);text-transform:uppercase;letter-spacing:.04em">Last feeding</div>
+        <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">1h 20m ago · 120ml bottle</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.02 350);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">Eligible for Tylenol</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">now</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Amoxicillin due</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">in 2h 15m</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Food, last 4h</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">310 ml</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:18px;height:11px;border-radius:5px 5px 9px 9px;background:currentColor"></div>
+          <span>Diaper</span>
+        </button>
+        <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:6px;height:4px;background:currentColor;border-radius:2px 2px 0 0"></div>
+          <div style="width:13px;height:11px;background:currentColor;border-radius:3px;margin-top:-2px"></div>
+          <span>Food</span>
+        </button>
+        <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:20px;height:10px;border-radius:5px;border:1.5px solid currentColor;background:linear-gradient(to right, currentColor 50%, transparent 50%)"></div>
+          <span>Medication</span>
+        </button>
+        <button style="border:none;background:oklch(0.92 0.02 50);color:oklch(0.35 0.02 50);border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="display:flex;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div></div>
+          <span>More</span>
+        </button>
+      </div>
+    </div>
+    <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Recent activity</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px">
+      <span style="flex:none;background:oklch(0.75 0.12 30);color:#fff;font:800 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">All</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Diaper</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Feeding</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Medication</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Sleep</span>
+    </div>
+
+    <div style="font:800 11px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">Today</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.97 0.015 220);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Diaper · Wet</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">45m ago</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.94 0.04 30);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Bottle · 120 ml</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">1h 20m ago</div>
+          <div style="font:600 12px/1.4 'Nunito',sans-serif;color:oklch(0.45 0.02 50);margin-top:4px">Finished full bottle, seemed hungry</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.96 0.02 80);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Diaper · Solid</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">3h ago</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.97 0.02 350);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Ibuprofen · 5ml</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">5h ago</div>
+          <div style="font:600 12px/1.4 'Nunito',sans-serif;color:oklch(0.45 0.02 50);margin-top:4px">Made by Sarah</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="font:800 11px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">Yesterday</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.94 0.04 30);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Breast · 18 min</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">8:10 PM</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.97 0.015 220);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Diaper · Wet</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">6:35 PM</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a> Log entry (shared)</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 18px 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Medication</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Temp</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Tummy time</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Sleep</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Note</span>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Time</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Today, 2:40 PM</div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Method</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Breast</span>
+    <span style="flex:1;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Bottle</span>
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Solid</span>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Amount</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">120 ml</span>
+    <div style="display:flex;gap:8px">
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">–</span>
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">+</span>
+    </div>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:26px">Made by Sarah</div>
+  <div style="display:flex;gap:10px">
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Save</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2e">
+<div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a> Log entry — Medication</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 18px 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Medication</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Temp</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Tummy time</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Sleep</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Note</span>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Time</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Today, 2:40 PM</div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Medicine name</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Amoxicillin</div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Dose</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">5 ml</span>
+    <div style="display:flex;gap:8px">
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">–</span>
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">+</span>
+    </div>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Repeat next dose in</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">6 hours</div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:26px">Made by Sarah</div>
+  <div style="display:flex;gap:10px">
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Save</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2f">
+<div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a> Log entry — Temperature</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 18px 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Medication</span>
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Temp</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Tummy time</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Sleep</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Note</span>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Time</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Today, 2:40 PM</div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Temperature</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">98.6 °F</span>
+    <div style="display:flex;gap:8px">
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">–</span>
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">+</span>
+    </div>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Method</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <span style="flex:1;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Oral</span>
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Ear</span>
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Forehead</span>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:26px">Made by Sarah</div>
+  <div style="display:flex;gap:10px">
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Save</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2g">
+<div class="dv-olabel"><a class="dv-oid" href="#2g">2g</a> Log entry — Diaper</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 18px 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Medication</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Temp</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Tummy time</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Sleep</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Note</span>
+  </div>
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Time</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Today, 2:40 PM</div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Contents</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <span style="flex:1;text-align:center;background:oklch(0.97 0.015 220);color:oklch(0.5 0.08 220);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px;border:2px solid transparent">Pee</span>
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.02 80);color:oklch(0.5 0.08 80);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px;border:2px solid transparent">Poo</span>
+    <span style="flex:1;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px;border:2px solid transparent">Both</span>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Poo colour</div>
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.55 0.05 80);border:2px solid oklch(0.75 0.12 30)"></span>
+    <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.35 0.04 60)"></span>
+    <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.7 0.06 100)"></span>
+    <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.4 0.08 140)"></span>
+    <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.5 0.15 30)"></span>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:26px">Made by Sarah</div>
+
+  <div style="display:flex;gap:10px">
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Save</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2h">
+<div class="dv-olabel"><a class="dv-oid" href="#2h">2h</a> Log entry — Sleep</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 18px 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Medication</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Temp</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Tummy time</span>
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Sleep</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Note</span>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Start</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Today, 1:05 PM</div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em">End</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="width:14px;height:14px;border-radius:4px;background:oklch(0.75 0.12 30)"></div>
+      <span style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Still sleeping</span>
+    </div>
+  </div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);margin-bottom:16px">— in progress —</div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:26px">Made by Sarah</div>
+
+  <div style="display:flex;gap:10px">
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Save</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2i">
+<div class="dv-olabel"><a class="dv-oid" href="#2i">2i</a> Delete confirmation</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;position:relative;box-sizing:border-box">
+  <div style="padding:16px 18px;filter:blur(2px);opacity:.5">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+      <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    </div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;height:16px;margin-bottom:16px"></div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;height:16px;margin-bottom:16px"></div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;height:16px;margin-bottom:16px"></div>
+  </div>
+  <div style="position:absolute;inset:0;background:oklch(0.2 0.01 50 / 0.35);display:flex;align-items:flex-end">
+    <div style="background:#fff;border-radius:24px 24px 0 0;padding:26px 22px 30px;width:100%;box-sizing:border-box">
+      <div style="width:40px;height:4px;border-radius:2px;background:oklch(0.88 0.01 50);margin:0 auto 18px"></div>
+      <div style="font:800 17px 'Nunito',sans-serif;color:oklch(0.28 0.02 50);margin-bottom:8px">Delete this entry?</div>
+      <div style="font:600 13px/1.5 'Nunito',sans-serif;color:oklch(0.5 0.02 50);margin-bottom:22px">Bottle · 120 ml, logged 1h 20m ago. This can't be undone.</div>
+      <div style="display:flex;gap:10px">
+        <span style="flex:1;text-align:center;background:oklch(0.94 0.01 50);color:oklch(0.35 0.02 50);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Cancel</span>
+        <span style="flex:1;text-align:center;background:oklch(0.55 0.16 20);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2j">
+<div class="dv-olabel"><a class="dv-oid" href="#2j">2j</a> Login — server type</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log in" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:40px 22px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center">
+  <div style="width:64px;height:64px;border-radius:20px;background:oklch(0.75 0.12 30);margin-bottom:16px"></div>
+  <div style="font:800 22px 'Nunito',sans-serif;color:oklch(0.28 0.02 50);margin-bottom:6px">Baby Buddy Dashboard</div>
+  <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:28px">Connect to your server</div>
+
+  <div style="display:flex;background:oklch(0.93 0.01 50);border-radius:14px;padding:4px;width:100%;margin-bottom:22px">
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.3 0.02 50);font:800 12px 'Nunito',sans-serif;padding:10px 0;border-radius:11px;box-shadow:0 1px 3px oklch(0.3 0.02 50 / 0.1)">Baby Buddy server</span>
+    <span style="flex:1;text-align:center;color:oklch(0.5 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:11px">Home Assistant</span>
+  </div>
+
+  <div style="width:100%">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Server URL</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);margin-bottom:14px">https://babybuddy.example.com</div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Username</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);margin-bottom:14px">sarah</div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Password</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);margin-bottom:24px">••••••••</div>
+    <div style="text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 14px 'Nunito',sans-serif;padding:15px 0;border-radius:16px">Log in</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2k">
+<div class="dv-olabel"><a class="dv-oid" href="#2k">2k</a> Login — Home Assistant mode</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log in" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:40px 22px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center">
+  <div style="width:64px;height:64px;border-radius:20px;background:oklch(0.75 0.12 30);margin-bottom:16px"></div>
+  <div style="font:800 22px 'Nunito',sans-serif;color:oklch(0.28 0.02 50);margin-bottom:6px">Baby Buddy Dashboard</div>
+  <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:28px">Connect to your server</div>
+
+  <div style="display:flex;background:oklch(0.93 0.01 50);border-radius:14px;padding:4px;width:100%;margin-bottom:22px">
+    <span style="flex:1;text-align:center;color:oklch(0.5 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:11px">Baby Buddy server</span>
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.3 0.02 50);font:800 12px 'Nunito',sans-serif;padding:10px 0;border-radius:11px;box-shadow:0 1px 3px oklch(0.3 0.02 50 / 0.1)">Home Assistant</span>
+  </div>
+
+  <div style="width:100%">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Home Assistant URL</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);margin-bottom:14px">https://homeassistant.local:8123</div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Long-lived access token</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);margin-bottom:10px">Paste token from your HA profile…</div>
+    <div style="font:600 11px/1.5 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:22px">Uses the Baby Buddy add-on running on this Home Assistant instance — no separate server URL needed.</div>
+    <div style="text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 14px 'Nunito',sans-serif;padding:15px 0;border-radius:16px">Connect</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2d">
+<div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a> Settings (shared)</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Settings" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:20px 18px;box-sizing:border-box">
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Feeding window</div>
+  <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:22px">
+    <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);margin-bottom:10px">Show food total for last</div>
+    <div style="display:flex;gap:8px">
+      <span style="flex:1;text-align:center;background:#fff;border:2px solid oklch(0.9 0.02 50);color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">2h</span>
+      <span style="flex:1;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">4h</span>
+      <span style="flex:1;text-align:center;background:#fff;border:2px solid oklch(0.9 0.02 50);color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">6h</span>
+      <span style="flex:1;text-align:center;background:#fff;border:2px solid oklch(0.9 0.02 50);color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">12h</span>
+    </div>
+  </div>
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Children &amp; default food quantity</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">
+    <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;background:oklch(0.93 0.05 30);display:flex;align-items:center;justify-content:center;font:800 14px 'Nunito',sans-serif;color:oklch(0.5 0.1 30);flex:none">E</div>
+      <div style="font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);flex:1">Emma</div>
+      <div style="background:oklch(0.96 0.02 50);border-radius:10px;padding:6px 12px;font:800 12px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">120 ml</div>
+    </div>
+    <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;background:oklch(0.94 0.03 200);display:flex;align-items:center;justify-content:center;font:800 14px 'Nunito',sans-serif;color:oklch(0.5 0.08 200);flex:none">N</div>
+      <div style="font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);flex:1">Noah</div>
+      <div style="background:oklch(0.96 0.02 50);border-radius:10px;padding:6px 12px;font:800 12px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">150 ml</div>
+    </div>
+  </div>
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Baby Buddy server</div>
+  <div style="background:#fff;border-radius:16px;padding:14px 16px">
+    <div style="font:600 12px 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:6px">Server URL</div>
+    <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">babybuddy.home.local</div>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+<p class="dv-next">Try next: "wire up real navigation between 2a/2b → 2c/2d" · "add medication and temperature types to the picker" · "make this the final base design"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Baby Buddy dashboard — nav pattern options</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a> Bottom nav tabs + swipeable child cards (peek + dots)</div>
+<div class="dv-row">
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Dashboard" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:18px 0 90px;box-sizing:border-box">
+  <div style="padding:0 18px 14px">
+    <div style="font:800 22px/1.2 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">Good afternoon</div>
+    <div style="font:600 13px/1.4 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">Tuesday, July 16</div>
+  </div>
+
+  <div style="position:relative;padding-left:18px">
+    <div style="display:flex;gap:12px;overflow:visible">
+      <div style="flex:0 0 300px;background:#fff;border-radius:24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.08);padding:20px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:44px;height:44px;border-radius:50%;background:oklch(0.93 0.05 30);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.5 0.1 30)">E</div>
+          <div>
+            <div style="font:800 17px/1.2 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">Emma</div>
+            <div style="font:600 11px/1.3 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">7 months old</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:oklch(0.97 0.015 220);border-radius:14px;padding:10px 12px">
+            <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 220);text-transform:uppercase;letter-spacing:.04em">Last pee</div>
+            <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">45m ago</div>
+          </div>
+          <div style="background:oklch(0.96 0.02 80);border-radius:14px;padding:10px 12px">
+            <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 80);text-transform:uppercase;letter-spacing:.04em">Last poo</div>
+            <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">3h ago</div>
+          </div>
+        </div>
+
+        <div style="background:oklch(0.94 0.04 30);border-radius:14px;padding:10px 12px;margin-bottom:14px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.45 0.1 30);text-transform:uppercase;letter-spacing:.04em">Last feeding</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">1h 20m ago · 120ml bottle</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.02 350);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">Eligible for Tylenol</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">now</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Amoxicillin due</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">in 2h 15m</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Food, last 4h</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">310 ml</span>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+          <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="width:18px;height:11px;border-radius:5px 5px 9px 9px;background:currentColor"></div>
+            <span>Diaper</span>
+          </button>
+          <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="width:6px;height:4px;background:currentColor;border-radius:2px 2px 0 0"></div>
+            <div style="width:13px;height:11px;background:currentColor;border-radius:3px;margin-top:-2px"></div>
+            <span>Food</span>
+          </button>
+          <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="width:20px;height:10px;border-radius:5px;border:1.5px solid currentColor;background:linear-gradient(to right, currentColor 50%, transparent 50%)"></div>
+            <span>Medication</span>
+          </button>
+          <button style="border:none;background:oklch(0.92 0.02 50);color:oklch(0.35 0.02 50);border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="display:flex;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div></div>
+            <span>More</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="flex:0 0 40px;background:#fff;border-radius:24px 8px 8px 24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.06);opacity:.55;display:flex;align-items:center;justify-content:center">
+        <div style="writing-mode:vertical-rl;font:800 12px 'Nunito',sans-serif;color:oklch(0.5 0.08 30)">Noah</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:14px">
+      <div style="width:7px;height:7px;border-radius:50%;background:oklch(0.75 0.12 30)"></div>
+      <div style="width:7px;height:7px;border-radius:50%;background:oklch(0.85 0.02 50)"></div>
+    </div>
+  </div>
+
+  <div style="padding:22px 18px 0;font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em">Recent activity</div>
+  <div style="padding:10px 18px 0;display:flex;flex-direction:column;gap:8px">
+    <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+      <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.94 0.04 30);flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Bottle · 120 ml</div>
+        <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">1h 20m ago</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Log entry" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 18px 90px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Feeding</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Diaper</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Medication</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Temp</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Tummy time</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Sleep</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:8px 14px;border-radius:20px">Note</span>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Time</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px">Today, 2:40 PM</div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Method</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Breast</span>
+    <span style="flex:1;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Bottle</span>
+    <span style="flex:1;text-align:center;background:#fff;color:oklch(0.4 0.02 50);font:700 12px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">Solid</span>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Amount</div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">120 ml</span>
+    <div style="display:flex;gap:8px">
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">–</span>
+      <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">+</span>
+    </div>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:26px">Made by Sarah</div>
+
+  <div style="display:flex;gap:10px">
+    <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Delete</span>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px">Save</span>
+  </div>
+</div>
+</x-import>
+
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a> Explicit child tabs + single scrolling dashboard+feed</div>
+<div class="dv-row">
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Baby Buddy" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:16px 0 40px;box-sizing:border-box">
+  <div style="display:flex;gap:8px;padding:0 18px 16px">
+    <span style="background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:9px 18px;border-radius:20px">Emma</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:9px 18px;border-radius:20px">Noah</span>
+    <span style="background:#fff;color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">+</span>
+  </div>
+
+  <div style="padding:0 18px">
+    <div style="background:#fff;border-radius:24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.08);padding:20px;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="background:oklch(0.97 0.015 220);border-radius:14px;padding:10px 12px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 220);text-transform:uppercase;letter-spacing:.04em">Last pee</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">45m ago</div>
+        </div>
+        <div style="background:oklch(0.96 0.02 80);border-radius:14px;padding:10px 12px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 80);text-transform:uppercase;letter-spacing:.04em">Last poo</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">3h ago</div>
+        </div>
+      </div>
+      <div style="background:oklch(0.94 0.04 30);border-radius:14px;padding:10px 12px;margin-bottom:10px">
+        <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.45 0.1 30);text-transform:uppercase;letter-spacing:.04em">Last feeding</div>
+        <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">1h 20m ago · 120ml bottle</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.02 350);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">Eligible for Tylenol</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.45 0.12 350)">now</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Amoxicillin due</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">in 2h 15m</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Food, last 4h</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">310 ml</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:18px;height:11px;border-radius:5px 5px 9px 9px;background:currentColor"></div>
+          <span>Diaper</span>
+        </button>
+        <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:6px;height:4px;background:currentColor;border-radius:2px 2px 0 0"></div>
+          <div style="width:13px;height:11px;background:currentColor;border-radius:3px;margin-top:-2px"></div>
+          <span>Food</span>
+        </button>
+        <button style="border:none;background:oklch(0.75 0.12 30);color:#fff;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="width:20px;height:10px;border-radius:5px;border:1.5px solid currentColor;background:linear-gradient(to right, currentColor 50%, transparent 50%)"></div>
+          <span>Medication</span>
+        </button>
+        <button style="border:none;background:oklch(0.92 0.02 50);color:oklch(0.35 0.02 50);border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="display:flex;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div></div>
+          <span>More</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Recent activity</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px">
+      <span style="flex:none;background:oklch(0.75 0.12 30);color:#fff;font:800 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">All</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Diaper</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Feeding</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Medication</span>
+      <span style="flex:none;background:#fff;color:oklch(0.4 0.02 50);font:700 11px 'Nunito',sans-serif;padding:7px 13px;border-radius:16px">Sleep</span>
+    </div>
+
+    <div style="font:800 11px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">Today</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.97 0.015 220);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Diaper · Wet</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">45m ago</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.94 0.04 30);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Bottle · 120 ml</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">1h 20m ago</div>
+          <div style="font:600 12px/1.4 'Nunito',sans-serif;color:oklch(0.45 0.02 50);margin-top:4px">Finished full bottle, seemed hungry</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.96 0.02 80);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Diaper · Solid</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">3h ago</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.97 0.02 350);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Ibuprofen · 5ml</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">5h ago</div>
+          <div style="font:600 12px/1.4 'Nunito',sans-serif;color:oklch(0.45 0.02 50);margin-top:4px">Made by Sarah</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="font:800 11px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">Yesterday</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.94 0.04 30);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Breast · 18 min</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">8:10 PM</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+        <div style="width:34px;height:34px;border-radius:10px;background:oklch(0.97 0.015 220);flex:none"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">Diaper · Wet</div>
+          <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">6:35 PM</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none">
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.95 0.01 50)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="Settings" hint-size="360,780">
+<div style="background:oklch(0.965 0.012 70);min-height:100%;padding:20px 18px;box-sizing:border-box">
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Feeding window</div>
+  <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:22px">
+    <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);margin-bottom:10px">Show food total for last</div>
+    <div style="display:flex;gap:8px">
+      <span style="flex:1;text-align:center;background:#fff;border:2px solid oklch(0.9 0.02 50);color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">2h</span>
+      <span style="flex:1;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">4h</span>
+      <span style="flex:1;text-align:center;background:#fff;border:2px solid oklch(0.9 0.02 50);color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">6h</span>
+      <span style="flex:1;text-align:center;background:#fff;border:2px solid oklch(0.9 0.02 50);color:oklch(0.4 0.02 50);font:700 13px 'Nunito',sans-serif;padding:10px 0;border-radius:12px">12h</span>
+    </div>
+  </div>
+
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Children &amp; default food quantity</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">
+    <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;background:oklch(0.93 0.05 30);display:flex;align-items:center;justify-content:center;font:800 14px 'Nunito',sans-serif;color:oklch(0.5 0.1 30);flex:none">E</div>
+      <div style="font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);flex:1">Emma</div>
+      <div style="background:oklch(0.96 0.02 50);border-radius:10px;padding:6px 12px;font:800 12px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">120 ml</div>
+    </div>
+    <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;background:oklch(0.94 0.03 200);display:flex;align-items:center;justify-content:center;font:800 14px 'Nunito',sans-serif;color:oklch(0.5 0.08 200);flex:none">N</div>
+      <div style="font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);flex:1">Noah</div>
+      <div style="background:oklch(0.96 0.02 50);border-radius:10px;padding:6px 12px;font:800 12px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">150 ml</div>
+    </div>
+  </div>
+
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Baby Buddy server</div>
+  <div style="background:#fff;border-radius:16px;padding:14px 16px">
+    <div style="font:600 12px 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:6px">Server URL</div>
+    <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">babybuddy.home.local</div>
+  </div>
+</div>
+</x-import>
+
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "combine <a class="dv-oid" href="#1a">1a</a>'s bottom nav with <a class="dv-oid" href="#1b">1b</a>'s explicit child tabs" · "add medication and temperature entry types to the type-picker" · "make <a class="dv-oid" href="#1b">1b</a> the base and wire up real navigation/state"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

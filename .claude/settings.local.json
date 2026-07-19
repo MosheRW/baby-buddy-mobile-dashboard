@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf bbapp)",
+      "Bash(npx --yes create-expo-app@latest bbapp --template blank-typescript --no-install)",
+      "Bash(npm install *)",
+      "Bash(npx expo *)",
+      "Bash(npx eslint *)",
+      "Bash(npx --yes serve -s . -l 5599)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5599)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5601)",
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 5601 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue; \"killed $\\($c.OwningProcess\\)\" } else { \"no listener\" }; Start-Sleep 1; Remove-Item -Recurse -Force \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-native/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/web2\" -ErrorAction SilentlyContinue; \"done\")",
+      "Bash(npx --yes serve -s . -l 5602)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5602)"
+    ]
+  }
+}

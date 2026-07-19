@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>body{margin:0;font-family:'Nunito',system-ui,sans-serif}*{box-sizing:border-box}input,textarea{font-family:'Nunito',system-ui,sans-serif;border:none;outline:none;width:100%}</style>
+</helmet>
+
+<div style="min-height:100vh;background:oklch(0.94 0.01 60);display:flex;align-items:center;justify-content:center;padding:30px">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" title="{{ appBarTitle }}" hint-size="360,780">
+<div style="position:relative;min-height:100%;background:oklch(0.965 0.012 70)">
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+<div style="padding:44px 22px;display:flex;flex-direction:column;align-items:center">
+  <div style="width:64px;height:64px;border-radius:20px;background:oklch(0.75 0.12 30);margin-bottom:16px"></div>
+  <div style="font:800 22px 'Nunito',sans-serif;color:oklch(0.28 0.02 50);margin-bottom:6px">Baby Buddy Dashboard</div>
+  <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:26px">Connect to your server</div>
+  <div style="display:flex;background:oklch(0.93 0.01 50);border-radius:14px;padding:4px;width:100%;margin-bottom:22px">
+    <span style="flex:1;text-align:center;padding:10px 0;border-radius:11px;font:800 12px 'Nunito',sans-serif;cursor:pointer;{{ babyBuddyTabStyle }}" onClick="{{ selectLoginModeBB }}">Baby Buddy server</span>
+    <span style="flex:1;text-align:center;padding:10px 0;border-radius:11px;font:800 12px 'Nunito',sans-serif;cursor:pointer;{{ haTabStyle }}" onClick="{{ selectLoginModeHA }}">Home Assistant</span>
+  </div>
+
+  <sc-if value="{{ isLoginModeBB }}">
+  <div style="width:100%">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Server URL</div>
+    <input style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px;color:oklch(0.3 0.02 50);margin-bottom:14px;display:block" placeholder="https://babybuddy.example.com" value="{{ serverUrl }}" onChange="{{ onServerUrlChange }}"/>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Username</div>
+    <input style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px;color:oklch(0.3 0.02 50);margin-bottom:14px;display:block" placeholder="sarah" value="{{ username }}" onChange="{{ onUsernameChange }}"/>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Password</div>
+    <input type="password" style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px;color:oklch(0.3 0.02 50);margin-bottom:24px;display:block" placeholder="••••••••" value="{{ password }}" onChange="{{ onPasswordChange }}"/>
+    <div style="text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 14px 'Nunito',sans-serif;padding:15px 0;border-radius:16px;cursor:pointer" onClick="{{ doLogin }}">Log in</div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ isLoginModeHA }}">
+  <div style="width:100%">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Home Assistant URL</div>
+    <input style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px;color:oklch(0.3 0.02 50);margin-bottom:14px;display:block" placeholder="https://homeassistant.local:8123" value="{{ haUrl }}" onChange="{{ onHaUrlChange }}"/>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Long-lived access token</div>
+    <input style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px;color:oklch(0.3 0.02 50);margin-bottom:10px;display:block" placeholder="Paste token from your HA profile…" value="{{ haToken }}" onChange="{{ onHaTokenChange }}"/>
+    <div style="font:600 11px/1.5 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:22px">Uses the Baby Buddy add-on running on this Home Assistant instance.</div>
+    <div style="text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 14px 'Nunito',sans-serif;padding:15px 0;border-radius:16px;cursor:pointer" onClick="{{ doLogin }}">Connect</div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDashboard }}">
+<div style="padding:18px 0 28px">
+  <div style="padding:0 18px 14px;display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div style="font:800 22px/1.2 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">{{ greeting }}</div>
+      <div style="font:600 13px/1.4 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">{{ todayStr }}</div>
+    </div>
+    <div style="width:38px;height:38px;border-radius:12px;background:#fff;box-shadow:0 2px 6px oklch(0.3 0.02 50 / 0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none" onClick="{{ openSettings }}">
+      <div style="width:16px;height:16px;border-radius:50%;border:2.5px solid oklch(0.4 0.02 50)"></div>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasRunningTimers }}">
+  <div style="padding:0 18px 14px">
+    <div style="font:800 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Running timers</div>
+    <div style="display:flex;gap:8px;overflow-x:auto">
+      <sc-for list="{{ runningTimersDisplay }}" as="rt" hint-placeholder-count="1">
+        <div style="flex:none;background:#fff;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.06)" onClick="{{ rt.onClick }}">
+          <div style="width:8px;height:8px;border-radius:50%;background:oklch(0.65 0.18 25)"></div>
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.35 0.02 50)">{{ rt.label }}</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.75 0.12 30)">{{ rt.elapsed }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isCarousel }}">
+  <div style="position:relative;padding-left:18px">
+    <div style="display:flex;gap:12px">
+      <div style="flex:0 0 300px;background:#fff;border-radius:24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.08);padding:20px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;background:{{ activeChild.avatarBg }};color:{{ activeChild.avatarFg }}">{{ activeChild.initial }}</div>
+          <div>
+            <div style="font:800 17px/1.2 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">{{ activeChild.name }}</div>
+            <div style="font:600 11px/1.3 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">{{ activeChild.age }}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:oklch(0.97 0.015 220);border-radius:14px;padding:10px 12px">
+            <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 220);text-transform:uppercase;letter-spacing:.04em">Last pee</div>
+            <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.lastPee }}</div>
+          </div>
+          <div style="background:oklch(0.96 0.02 80);border-radius:14px;padding:10px 12px">
+            <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 80);text-transform:uppercase;letter-spacing:.04em">Last poo</div>
+            <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.lastPoo }}</div>
+          </div>
+        </div>
+        <div style="background:oklch(0.94 0.04 30);border-radius:14px;padding:10px 12px;margin-bottom:14px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.45 0.1 30);text-transform:uppercase;letter-spacing:.04em">Last feeding</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.lastFeeding }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <sc-for list="{{ activeChild.neededMeds }}" as="nm" hint-placeholder-count="1">
+          <div style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;padding:9px 12px;background:{{ nm.bg }}">
+            <span style="font:700 12px 'Nunito',sans-serif;color:{{ nm.fg }}">{{ nm.label }}</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:{{ nm.fg }}">{{ nm.value }}</span>
+          </div>
+          </sc-for>
+          <sc-for list="{{ activeChild.eligibleMeds }}" as="em" hint-placeholder-count="1">
+          <div style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;padding:9px 12px;background:{{ em.bg }}">
+            <span style="font:700 12px 'Nunito',sans-serif;color:{{ em.fg }}">{{ em.label }}</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:{{ em.fg }}">{{ em.value }}</span>
+          </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+            <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Food, last {{ foodWindowHours }}h</span>
+            <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.foodTotal }} ml</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.diaperBtnStyle }}" onClick="{{ openDiaperQuick }}">
+            <div style="width:18px;height:11px;border-radius:5px 5px 9px 9px;background:currentColor"></div><span>Diaper</span>
+          </button>
+          <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.foodBtnStyle }}" onClick="{{ activeChild.foodBtnClick }}">
+            <div style="width:6px;height:4px;background:currentColor;border-radius:2px 2px 0 0"></div><div style="width:13px;height:11px;background:currentColor;border-radius:3px;margin-top:-2px"></div><span>{{ activeChild.foodBtnLabel }}</span>
+          </button>
+          <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.sleepBtnStyle }}" onClick="{{ activeChild.sleepBtnClick }}">
+            <div style="width:13px;height:13px;border-radius:50%;background:currentColor"></div><span>{{ activeChild.sleepBtnLabel }}</span>
+          </button>
+          <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.tummyBtnStyle }}" onClick="{{ activeChild.tummyBtnClick }}">
+            <div style="width:14px;height:10px;border-radius:3px;background:currentColor"></div><span>{{ activeChild.tummyBtnLabel }}</span>
+          </button>
+          <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.medBtnStyle }}" onClick="{{ openMedicationQuick }}">
+            <div style="width:20px;height:10px;border-radius:5px;border:1.5px solid currentColor;background:linear-gradient(to right, currentColor 50%, transparent 50%)"></div><span>Medication</span>
+          </button>
+          <button style="border:none;background:oklch(0.92 0.02 50);color:oklch(0.35 0.02 50);border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onClick="{{ openMoreQuick }}">
+            <div style="display:flex;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div></div><span>More</span>
+          </button>
+        </div>
+      </div>
+      <div style="flex:0 0 40px;background:#fff;border-radius:24px 8px 8px 24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.06);opacity:.55;display:flex;align-items:center;justify-content:center;cursor:pointer" onClick="{{ nextChild }}">
+        <div style="writing-mode:vertical-rl;font:800 12px 'Nunito',sans-serif;color:oklch(0.5 0.08 30)">{{ peekChildName }}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:14px">
+      <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="2">
+        <div style="width:7px;height:7px;border-radius:50%;cursor:pointer;background:{{ dot.color }}" onClick="{{ dot.onClick }}"></div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isTabs }}">
+  <div style="padding:0 18px">
+    <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px">
+      <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+        <span style="flex:none;padding:9px 16px;border-radius:20px;font:800 13px 'Nunito',sans-serif;cursor:pointer;background:{{ tab.bg }};color:{{ tab.fg }}" onClick="{{ tab.onClick }}">{{ tab.name }}</span>
+      </sc-for>
+    </div>
+    <div style="background:#fff;border-radius:24px;box-shadow:0 6px 20px oklch(0.3 0.02 50 / 0.08);padding:20px;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="background:oklch(0.97 0.015 220);border-radius:14px;padding:10px 12px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 220);text-transform:uppercase;letter-spacing:.04em">Last pee</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.lastPee }}</div>
+        </div>
+        <div style="background:oklch(0.96 0.02 80);border-radius:14px;padding:10px 12px">
+          <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.08 80);text-transform:uppercase;letter-spacing:.04em">Last poo</div>
+          <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.lastPoo }}</div>
+        </div>
+      </div>
+      <div style="background:oklch(0.94 0.04 30);border-radius:14px;padding:10px 12px;margin-bottom:10px">
+        <div style="font:700 10px 'Nunito',sans-serif;color:oklch(0.45 0.1 30);text-transform:uppercase;letter-spacing:.04em">Last feeding</div>
+        <div style="font:800 18px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.lastFeeding }}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <sc-for list="{{ activeChild.neededMeds }}" as="nm" hint-placeholder-count="1">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;padding:9px 12px;background:{{ nm.bg }}">
+          <span style="font:700 12px 'Nunito',sans-serif;color:{{ nm.fg }}">{{ nm.label }}</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:{{ nm.fg }}">{{ nm.value }}</span>
+        </div>
+        </sc-for>
+        <sc-for list="{{ activeChild.eligibleMeds }}" as="em" hint-placeholder-count="1">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-radius:12px;padding:9px 12px;background:{{ em.bg }}">
+          <span style="font:700 12px 'Nunito',sans-serif;color:{{ em.fg }}">{{ em.label }}</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:{{ em.fg }}">{{ em.value }}</span>
+        </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:oklch(0.97 0.01 60);border-radius:12px;padding:9px 12px">
+          <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.02 50)">Food, last {{ foodWindowHours }}h</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ activeChild.foodTotal }} ml</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.diaperBtnStyle }}" onClick="{{ openDiaperQuick }}">
+          <div style="width:18px;height:11px;border-radius:5px 5px 9px 9px;background:currentColor"></div><span>Diaper</span>
+        </button>
+        <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.foodBtnStyle }}" onClick="{{ activeChild.foodBtnClick }}">
+          <div style="width:6px;height:4px;background:currentColor;border-radius:2px 2px 0 0"></div><div style="width:13px;height:11px;background:currentColor;border-radius:3px;margin-top:-2px"></div><span>{{ activeChild.foodBtnLabel }}</span>
+        </button>
+        <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.sleepBtnStyle }}" onClick="{{ activeChild.sleepBtnClick }}">
+          <div style="width:13px;height:13px;border-radius:50%;background:currentColor"></div><span>{{ activeChild.sleepBtnLabel }}</span>
+        </button>
+        <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.tummyBtnStyle }}" onClick="{{ activeChild.tummyBtnClick }}">
+          <div style="width:14px;height:10px;border-radius:3px;background:currentColor"></div><span>{{ activeChild.tummyBtnLabel }}</span>
+        </button>
+        <button style="border:none;border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;{{ activeChild.medBtnStyle }}" onClick="{{ openMedicationQuick }}">
+          <div style="width:20px;height:10px;border-radius:5px;border:1.5px solid currentColor;background:linear-gradient(to right, currentColor 50%, transparent 50%)"></div><span>Medication</span>
+        </button>
+        <button style="border:none;background:oklch(0.92 0.02 50);color:oklch(0.35 0.02 50);border-radius:14px;padding:10px 0 8px;font:800 10px 'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer" onClick="{{ openMoreQuick }}">
+          <div style="display:flex;gap:3px"><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div><div style="width:4px;height:4px;border-radius:50%;background:currentColor"></div></div><span>More</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="padding:22px 18px 0">
+    <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Recent activity</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px">
+      <sc-for list="{{ filterChips }}" as="chip" hint-placeholder-count="5">
+        <span style="flex:none;padding:7px 13px;border-radius:16px;font:800 11px 'Nunito',sans-serif;cursor:pointer;background:{{ chip.bg }};color:{{ chip.fg }}" onClick="{{ chip.onClick }}">{{ chip.label }}</span>
+      </sc-for>
+    </div>
+    <sc-if value="{{ feedIsEmpty }}">
+      <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);padding:20px 0;text-align:center">No entries for this filter yet.</div>
+    </sc-if>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ feedItems }}" as="item" hint-placeholder-count="4">
+        <sc-if value="{{ item.showHeader }}">
+          <div style="font:800 11px 'Nunito',sans-serif;color:oklch(0.6 0.02 50);text-transform:uppercase;letter-spacing:.06em;margin:8px 0 2px">{{ item.groupLabel }}</div>
+        </sc-if>
+        <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px oklch(0.3 0.02 50 / 0.05)">
+          <div style="width:34px;height:34px;border-radius:10px;flex:none;background:{{ item.iconBg }}"></div>
+          <div style="flex:1;min-width:0;cursor:pointer" onClick="{{ item.onEdit }}">
+            <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ item.title }}</div>
+            <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">{{ item.timeText }}</div>
+            <sc-if value="{{ item.hasNote }}">
+              <div style="font:600 12px/1.4 'Nunito',sans-serif;color:oklch(0.45 0.02 50);margin-top:4px">{{ item.note }}</div>
+            </sc-if>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">
+              <sc-for list="{{ item.tags }}" as="tg" hint-placeholder-count="1">
+                <span style="font:700 10px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);background:oklch(0.94 0.01 50);padding:2px 8px;border-radius:9px">{{ tg }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex:none">
+            <span style="width:26px;height:26px;border-radius:50%;background:oklch(0.94 0.01 50);cursor:pointer" onClick="{{ item.onEdit }}"></span>
+            <span style="width:26px;height:26px;border-radius:8px;background:oklch(0.96 0.03 20);cursor:pointer" onClick="{{ item.onDelete }}"></span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isForm }}">
+<div style="padding:16px 18px 40px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div style="font:800 17px 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">{{ formTitle }}</div>
+    <div style="width:32px;height:32px;border-radius:10px;background:oklch(0.93 0.01 50);display:flex;align-items:center;justify-content:center;cursor:pointer" onClick="{{ closeForm }}">
+      <div style="width:12px;height:12px;position:relative">
+        <div style="position:absolute;width:14px;height:2px;background:oklch(0.4 0.02 50);top:6px;left:-1px;transform:rotate(45deg)"></div>
+        <div style="position:absolute;width:14px;height:2px;background:oklch(0.4 0.02 50);top:6px;left:-1px;transform:rotate(-45deg)"></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    <sc-for list="{{ typeChips }}" as="tchip" hint-placeholder-count="7">
+      <span style="padding:8px 14px;border-radius:20px;font:800 12px 'Nunito',sans-serif;cursor:pointer;background:{{ tchip.bg }};color:{{ tchip.fg }}" onClick="{{ tchip.onClick }}">{{ tchip.label }}</span>
+    </sc-for>
+  </div>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Time</div>
+  <input type="datetime-local" style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px;display:block" value="{{ formTimeValue }}" onChange="{{ onFormTimeChange }}"/>
+
+  <sc-if value="{{ isDiaper }}">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Contents <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(select any)</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ diaperPeeBg }};color:{{ diaperPeeFg }}" onClick="{{ toggleDiaperPee }}">Pee</span>
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ diaperPooBg }};color:{{ diaperPooFg }}" onClick="{{ toggleDiaperPoo }}">Poo</span>
+    </div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Poo colour</div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <sc-for list="{{ pooColors }}" as="pc" hint-placeholder-count="5">
+        <span style="width:30px;height:30px;border-radius:50%;cursor:pointer;background:{{ pc.color }};border:{{ pc.border }}" onClick="{{ pc.onClick }}"></span>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isFeeding }}">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Type</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <sc-for list="{{ foodTypeChips }}" as="ft" hint-placeholder-count="4">
+        <span style="flex:1;text-align:center;padding:10px 10px;border-radius:12px;font:700 11px 'Nunito',sans-serif;cursor:pointer;background:{{ ft.bg }};color:{{ ft.fg }}" onClick="{{ ft.onClick }}">{{ ft.label }}</span>
+      </sc-for>
+    </div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Method</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <sc-for list="{{ feedMethodChips }}" as="fm" hint-placeholder-count="2">
+        <span style="flex:1;text-align:center;padding:10px 10px;border-radius:12px;font:700 11px 'Nunito',sans-serif;cursor:pointer;background:{{ fm.bg }};color:{{ fm.fg }}" onClick="{{ fm.onClick }}">{{ fm.label }}</span>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isFeedingTimerRunning }}">
+      <div style="background:oklch(0.97 0.02 30);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+        <div style="font:700 12px 'Nunito',sans-serif;color:oklch(0.5 0.1 30);margin-bottom:4px">Timer running</div>
+        <div style="font:800 24px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:12px">{{ feedingElapsedText }}</div>
+        <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">End time</div>
+        <input type="datetime-local" style="background:#fff;border-radius:12px;padding:12px 14px;font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:12px;display:block" value="{{ timerEndValue }}" onChange="{{ onTimerEndChange }}"/>
+        <div style="text-align:center;background:oklch(0.55 0.16 20);color:#fff;font:800 13px 'Nunito',sans-serif;padding:12px 0;border-radius:14px;cursor:pointer" onClick="{{ stopFeedingTimer }}">Stop timer</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isCreateMode }}">
+    <sc-if value="{{ isFeedingTimerNotRunning }}" hint-placeholder-val="{{ true }}">
+      <div style="text-align:center;background:oklch(0.93 0.05 30);color:oklch(0.5 0.1 30);font:800 12px 'Nunito',sans-serif;padding:12px 0;border-radius:14px;cursor:pointer;margin-bottom:16px" onClick="{{ startFeedingTimer }}">Start timer</div>
+    </sc-if>
+    </sc-if>
+    <sc-if value="{{ isDirectBreastMethod }}">
+    <sc-if value="{{ isFeedingTimerNotRunning }}" hint-placeholder-val="{{ true }}">
+      <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Duration (min)</div>
+      <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ formDraft.durationMin }}</span>
+        <div style="display:flex;gap:8px">
+          <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ decDuration }}">–</span>
+          <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ incDuration }}">+</span>
+        </div>
+      </div>
+    </sc-if>
+    </sc-if>
+    <sc-if value="{{ isAmountField }}">
+      <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">{{ amountLabel }}</div>
+      <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ formDraft.amount }}</span>
+        <div style="display:flex;gap:8px">
+          <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ decAmount }}">–</span>
+          <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ incAmount }}">+</span>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+<sc-if value="{{ isMedication }}">
+    <sc-if value="{{ hasMedSuggestions }}">
+      <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Recent medications</div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;margin-bottom:16px">
+        <sc-for list="{{ medSuggestions }}" as="ms" hint-placeholder-count="2">
+          <div style="background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer" onClick="{{ ms.onClick }}">
+            <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ ms.name }}</div>
+            <div style="font:600 11px 'Nunito',sans-serif;color:oklch(0.55 0.02 50)">{{ ms.subtitle }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Medicine name</div>
+    <input style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px;display:block" placeholder="Amoxicillin" value="{{ formDraft.name }}" onChange="{{ onMedNameChange }}"/>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Type</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ scheduledBg }};color:{{ scheduledFg }}" onClick="{{ setScheduledType }}">Scheduled</span>
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ prnBg }};color:{{ prnFg }}" onClick="{{ setPrnType }}">As-needed</span>
+    </div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Dose (ml)</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <input type="number" step="0.1" style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);width:70px" value="{{ formDraft.dose }}" onChange="{{ onDoseChange }}"/>
+      <div style="display:flex;gap:8px">
+        <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ decDose }}">–</span>
+        <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ incDose }}">+</span>
+      </div>
+    </div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">{{ repeatFieldLabel }}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <sc-for list="{{ repeatOptions }}" as="ro" hint-placeholder-count="5">
+        <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ ro.bg }};color:{{ ro.fg }}" onClick="{{ ro.onClick }}">{{ ro.label }}</span>
+      </sc-for>
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ customRepeatBg }};color:{{ customRepeatFg }}" onClick="{{ activateCustomRepeat }}">Custom</span>
+    </div>
+    <sc-if value="{{ isCustomRepeat }}">
+      <input type="number" step="0.5" style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px;display:block" placeholder="Hours" value="{{ formDraft.repeatHours }}" onChange="{{ onCustomRepeatChange }}"/>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isTemperature }}">
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Temperature (°C)</div>
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ formDraft.value }}°{{ formDraft.unit }}</span>
+      <div style="display:flex;gap:8px">
+        <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ decTemp }}">–</span>
+        <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ incTemp }}">+</span>
+      </div>
+    </div>
+    <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Method</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ tempOralBg }};color:{{ tempOralFg }}" onClick="{{ setTempOral }}">Oral</span>
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ tempEarBg }};color:{{ tempEarFg }}" onClick="{{ setTempEar }}">Ear</span>
+      <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 12px 'Nunito',sans-serif;cursor:pointer;background:{{ tempForeheadBg }};color:{{ tempForeheadFg }}" onClick="{{ setTempForehead }}">Forehead</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isTummy }}">
+    <sc-if value="{{ isTummyTimerRunning }}">
+      <div style="background:oklch(0.95 0.02 140);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+        <div style="font:700 12px 'Nunito',sans-serif;color:oklch(0.4 0.08 140);margin-bottom:4px">Timer running</div>
+        <div style="font:800 24px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:12px">{{ tummyElapsedText }}</div>
+        <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">End time</div>
+        <input type="datetime-local" style="background:#fff;border-radius:12px;padding:12px 14px;font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:12px;display:block" value="{{ timerEndValue }}" onChange="{{ onTimerEndChange }}"/>
+        <div style="text-align:center;background:oklch(0.55 0.16 20);color:#fff;font:800 13px 'Nunito',sans-serif;padding:12px 0;border-radius:14px;cursor:pointer" onClick="{{ stopTummyTimer }}">Stop timer</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isTummyTimerNotRunning }}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{ isCreateMode }}">
+        <div style="text-align:center;background:oklch(0.95 0.02 140);color:oklch(0.4 0.08 140);font:800 12px 'Nunito',sans-serif;padding:12px 0;border-radius:14px;cursor:pointer;margin-bottom:16px" onClick="{{ startTummyTimer }}">Start timer</div>
+      </sc-if>
+      <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Duration (min)</div>
+      <div style="background:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font:800 20px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ formDraft.duration }}</span>
+        <div style="display:flex;gap:8px">
+          <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ decTummyDuration }}">–</span>
+          <span style="width:30px;height:30px;border-radius:50%;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 16px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);cursor:pointer" onClick="{{ incTummyDuration }}">+</span>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isSleep }}">
+    <sc-if value="{{ isCreateMode }}">
+      <sc-if value="{{ isSleepTimerRunning }}">
+        <div style="background:oklch(0.95 0.02 260);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+          <div style="font:700 12px 'Nunito',sans-serif;color:oklch(0.45 0.08 260);margin-bottom:4px">Timer running</div>
+          <div style="font:800 24px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:12px">{{ sleepElapsedText }}</div>
+          <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Woke up at</div>
+          <input type="datetime-local" style="background:#fff;border-radius:12px;padding:12px 14px;font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:12px;display:block" value="{{ timerEndValue }}" onChange="{{ onTimerEndChange }}"/>
+          <div style="text-align:center;background:oklch(0.55 0.16 20);color:#fff;font:800 13px 'Nunito',sans-serif;padding:12px 0;border-radius:14px;cursor:pointer" onClick="{{ stopSleepTimer }}">Stop timer</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isSleepTimerNotRunning }}" hint-placeholder-val="{{ true }}">
+        <div style="text-align:center;background:oklch(0.95 0.02 260);color:oklch(0.45 0.08 260);font:800 12px 'Nunito',sans-serif;padding:12px 0;border-radius:14px;cursor:pointer;margin-bottom:16px" onClick="{{ startSleepTimer }}">Start timer</div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{ isEditMode }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font:700 12px 'Nunito',sans-serif;color:oklch(0.4 0.02 50)">Still sleeping</span>
+        <div style="width:44px;height:24px;border-radius:12px;padding:2px;cursor:pointer;background:{{ ongoingTrackBg }}" onClick="{{ toggleOngoing }}">
+          <div style="width:20px;height:20px;border-radius:50%;background:#fff;transition:margin .15s;margin-left:{{ ongoingKnobOffset }}"></div>
+        </div>
+      </div>
+      <sc-if value="{{ isSleepEnded }}">
+        <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Woke up at</div>
+        <input type="datetime-local" style="background:#fff;border-radius:14px;padding:14px 16px;font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:16px;display:block" value="{{ formEndValue }}" onChange="{{ onFormEndChange }}"/>
+      </sc-if>
+    </sc-if>
+  </sc-if>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Note <span style="text-transform:none;font:600 10px 'Nunito',sans-serif;color:oklch(0.6 0.02 50)">(optional)</span></div>
+  <textarea style="background:#fff;border-radius:14px;padding:14px 16px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);margin-bottom:18px;display:block;resize:none;height:52px" placeholder="Add a note…" value="{{ formDraft.note }}" onChange="{{ onNoteChange }}"></textarea>
+
+  <div style="font:700 11px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Tags</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+    <sc-for list="{{ tagChips }}" as="tg" hint-placeholder-count="1">
+      <span style="display:flex;align-items:center;gap:6px;font:700 11px 'Nunito',sans-serif;color:{{ tg.fg }};background:{{ tg.bg }};padding:6px 10px;border-radius:12px">{{ tg.label }}<sc-if value="{{ tg.removable }}"><span style="cursor:pointer" onClick="{{ tg.onRemove }}">×</span></sc-if></span>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:26px">
+    <input style="background:#fff;border-radius:12px;padding:10px 14px;font:600 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)" placeholder="Add tag…" value="{{ tagInput }}" onChange="{{ onTagInputChange }}"/>
+    <span style="background:oklch(0.93 0.02 50);color:oklch(0.35 0.02 50);font:800 12px 'Nunito',sans-serif;padding:10px 16px;border-radius:12px;cursor:pointer;white-space:nowrap" onClick="{{ addTag }}">Add</span>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <sc-if value="{{ isEditMode }}">
+      <span style="flex:1;text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px;cursor:pointer" onClick="{{ requestDeleteFromForm }}">Delete</span>
+    </sc-if>
+    <span style="flex:2;text-align:center;background:oklch(0.75 0.12 30);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px;cursor:pointer" onClick="{{ saveForm }}">Save</span>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSettings }}">
+<div style="padding:20px 18px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <div style="width:32px;height:32px;border-radius:10px;background:oklch(0.93 0.01 50);display:flex;align-items:center;justify-content:center;cursor:pointer" onClick="{{ backToDashboard }}">
+      <div style="width:8px;height:8px;border-left:2.5px solid oklch(0.4 0.02 50);border-bottom:2.5px solid oklch(0.4 0.02 50);transform:rotate(45deg);margin-left:3px"></div>
+    </div>
+    <div style="font:800 17px 'Nunito',sans-serif;color:oklch(0.28 0.02 50)">Settings</div>
+  </div>
+
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Feeding window</div>
+  <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:22px">
+    <div style="font:600 13px 'Nunito',sans-serif;color:oklch(0.5 0.02 50);margin-bottom:10px">Show food total for last</div>
+    <div style="display:flex;gap:8px">
+      <sc-for list="{{ windowOptions }}" as="wo" hint-placeholder-count="4">
+        <span style="flex:1;text-align:center;padding:10px 0;border-radius:12px;font:700 13px 'Nunito',sans-serif;cursor:pointer;background:{{ wo.bg }};color:{{ wo.fg }};border:{{ wo.border }}" onClick="{{ wo.onClick }}">{{ wo.label }}</span>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Children &amp; default food quantity</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">
+    <sc-for list="{{ settingsChildren }}" as="sc" hint-placeholder-count="2">
+      <div style="background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+        <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 14px 'Nunito',sans-serif;flex:none;background:{{ sc.avatarBg }};color:{{ sc.avatarFg }}">{{ sc.initial }}</div>
+        <div style="font:700 14px 'Nunito',sans-serif;color:oklch(0.3 0.02 50);flex:1">{{ sc.name }}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:24px;height:24px;border-radius:8px;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 13px 'Nunito',sans-serif;cursor:pointer" onClick="{{ sc.onDec }}">–</span>
+          <span style="font:800 12px 'Nunito',sans-serif;color:oklch(0.35 0.02 50);min-width:52px;text-align:center">{{ sc.defaultFoodMl }} ml</span>
+          <span style="width:24px;height:24px;border-radius:8px;background:oklch(0.93 0.02 50);display:flex;align-items:center;justify-content:center;font:800 13px 'Nunito',sans-serif;cursor:pointer" onClick="{{ sc.onInc }}">+</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="font:800 13px 'Nunito',sans-serif;color:oklch(0.4 0.02 50);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Baby Buddy server</div>
+  <div style="background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:22px">
+    <div style="font:600 12px 'Nunito',sans-serif;color:oklch(0.55 0.02 50);margin-bottom:6px">Server URL</div>
+    <div style="font:700 13px 'Nunito',sans-serif;color:oklch(0.3 0.02 50)">{{ connectedServerLabel }}</div>
+  </div>
+
+  <div style="text-align:center;background:oklch(0.96 0.03 20);color:oklch(0.5 0.14 20);font:800 13px 'Nunito',sans-serif;padding:13px 0;border-radius:14px;cursor:pointer" onClick="{{ logOut }}">Log out</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showDeleteConfirm }}">
+<div style="position:absolute;inset:0;background:oklch(0.2 0.01 50 / 0.4);display:flex;align-items:flex-end">
+  <div style="background:#fff;border-radius:24px 24px 0 0;padding:26px 22px 30px;width:100%">
+    <div style="width:40px;height:4px;border-radius:2px;background:oklch(0.88 0.01 50);margin:0 auto 18px"></div>
+    <div style="font:800 17px 'Nunito',sans-serif;color:oklch(0.28 0.02 50);margin-bottom:8px">Delete this entry?</div>
+    <div style="font:600 13px/1.5 'Nunito',sans-serif;color:oklch(0.5 0.02 50);margin-bottom:22px">{{ deleteTargetLabel }}. This can't be undone.</div>
+    <div style="display:flex;gap:10px">
+      <span style="flex:1;text-align:center;background:oklch(0.94 0.01 50);color:oklch(0.35 0.02 50);font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px;cursor:pointer" onClick="{{ cancelDelete }}">Cancel</span>
+      <span style="flex:1;text-align:center;background:oklch(0.55 0.16 20);color:#fff;font:800 13px 'Nunito',sans-serif;padding:14px 0;border-radius:16px;cursor:pointer" onClick="{{ confirmDelete }}">Delete</span>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:840},&quot;demoChildCount&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;2&quot;,&quot;options&quot;:[&quot;2&quot;,&quot;4&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo data&quot;},&quot;foodWindowHours&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:2,&quot;min&quot;:1,&quot;max&quot;:12,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;startOnLogin&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+
+const TYPES = ['diaper','feeding','medication','temperature','tummy','sleep','note'];
+const TYPE_LABELS = {diaper:'Diaper',feeding:'Feeding',medication:'Medication',temperature:'Temp',tummy:'Tummy time',sleep:'Sleep',note:'Note'};
+const ACCENT = 'oklch(0.75 0.12 30)';
+const FOOD_TYPES = [
+  { v: 'breastmilk', label: 'Breast Milk' }, { v: 'formula', label: 'Formula' },
+  { v: 'fortified', label: 'Fortified Breast Milk' }, { v: 'solid', label: 'Solid Food' },
+];
+const METHODS_BY_TYPE = {
+  breastmilk: [{ v: 'bottle', label: 'Bottle' }, { v: 'left', label: 'Left Breast' }, { v: 'right', label: 'Right Breast' }, { v: 'both', label: 'Both Breasts' }],
+  formula: [{ v: 'bottle', label: 'Bottle' }],
+  fortified: [{ v: 'bottle', label: 'Bottle' }],
+  solid: [{ v: 'selffed', label: 'Self Fed' }, { v: 'parentfed', label: 'Parent Fed' }],
+};
+const DIRECT_METHODS = ['left', 'right', 'both'];
+const CREATOR = 'Sarah';
+
+class Component extends DCLogic {
+  state = {
+    screen: null, loginMode: 'babybuddy',
+    serverUrl: '', username: '', password: '', haUrl: '', haToken: '',
+    children: null, activeChildIndex: 0, filter: 'all',
+    formMode: 'create', formType: 'diaper', formDraft: null, editingEntryId: null,
+    deleteTarget: null, deleteFromForm: false, customRepeatMode: false,
+    foodWindowHours: 4, tick: 0, runningTimers: [], timerTick: 0, timerEndValue: '', tagInput: '',
+  };
+
+  componentDidMount() {
+    const count = this.props.demoChildCount ?? '2';
+    const now = Date.now();
+    const mk = (id, type, minsAgo, fields, note, tags) => ({ id, type, time: new Date(now - minsAgo * 60000), note: note || '', tags: tags || [CREATOR], ...fields });
+    const emma = { id: 'emma', name: 'Emma', initial: 'E', hue: 30, age: '7 months old', defaultFoodMl: 120, entries: [
+      mk(1, 'diaper', 45, { pee: true, poo: false, pooColor: null }),
+      mk(2, 'feeding', 80, { foodType: 'formula', method: 'bottle', amount: 120, durationMin: 10 }, 'Finished full bottle, seemed hungry'),
+      mk(3, 'diaper', 180, { pee: false, poo: true, pooColor: 'oklch(0.55 0.05 80)' }),
+      mk(5, 'medication', 60, { name: 'Amoxicillin', dose: 5, repeatHours: 8, scheduleType: 'scheduled' }),
+      mk(4, 'medication', 300, { name: 'Tylenol', dose: 5, repeatHours: 4, scheduleType: 'prn' }),
+      mk(15, 'medication', 24 * 60 + 300, { name: 'Amoxicillin', dose: 5, repeatHours: 8, scheduleType: 'scheduled' }),
+      mk(6, 'feeding', 24 * 60 + 70, { foodType: 'breastmilk', method: 'both', amount: null, durationMin: 18 }),
+      mk(7, 'diaper', 24 * 60 + 90, { pee: true, poo: false, pooColor: null }),
+    ] };
+    const noah = { id: 'noah', name: 'Noah', initial: 'N', hue: 200, age: '4 months old', defaultFoodMl: 150, entries: [
+      mk(8, 'feeding', 30, { foodType: 'formula', method: 'bottle', amount: 150, durationMin: 10 }),
+      mk(9, 'diaper', 95, { pee: true, poo: true, pooColor: 'oklch(0.4 0.04 60)' }),
+      mk(10, 'sleep', 150, { start: new Date(now - 190 * 60000), end: new Date(now - 150 * 60000) }),
+    ] };
+    const lily = { id: 'lily', name: 'Lily', initial: 'L', hue: 320, age: '2 years old', defaultFoodMl: 180, entries: [
+      mk(11, 'feeding', 50, { foodType: 'solid', method: 'selffed', amount: 90, durationMin: 10 }),
+      mk(12, 'tummy', 200, { duration: 15 }),
+    ] };
+    const max = { id: 'max', name: 'Max', initial: 'M', hue: 100, age: '10 months old', defaultFoodMl: 200, entries: [
+      mk(13, 'temperature', 400, { value: 37.3, unit: 'C', method: 'forehead' }),
+      mk(14, 'diaper', 40, { pee: true, poo: false, pooColor: null }),
+    ] };
+    this.nextId = 100;
+    this.setState({
+      children: count === '4' ? [emma, noah, lily, max] : [emma, noah],
+      foodWindowHours: this.props.foodWindowHours ?? 4,
+      screen: this.props.startOnLogin ? 'login' : 'dashboard',
+    });
+    this._timer = setInterval(() => this.setState(s => ({ tick: s.tick + 1 })), 60000);
+  }
+  componentWillUnmount() { clearInterval(this._timer); this._stopTick(); }
+  _startTick() { if (this._tickTimer) return; this._tickTimer = setInterval(() => this.setState(s => ({ timerTick: s.timerTick + 1 })), 1000); }
+  _stopTick() { if (this._tickTimer) { clearInterval(this._tickTimer); this._tickTimer = null; } }
+  elapsedText(startedAt) {
+    const secs = Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
+    const m = Math.floor(secs / 60), sec = secs % 60;
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  fmtRelative(d) {
+    const mins = Math.round((Date.now() - d.getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const h = Math.floor(mins / 60), r = mins % 60;
+    if (h < 24) return h + 'h' + (r ? ` ${r}m` : '') + ' ago';
+    return Math.floor(h / 24) + 'd ago';
+  }
+  dayLabel(d) {
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return 'Today';
+    const y = new Date(now); y.setDate(y.getDate() - 1);
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  toLocalInput(d) {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  methodLabel(type, method) {
+    const list = METHODS_BY_TYPE[type] || [];
+    const m = list.find(x => x.v === method);
+    return m ? m.label : method;
+  }
+
+  entryTitle(e) {
+    switch (e.type) {
+      case 'diaper': return 'Diaper · ' + (e.pee && e.poo ? 'Wet & Solid' : e.poo ? 'Solid' : 'Wet');
+      case 'feeding': {
+        const typeLabel = (FOOD_TYPES.find(t => t.v === e.foodType) || {}).label || 'Feeding';
+        if (DIRECT_METHODS.includes(e.method)) return `${typeLabel} · ${this.methodLabel(e.foodType, e.method)} · ${e.durationMin || 0} min`;
+        return `${typeLabel} · ${e.amount || 0}${e.foodType === 'solid' ? 'g' : 'ml'}`;
+      }
+      case 'medication': return `${e.name || 'Medication'} · ${e.dose}ml`;
+      case 'temperature': return `Temperature · ${e.value}°${e.unit}`;
+      case 'tummy': return `Tummy time · ${e.duration} min`;
+      case 'sleep': return e.end ? `Sleep · ${Math.round((e.end - e.start) / 60000)} min` : 'Sleep · in progress';
+      case 'note': return 'Note';
+      default: return '';
+    }
+  }
+  iconBgFor(e) {
+    const m = { diaper: 'oklch(0.97 0.015 220)', feeding: 'oklch(0.94 0.04 30)', medication: 'oklch(0.97 0.02 350)', temperature: 'oklch(0.96 0.02 100)', tummy: 'oklch(0.95 0.02 140)', sleep: 'oklch(0.95 0.02 260)', note: 'oklch(0.94 0.01 50)' };
+    return m[e.type];
+  }
+
+  get activeChild() { return this.state.children ? this.state.children[this.state.activeChildIndex] : null; }
+  findTimer(type, childIndex) { return this.state.runningTimers.find(t => t.type === type && t.childIndex === childIndex); }
+
+  draftFor(type, child) {
+    const base = { time: new Date(), note: '', tags: [CREATOR] };
+    switch (type) {
+      case 'diaper': return { ...base, pee: true, poo: false, pooColor: null };
+      case 'feeding': return { ...base, foodType: 'formula', method: 'bottle', amount: child ? child.defaultFoodMl : 120, durationMin: 10 };
+      case 'medication': return { ...base, name: '', dose: 5, repeatHours: 6, scheduleType: 'scheduled' };
+      case 'temperature': return { ...base, value: 37.0, unit: 'C', method: 'oral' };
+      case 'tummy': return { ...base, duration: 10 };
+      case 'sleep': return { ...base, start: new Date(), end: null };
+      case 'note': return { ...base };
+      default: return base;
+    }
+  }
+
+  selectChild = (i) => this.setState({ activeChildIndex: i });
+  nextChild = () => this.setState(s => ({ activeChildIndex: (s.activeChildIndex + 1) % s.children.length }));
+  openSettings = () => this.setState({ screen: 'settings' });
+  backToDashboard = () => this.setState({ screen: 'dashboard' });
+  logOut = () => this.setState({ screen: 'login' });
+
+  selectLoginModeBB = () => this.setState({ loginMode: 'babybuddy' });
+  selectLoginModeHA = () => this.setState({ loginMode: 'homeassistant' });
+  onServerUrlChange = (e) => this.setState({ serverUrl: e.target.value });
+  onUsernameChange = (e) => this.setState({ username: e.target.value });
+  onPasswordChange = (e) => this.setState({ password: e.target.value });
+  onHaUrlChange = (e) => this.setState({ haUrl: e.target.value });
+  onHaTokenChange = (e) => this.setState({ haToken: e.target.value });
+  doLogin = () => this.setState({ screen: 'dashboard' });
+
+  openQuickForm(type, opts) {
+    opts = opts || {};
+    const idx = this.state.activeChildIndex;
+    const rt = this.findTimer(type, idx);
+    let draft;
+    if (rt) {
+      draft = this.draftFor(type, this.activeChild);
+      draft.time = rt.startedAt;
+      if (type === 'sleep') { draft.start = rt.startedAt; draft.end = null; }
+    } else {
+      draft = this.draftFor(type, this.activeChild);
+    }
+    this.setState({ screen: 'form', formMode: 'create', formType: type, formDraft: draft, editingEntryId: null, customRepeatMode: false, timerEndValue: this.toLocalInput(new Date()), tagInput: '' });
+  }
+  openDiaperQuick = () => this.openQuickForm('diaper');
+  openFeedingQuick = () => this.openQuickForm('feeding');
+  openMedicationQuick = () => this.openQuickForm('medication');
+  openMoreQuick = () => this.openQuickForm('temperature');
+  openSleepQuick = () => {
+    const idx = this.state.activeChildIndex;
+    if (!this.findTimer('sleep', idx)) this.startTimer('sleep', idx);
+    this.openQuickForm('sleep');
+  };
+  openTummyQuick = () => {
+    const idx = this.state.activeChildIndex;
+    if (!this.findTimer('tummy', idx)) this.startTimer('tummy', idx);
+    this.openQuickForm('tummy');
+  };
+  goToTimer(type, childIndex) { this.setState({ activeChildIndex: childIndex }, () => this.openQuickForm(type)); }
+
+  startTimer(type, childIndexOverride) {
+    const idx = childIndexOverride != null ? childIndexOverride : this.state.activeChildIndex;
+    if (this.findTimer(type, idx)) return;
+    const startedAt = new Date();
+    this.setState(s => ({ runningTimers: [...s.runningTimers, { type, childIndex: idx, startedAt }], timerEndValue: this.toLocalInput(startedAt) }));
+    this._startTick();
+  }
+  startFeedingTimer = () => { this.startTimer('feeding', this.state.activeChildIndex); this.updateDraft({ time: new Date() }); };
+  startTummyTimer = () => { this.startTimer('tummy', this.state.activeChildIndex); this.updateDraft({ time: new Date() }); };
+  startSleepTimer = () => { this.startTimer('sleep', this.state.activeChildIndex); this.updateDraft({ time: new Date(), start: new Date(), end: null }); };
+  onTimerEndChange = (e) => this.setState({ timerEndValue: e.target.value });
+  stopTimerFor(type) {
+    const idx = this.state.activeChildIndex;
+    const rt = this.findTimer(type, idx);
+    if (!rt) return;
+    const endDate = this.state.timerEndValue ? new Date(this.state.timerEndValue) : new Date();
+    const minutes = Math.max(1, Math.round((endDate.getTime() - rt.startedAt.getTime()) / 60000));
+    if (type === 'feeding') this.updateDraft({ durationMin: minutes });
+    else if (type === 'tummy') this.updateDraft({ duration: minutes });
+    else if (type === 'sleep') this.updateDraft({ end: endDate });
+    this.setState(s => ({ runningTimers: s.runningTimers.filter(t => !(t.type === type && t.childIndex === idx)) }));
+    if (this.state.runningTimers.length <= 1) this._stopTick();
+  }
+  stopFeedingTimer = () => this.stopTimerFor('feeding');
+  stopTummyTimer = () => this.stopTimerFor('tummy');
+  stopSleepTimer = () => this.stopTimerFor('sleep');
+
+  openEditForm(entry) { this.setState({ screen: 'form', formMode: 'edit', formType: entry.type, formDraft: { ...entry }, editingEntryId: entry.id, customRepeatMode: entry.type === 'medication' && ![2, 4, 6, 8, 12].includes(entry.repeatHours), tagInput: '' }); }
+  closeForm = () => this.setState({ screen: 'dashboard' });
+  setFormType(type) {
+    this.setState(s => ({ formType: type, formDraft: { ...this.draftFor(type, this.activeChild), time: s.formDraft.time, note: s.formDraft.note, tags: s.formDraft.tags }, customRepeatMode: false }));
+  }
+  updateDraft(patch) { this.setState(s => ({ formDraft: { ...s.formDraft, ...patch } })); }
+  onFormTimeChange = (e) => this.updateDraft({ time: new Date(e.target.value) });
+  onFormEndChange = (e) => this.updateDraft({ end: new Date(e.target.value) });
+  onNoteChange = (e) => this.updateDraft({ note: e.target.value });
+  onMedNameChange = (e) => this.updateDraft({ name: e.target.value });
+  toggleDiaperPee = () => this.updateDraft({ pee: !this.state.formDraft.pee });
+  toggleDiaperPoo = () => this.updateDraft({ poo: !this.state.formDraft.poo });
+  setFoodType(t) { const methods = METHODS_BY_TYPE[t]; this.updateDraft({ foodType: t, method: methods[0].v }); }
+  setFeedMethod(m) { this.updateDraft({ method: m }); }
+  incAmount = () => this.setState(s => ({ formDraft: { ...s.formDraft, amount: (s.formDraft.amount || 0) + 10 } }));
+  decAmount = () => this.setState(s => ({ formDraft: { ...s.formDraft, amount: Math.max(0, (s.formDraft.amount || 0) - 10) } }));
+  incDuration = () => this.setState(s => ({ formDraft: { ...s.formDraft, durationMin: (s.formDraft.durationMin || 0) + 5 } }));
+  decDuration = () => this.setState(s => ({ formDraft: { ...s.formDraft, durationMin: Math.max(0, (s.formDraft.durationMin || 0) - 5) } }));
+  incDose = () => this.setState(s => ({ formDraft: { ...s.formDraft, dose: Math.round(((s.formDraft.dose || 0) + 0.5) * 100) / 100 } }));
+  decDose = () => this.setState(s => ({ formDraft: { ...s.formDraft, dose: Math.max(0, Math.round(((s.formDraft.dose || 0) - 0.5) * 100) / 100) } }));
+  onDoseChange = (e) => { const v = parseFloat(e.target.value); this.updateDraft({ dose: isNaN(v) ? 0 : v }); };
+  setRepeatHours(h) { this.setState({ customRepeatMode: false }); this.updateDraft({ repeatHours: h }); }
+  setScheduleType(t) { this.updateDraft({ scheduleType: t }); }
+  setScheduledType = () => this.setScheduleType('scheduled');
+  setPrnType = () => this.setScheduleType('prn');
+  activateCustomRepeat = () => this.setState({ customRepeatMode: true });
+  onCustomRepeatChange = (e) => { const v = parseFloat(e.target.value); this.updateDraft({ repeatHours: isNaN(v) ? 0 : v }); };
+  applyMedSuggestion(sugg) { this.setState({ customRepeatMode: false }); this.updateDraft({ name: sugg.name, dose: sugg.dose, repeatHours: sugg.repeatHours, scheduleType: sugg.scheduleType }); }
+  incTemp = () => this.setState(s => ({ formDraft: { ...s.formDraft, value: Math.round((s.formDraft.value + 0.1) * 10) / 10 } }));
+  decTemp = () => this.setState(s => ({ formDraft: { ...s.formDraft, value: Math.round((s.formDraft.value - 0.1) * 10) / 10 } }));
+  setTempOral = () => this.updateDraft({ method: 'oral' });
+  setTempEar = () => this.updateDraft({ method: 'ear' });
+  setTempForehead = () => this.updateDraft({ method: 'forehead' });
+  incTummyDuration = () => this.setState(s => ({ formDraft: { ...s.formDraft, duration: (s.formDraft.duration || 0) + 5 } }));
+  decTummyDuration = () => this.setState(s => ({ formDraft: { ...s.formDraft, duration: Math.max(0, (s.formDraft.duration || 0) - 5) } }));
+  toggleOngoing = () => this.setState(s => ({ formDraft: { ...s.formDraft, end: s.formDraft.end ? null : new Date() } }));
+  setPooColor(c) { this.updateDraft({ pooColor: c }); }
+  onTagInputChange = (e) => this.setState({ tagInput: e.target.value });
+  addTag = () => {
+    const v = this.state.tagInput.trim();
+    if (!v) return;
+    this.setState(s => ({ formDraft: { ...s.formDraft, tags: [...(s.formDraft.tags || []), v] }, tagInput: '' }));
+  };
+  removeTag(idx) { this.setState(s => ({ formDraft: { ...s.formDraft, tags: s.formDraft.tags.filter((_, i) => i !== idx) } })); }
+
+  saveForm = () => {
+    const type = this.state.formType, idx = this.state.activeChildIndex;
+    if (this.findTimer(type, idx)) this.stopTimerFor(type);
+    setTimeout(() => {
+      const { formMode, formType, formDraft, editingEntryId, activeChildIndex } = this.state;
+      this.setState(s => ({
+        children: s.children.map((c, i) => {
+          if (i !== activeChildIndex) return c;
+          if (formMode === 'create') return { ...c, entries: [{ id: this.nextId++, type: formType, ...formDraft }, ...c.entries] };
+          return { ...c, entries: c.entries.map(e => e.id === editingEntryId ? { ...e, ...formDraft, type: formType } : e) };
+        }),
+        screen: 'dashboard',
+      }));
+    }, 0);
+  };
+  requestDelete(entryId) { this.setState({ deleteTarget: entryId, deleteFromForm: false }); }
+  requestDeleteFromForm = () => this.setState({ deleteTarget: this.state.editingEntryId, deleteFromForm: true });
+  cancelDelete = () => this.setState({ deleteTarget: null });
+  confirmDelete = () => {
+    this.setState(s => ({
+      children: s.children.map((c, i) => i === s.activeChildIndex ? { ...c, entries: c.entries.filter(e => e.id !== s.deleteTarget) } : c),
+      deleteTarget: null, screen: 'dashboard',
+    }));
+  };
+  setFilter(f) { this.setState({ filter: f }); }
+  setWindowHours(h) { this.setState({ foodWindowHours: h }); }
+  incChildFood(idx) { this.setState(s => ({ children: s.children.map((c, i) => i === idx ? { ...c, defaultFoodMl: c.defaultFoodMl + 10 } : c) })); }
+  decChildFood(idx) { this.setState(s => ({ children: s.children.map((c, i) => i === idx ? { ...c, defaultFoodMl: Math.max(0, c.defaultFoodMl - 10) } : c) })); }
+
+  timeUntil(entry) {
+    const nextAt = new Date(entry.time.getTime() + entry.repeatHours * 3600000);
+    const now = new Date();
+    const overdue = now >= nextAt;
+    const diffMin = Math.round(Math.abs(nextAt - now) / 60000);
+    const h = Math.floor(diffMin / 60), m = diffMin % 60;
+    return { overdue, text: h > 0 ? `in ${h}h ${m}m` : `in ${m}m` };
+  }
+  dedupeByName(meds) {
+    const seen = new Set(), out = [];
+    for (const e of meds.slice().sort((a, b) => b.time - a.time)) { if (!seen.has(e.name)) { seen.add(e.name); out.push(e); } }
+    return out;
+  }
+  neededList(child) {
+    const now = Date.now();
+    const meds = this.dedupeByName(child.entries.filter(e => e.type === 'medication' && e.scheduleType === 'scheduled'));
+    return meds.map(e => ({ e, nextDue: e.time.getTime() + e.repeatHours * 3600000 }))
+      .filter(({ nextDue }) => nextDue >= now - 24 * 3600000 && nextDue <= now + 24 * 3600000)
+      .map(({ e }) => { const t = this.timeUntil(e); return { label: `${e.name} needed`, value: t.overdue ? 'overdue' : t.text, urgent: t.overdue,
+        bg: t.overdue ? 'oklch(0.95 0.05 20)' : 'oklch(0.97 0.01 60)', fg: t.overdue ? 'oklch(0.5 0.14 20)' : 'oklch(0.5 0.02 50)' }; });
+  }
+  eligibleList(child) {
+    const cutoff = Date.now() - 10 * 24 * 3600000;
+    const meds = this.dedupeByName(child.entries.filter(e => e.type === 'medication' && e.scheduleType === 'prn' && e.time.getTime() >= cutoff));
+    return meds.map(e => { const t = this.timeUntil(e); return { label: t.overdue ? `Eligible for ${e.name}` : `${e.name} eligible`, value: t.overdue ? 'now' : t.text, urgent: t.overdue,
+      bg: t.overdue ? 'oklch(0.97 0.02 350)' : 'oklch(0.97 0.01 60)', fg: t.overdue ? 'oklch(0.45 0.12 350)' : 'oklch(0.5 0.02 50)' }; });
+  }
+  medSuggestions(child) {
+    const meds = child.entries.filter(e => e.type === 'medication').slice().sort((a, b) => b.time - a.time).slice(0, 20);
+    const seen = new Set(), out = [];
+    for (const e of meds) { if (!seen.has(e.name)) { seen.add(e.name); out.push(e); } }
+    return out;
+  }
+  foodTotal(child, hours) {
+    const cutoff = Date.now() - hours * 3600000;
+    return child.entries.filter(e => e.type === 'feeding' && e.time.getTime() >= cutoff && e.amount).reduce((s, e) => s + e.amount, 0);
+  }
+  lastOf(child, pred) {
+    const list = child.entries.filter(pred);
+    if (!list.length) return null;
+    return list.reduce((a, b) => a.time > b.time ? a : b);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const ready = !!s.children;
+    const screen = s.screen || 'dashboard';
+    const idx = s.activeChildIndex;
+    const vals = {
+      isLogin: screen === 'login', isDashboard: ready && screen === 'dashboard', isForm: ready && screen === 'form', isSettings: ready && screen === 'settings',
+      appBarTitle: screen === 'login' ? 'Log in' : screen === 'form' ? 'Log entry' : screen === 'settings' ? 'Settings' : 'Dashboard',
+      isLoginModeBB: s.loginMode === 'babybuddy', isLoginModeHA: s.loginMode === 'homeassistant',
+      babyBuddyTabStyle: s.loginMode === 'babybuddy' ? 'background:#fff;color:oklch(0.3 0.02 50);box-shadow:0 1px 3px oklch(0.3 0.02 50 / 0.1)' : 'background:transparent;color:oklch(0.5 0.02 50)',
+      haTabStyle: s.loginMode === 'homeassistant' ? 'background:#fff;color:oklch(0.3 0.02 50);box-shadow:0 1px 3px oklch(0.3 0.02 50 / 0.1)' : 'background:transparent;color:oklch(0.5 0.02 50)',
+      selectLoginModeBB: this.selectLoginModeBB, selectLoginModeHA: this.selectLoginModeHA,
+      serverUrl: s.serverUrl, username: s.username, password: s.password, haUrl: s.haUrl, haToken: s.haToken,
+      onServerUrlChange: this.onServerUrlChange, onUsernameChange: this.onUsernameChange, onPasswordChange: this.onPasswordChange,
+      onHaUrlChange: this.onHaUrlChange, onHaTokenChange: this.onHaTokenChange, doLogin: this.doLogin,
+      openSettings: this.openSettings, backToDashboard: this.backToDashboard, logOut: this.logOut,
+      openDiaperQuick: this.openDiaperQuick, openMedicationQuick: this.openMedicationQuick, openMoreQuick: this.openMoreQuick,
+      nextChild: this.nextChild, closeForm: this.closeForm, saveForm: this.saveForm,
+      cancelDelete: this.cancelDelete, confirmDelete: this.confirmDelete,
+      requestDeleteFromForm: this.requestDeleteFromForm,
+      onFormTimeChange: this.onFormTimeChange, onFormEndChange: this.onFormEndChange, onNoteChange: this.onNoteChange, onMedNameChange: this.onMedNameChange,
+      toggleDiaperPee: this.toggleDiaperPee, toggleDiaperPoo: this.toggleDiaperPoo,
+      incAmount: this.incAmount, decAmount: this.decAmount, incDuration: this.incDuration, decDuration: this.decDuration,
+      incDose: this.incDose, decDose: this.decDose, incTemp: this.incTemp, decTemp: this.decTemp,
+      setTempOral: this.setTempOral, setTempEar: this.setTempEar, setTempForehead: this.setTempForehead,
+      incTummyDuration: this.incTummyDuration, decTummyDuration: this.decTummyDuration, toggleOngoing: this.toggleOngoing,
+      setScheduledType: this.setScheduledType, setPrnType: this.setPrnType,
+      activateCustomRepeat: this.activateCustomRepeat, onCustomRepeatChange: this.onCustomRepeatChange, onDoseChange: this.onDoseChange,
+      startFeedingTimer: this.startFeedingTimer, startTummyTimer: this.startTummyTimer, startSleepTimer: this.startSleepTimer,
+      stopFeedingTimer: this.stopFeedingTimer, stopTummyTimer: this.stopTummyTimer, stopSleepTimer: this.stopSleepTimer,
+      onTimerEndChange: this.onTimerEndChange, timerEndValue: s.timerEndValue,
+      tagInput: s.tagInput, onTagInputChange: this.onTagInputChange, addTag: this.addTag,
+      foodWindowHours: s.foodWindowHours,
+      todayStr: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+      greeting: (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; })(),
+      showDeleteConfirm: s.deleteTarget != null,
+      deleteTargetLabel: (() => {
+        if (s.deleteTarget == null || !ready) return '';
+        const e = this.activeChild.entries.find(x => x.id === s.deleteTarget);
+        return e ? this.entryTitle(e) : '';
+      })(),
+    };
+    if (!ready) return vals;
+
+    const children = s.children;
+    const active = children[idx];
+    vals.isCreateMode = s.formMode === 'create';
+    vals.isEditMode = s.formMode === 'edit';
+    vals.isCarousel = children.length <= 2;
+    vals.isTabs = children.length > 2;
+
+    vals.hasRunningTimers = s.runningTimers.length > 0;
+    vals.runningTimersDisplay = s.runningTimers.map(t => ({
+      label: `${children[t.childIndex].name} · ${TYPE_LABELS[t.type]}`, elapsed: this.elapsedText(t.startedAt),
+      onClick: () => this.goToTimer(t.type, t.childIndex),
+    }));
+
+    const disabledStyle = 'background:oklch(0.9 0.01 50);color:oklch(0.6 0.02 50);cursor:default';
+    const activeStyle = 'background:oklch(0.75 0.12 30);color:#fff;cursor:pointer';
+    const buildChildCard = (c, cIdx) => {
+      const lastPee = this.lastOf(c, e => e.type === 'diaper' && e.pee);
+      const lastPoo = this.lastOf(c, e => e.type === 'diaper' && e.poo);
+      const lastFeed = this.lastOf(c, e => e.type === 'feeding');
+      const feedingRt = this.findTimer('feeding', cIdx), sleepRt = this.findTimer('sleep', cIdx), tummyRt = this.findTimer('tummy', cIdx);
+      return {
+        ...c,
+        avatarBg: `oklch(0.93 0.05 ${c.hue})`, avatarFg: `oklch(0.5 0.1 ${c.hue})`,
+        lastPee: lastPee ? this.fmtRelative(lastPee.time) : '—',
+        lastPoo: lastPoo ? this.fmtRelative(lastPoo.time) : '—',
+        lastFeeding: lastFeed ? this.entryTitle(lastFeed) + ' · ' + this.fmtRelative(lastFeed.time) : '—',
+        neededMeds: this.neededList(c), eligibleMeds: this.eligibleList(c),
+        foodTotal: this.foodTotal(c, s.foodWindowHours),
+        diaperBtnStyle: activeStyle,
+        medBtnStyle: activeStyle,
+        foodBtnStyle: feedingRt ? disabledStyle : activeStyle, foodBtnLabel: feedingRt ? this.elapsedText(feedingRt.startedAt) : 'Food',
+        foodBtnClick: feedingRt ? (() => {}) : this.openFeedingQuick,
+        sleepBtnStyle: sleepRt ? disabledStyle : activeStyle, sleepBtnLabel: sleepRt ? this.elapsedText(sleepRt.startedAt) : 'Sleep',
+        sleepBtnClick: sleepRt ? (() => {}) : this.openSleepQuick,
+        tummyBtnStyle: tummyRt ? disabledStyle : activeStyle, tummyBtnLabel: tummyRt ? this.elapsedText(tummyRt.startedAt) : 'Tummy',
+        tummyBtnClick: tummyRt ? (() => {}) : this.openTummyQuick,
+      };
+    };
+    vals.activeChild = buildChildCard(active, idx);
+    vals.peekChildName = children[(idx + 1) % children.length].name;
+    vals.dots = children.map((c, i) => ({ color: i === idx ? ACCENT : 'oklch(0.85 0.02 50)', onClick: () => this.selectChild(i) }));
+    vals.tabs = children.map((c, i) => ({ name: c.name, bg: i === idx ? ACCENT : '#fff', fg: i === idx ? '#fff' : 'oklch(0.4 0.02 50)', onClick: () => this.selectChild(i) }));
+
+    const filterDefs = [['all', 'All'], ['diaper', 'Diaper'], ['feeding', 'Feeding'], ['medication', 'Medication'], ['sleep', 'Sleep']];
+    vals.filterChips = filterDefs.map(([v, label]) => ({ label, bg: s.filter === v ? ACCENT : '#fff', fg: s.filter === v ? '#fff' : 'oklch(0.4 0.02 50)', onClick: () => this.setFilter(v) }));
+    const filtered = active.entries.filter(e => s.filter === 'all' || e.type === s.filter).slice().sort((a, b) => b.time - a.time);
+    vals.feedIsEmpty = filtered.length === 0;
+    let lastGroup = null;
+    vals.feedItems = filtered.map(e => {
+      const group = this.dayLabel(e.time);
+      const showHeader = group !== lastGroup;
+      lastGroup = group;
+      return {
+        showHeader, groupLabel: group, title: this.entryTitle(e), timeText: this.fmtRelative(e.time),
+        hasNote: !!e.note, note: e.note, tags: e.tags || [], iconBg: this.iconBgFor(e),
+        onEdit: () => this.openEditForm(e), onDelete: () => this.requestDelete(e.id),
+      };
+    });
+
+    // form
+    const type = s.formType, draft = s.formDraft || this.draftFor(type, active);
+    vals.formTitle = s.formMode === 'edit' ? 'Edit entry' : 'New entry';
+    vals.formDraft = draft;
+    vals.formTimeValue = draft.time ? this.toLocalInput(draft.time) : '';
+    vals.formEndValue = draft.end ? this.toLocalInput(draft.end) : this.toLocalInput(new Date());
+    vals.typeChips = TYPES.map(t => ({ label: TYPE_LABELS[t], bg: t === type ? ACCENT : '#fff', fg: t === type ? '#fff' : 'oklch(0.4 0.02 50)', onClick: () => this.setFormType(t) }));
+    vals.isDiaper = type === 'diaper'; vals.isFeeding = type === 'feeding'; vals.isMedication = type === 'medication';
+    vals.isTemperature = type === 'temperature'; vals.isTummy = type === 'tummy'; vals.isSleep = type === 'sleep';
+
+    vals.tagChips = (draft.tags || []).map((tg, i) => ({
+      label: i === 0 && tg === CREATOR ? `by ${tg}` : tg, removable: !(i === 0 && tg === CREATOR),
+      bg: i === 0 && tg === CREATOR ? 'oklch(0.93 0.05 30)' : 'oklch(0.93 0.01 50)', fg: i === 0 && tg === CREATOR ? 'oklch(0.5 0.1 30)' : 'oklch(0.4 0.02 50)',
+      onRemove: () => this.removeTag(i),
+    }));
+
+    if (vals.isDiaper) {
+      const pee = draft.pee, poo = draft.poo;
+      vals.diaperPeeBg = pee ? 'oklch(0.75 0.12 220)' : 'oklch(0.97 0.015 220)'; vals.diaperPeeFg = pee ? '#fff' : 'oklch(0.5 0.08 220)';
+      vals.diaperPooBg = poo ? 'oklch(0.7 0.1 80)' : 'oklch(0.96 0.02 80)'; vals.diaperPooFg = poo ? '#fff' : 'oklch(0.5 0.08 80)';
+      const colors = ['oklch(0.85 0.16 95)', 'oklch(0.55 0.14 140)', 'oklch(0.4 0.08 60)', 'oklch(0.2 0.01 50)'];
+      vals.pooColors = colors.map(c => ({ color: c, border: draft.pooColor === c ? `2px solid ${ACCENT}` : '2px solid oklch(0.85 0.01 50)', onClick: () => this.setPooColor(c) }));
+    }
+    if (vals.isFeeding) {
+      vals.foodTypeChips = FOOD_TYPES.map(ft => ({ label: ft.label, bg: draft.foodType === ft.v ? ACCENT : '#fff', fg: draft.foodType === ft.v ? '#fff' : 'oklch(0.4 0.02 50)', onClick: () => this.setFoodType(ft.v) }));
+      vals.feedMethodChips = (METHODS_BY_TYPE[draft.foodType] || []).map(m => ({ label: m.label, bg: draft.method === m.v ? ACCENT : '#fff', fg: draft.method === m.v ? '#fff' : 'oklch(0.4 0.02 50)', onClick: () => this.setFeedMethod(m.v) }));
+      vals.isDirectBreastMethod = DIRECT_METHODS.includes(draft.method);
+      vals.isAmountField = draft.method === 'bottle' || draft.foodType === 'solid';
+      vals.amountLabel = draft.foodType === 'solid' ? 'Amount (g)' : 'Amount (ml)';
+      vals.isFeedingTimerRunning = !!this.findTimer('feeding', idx);
+      vals.isFeedingTimerNotRunning = !vals.isFeedingTimerRunning;
+      const frt = this.findTimer('feeding', idx);
+      vals.feedingElapsedText = frt ? this.elapsedText(frt.startedAt) : '0:00';
+    }
+    if (vals.isMedication) {
+      const customActive = s.customRepeatMode;
+      vals.repeatOptions = [2, 4, 6, 8, 12].map(h => ({ label: h + 'h', bg: !customActive && draft.repeatHours === h ? ACCENT : '#fff', fg: !customActive && draft.repeatHours === h ? '#fff' : 'oklch(0.4 0.02 50)', onClick: () => this.setRepeatHours(h) }));
+      vals.customRepeatBg = customActive ? ACCENT : '#fff'; vals.customRepeatFg = customActive ? '#fff' : 'oklch(0.4 0.02 50)';
+      vals.isCustomRepeat = customActive;
+      vals.scheduledBg = draft.scheduleType === 'scheduled' ? ACCENT : '#fff'; vals.scheduledFg = draft.scheduleType === 'scheduled' ? '#fff' : 'oklch(0.4 0.02 50)';
+      vals.prnBg = draft.scheduleType === 'prn' ? ACCENT : '#fff'; vals.prnFg = draft.scheduleType === 'prn' ? '#fff' : 'oklch(0.4 0.02 50)';
+      vals.repeatFieldLabel = draft.scheduleType === 'prn' ? 'Eligible again after' : 'Repeat next dose in';
+      const suggestions = this.medSuggestions(active);
+      vals.hasMedSuggestions = suggestions.length > 0;
+      vals.medSuggestions = suggestions.map(e => ({
+        name: e.name, subtitle: `${e.dose}ml · every ${e.repeatHours}h · ${e.scheduleType === 'prn' ? 'as-needed' : 'scheduled'}`,
+        onClick: () => this.applyMedSuggestion(e),
+      }));
+    }
+    if (vals.isTemperature) {
+      vals.tempOralBg = draft.method === 'oral' ? ACCENT : '#fff'; vals.tempOralFg = draft.method === 'oral' ? '#fff' : 'oklch(0.4 0.02 50)';
+      vals.tempEarBg = draft.method === 'ear' ? ACCENT : '#fff'; vals.tempEarFg = draft.method === 'ear' ? '#fff' : 'oklch(0.4 0.02 50)';
+      vals.tempForeheadBg = draft.method === 'forehead' ? ACCENT : '#fff'; vals.tempForeheadFg = draft.method === 'forehead' ? '#fff' : 'oklch(0.4 0.02 50)';
+    }
+    if (vals.isTummy) {
+      vals.isTummyTimerRunning = !!this.findTimer('tummy', idx);
+      vals.isTummyTimerNotRunning = !vals.isTummyTimerRunning;
+      const trt = this.findTimer('tummy', idx);
+      vals.tummyElapsedText = trt ? this.elapsedText(trt.startedAt) : '0:00';
+    }
+    if (vals.isSleep) {
+      vals.isSleepTimerRunning = !!this.findTimer('sleep', idx);
+      vals.isSleepTimerNotRunning = !vals.isSleepTimerRunning;
+      const srt = this.findTimer('sleep', idx);
+      vals.sleepElapsedText = srt ? this.elapsedText(srt.startedAt) : '0:00';
+      vals.isSleepEnded = !!draft.end;
+      vals.ongoingTrackBg = !draft.end ? ACCENT : 'oklch(0.88 0.01 50)';
+      vals.ongoingKnobOffset = !draft.end ? '20px' : '0px';
+    }
+
+    vals.windowOptions = [2, 4, 6, 12].map(h => ({ label: h + 'h', bg: s.foodWindowHours === h ? ACCENT : '#fff', fg: s.foodWindowHours === h ? '#fff' : 'oklch(0.4 0.02 50)', border: s.foodWindowHours === h ? `2px solid ${ACCENT}` : '2px solid oklch(0.9 0.02 50)', onClick: () => this.setWindowHours(h) }));
+    vals.settingsChildren = children.map((c, i) => ({ name: c.name, initial: c.initial, avatarBg: `oklch(0.93 0.05 ${c.hue})`, avatarFg: `oklch(0.5 0.1 ${c.hue})`, defaultFoodMl: c.defaultFoodMl, onInc: () => this.incChildFood(i), onDec: () => this.decChildFood(i) }));
+    vals.connectedServerLabel = s.loginMode === 'homeassistant' ? (s.haUrl || 'homeassistant.local:8123') : (s.serverUrl || 'babybuddy.home.local');
+
+    return vals;
+  }
+}
+
+</script>
+</body>
+</html>
