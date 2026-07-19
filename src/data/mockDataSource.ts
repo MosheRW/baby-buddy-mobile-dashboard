@@ -1,0 +1,36 @@
+/**
+ * In-memory data source used for development and the emulator-free web QA
+ * preview (see USE_MOCK_DATA in dataSource.ts). Mirrors the real source's
+ * behaviour closely enough to exercise the UI without a server.
+ */
+import type { DataSource } from '../api/babybuddy';
+import type { Entry } from '../api/types';
+import { mockChildren, mockEntries } from './mockData';
+
+export function createMockDataSource(): DataSource {
+  const children = [...mockChildren];
+  let entries = [...mockEntries];
+  let nextId = 1000;
+
+  return {
+    async getChildren() {
+      return children;
+    },
+    async getEntries() {
+      return [...entries].sort((a, b) => Date.parse(b.time) - Date.parse(a.time));
+    },
+    async createEntry(entry) {
+      // Mimic the server assigning the id, so ids stay namespaced like the real ones.
+      const saved: Entry = { ...entry, id: `${entry.type}:${nextId++}` };
+      entries = [saved, ...entries];
+      return saved;
+    },
+    async updateEntry(entry) {
+      entries = entries.map((e) => (e.id === entry.id ? entry : e));
+      return entry;
+    },
+    async deleteEntry(id) {
+      entries = entries.filter((e) => e.id !== id);
+    },
+  };
+}

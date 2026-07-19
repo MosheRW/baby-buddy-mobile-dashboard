@@ -1,43 +1,25 @@
 /**
- * Data-source seam. Phase 2 uses an in-memory mock; Phase 5 swaps in a real
- * implementation backed by the Baby Buddy / Home Assistant APIs behind the same
- * interface. Screens depend on this interface, never on the mock module directly.
+ * Chooses the active data source. The real Baby Buddy client is the default;
+ * flip `USE_MOCK_DATA` to run the UI against in-memory fixtures (useful for the
+ * web QA preview, where a cross-origin server would be blocked by CORS).
+ *
+ * The source reads the session straight from the stores rather than taking it
+ * as an argument, so it stays a plain module singleton that React Query calls.
  */
-import type { Child, Entry } from '../api/types';
-import { mockChildren, mockEntries } from './mockData';
+import type { DataSource } from '../api/babybuddy';
+import { createBabyBuddyDataSource } from '../api/babybuddy';
+import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { createMockDataSource } from './mockDataSource';
 
-export interface DataSource {
-  getChildren(): Promise<Child[]>;
-  getEntries(): Promise<Entry[]>;
-  createEntry(entry: Entry): Promise<Entry>;
-  updateEntry(entry: Entry): Promise<Entry>;
-  deleteEntry(id: string): Promise<void>;
-}
+/** Set to true to run the app entirely against fixtures. */
+export const USE_MOCK_DATA = false;
 
-/** Simple mutable in-memory source for Phase 2 development. */
-function createMockDataSource(): DataSource {
-  let children = [...mockChildren];
-  let entries = [...mockEntries];
+export const dataSource: DataSource = USE_MOCK_DATA
+  ? createMockDataSource()
+  : createBabyBuddyDataSource(
+      () => useAuthStore.getState().session,
+      (childId) => useSettingsStore.getState().defaultFoodMl[childId],
+    );
 
-  return {
-    async getChildren() {
-      return children;
-    },
-    async getEntries() {
-      return entries;
-    },
-    async createEntry(entry) {
-      entries = [entry, ...entries];
-      return entry;
-    },
-    async updateEntry(entry) {
-      entries = entries.map((e) => (e.id === entry.id ? entry : e));
-      return entry;
-    },
-    async deleteEntry(id) {
-      entries = entries.filter((e) => e.id !== id);
-    },
-  };
-}
-
-export const dataSource: DataSource = createMockDataSource();
+export type { DataSource };

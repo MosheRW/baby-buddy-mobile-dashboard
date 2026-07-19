@@ -7,7 +7,7 @@ import { ChevronLeftGlyph } from '../../components/glyphs';
 import { avatarTint, colors, fontSize, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useAuthStore, useSettingsStore } from '../../stores';
-import { useDashboardData } from '../../data/useData';
+import { useDashboardData } from '../../data/queries';
 
 const FOOD_WINDOWS = [2, 4, 6, 12];
 

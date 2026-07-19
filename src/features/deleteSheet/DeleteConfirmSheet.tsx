@@ -7,7 +7,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ActionButton, AppText } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
-import { dataSource } from '../../data/dataSource';
+import { useDeleteEntry } from '../../data/queries';
+import { errorMessage } from '../../api/client';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'DeleteConfirm'>;
 
@@ -19,10 +20,10 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
   const { entryId, entryLabel } = route.params;
 
   const close = () => navigation.goBack();
+  const deleteEntry = useDeleteEntry();
 
-  const confirm = async () => {
-    await dataSource.deleteEntry(entryId);
-    close();
+  const confirm = () => {
+    deleteEntry.mutate(entryId, { onSuccess: close });
   };
 
   return (
@@ -52,9 +53,26 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
             >
               {entryLabel}. This can&apos;t be undone.
             </AppText>
+            {deleteEntry.isError ? (
+              <AppText size={fontSize.metaSm} weight="700" color={colors.danger} style={styles.body}>
+                {errorMessage(deleteEntry.error)}
+              </AppText>
+            ) : null}
             <View style={styles.actions}>
-              <ActionButton label="Cancel" variant="neutral" flex={1} onPress={close} />
-              <ActionButton label="Delete" variant="danger" flex={1} onPress={confirm} />
+              <ActionButton
+                label="Cancel"
+                variant="neutral"
+                flex={1}
+                disabled={deleteEntry.isPending}
+                onPress={close}
+              />
+              <ActionButton
+                label={deleteEntry.isPending ? 'Deleting…' : 'Delete'}
+                variant="danger"
+                flex={1}
+                disabled={deleteEntry.isPending}
+                onPress={confirm}
+              />
             </View>
           </View>
         </SafeAreaView>

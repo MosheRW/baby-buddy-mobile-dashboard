@@ -11,7 +11,16 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5601)",
       "PowerShell($c = Get-NetTCPConnection -LocalPort 5601 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue; \"killed $\\($c.OwningProcess\\)\" } else { \"no listener\" }; Start-Sleep 1; Remove-Item -Recurse -Force \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-native/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/web2\" -ErrorAction SilentlyContinue; \"done\")",
       "Bash(npx --yes serve -s . -l 5602)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5602)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5602)",
+      "Bash(npm run *)",
+      "Bash(npx kill-port *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "Bash(node -p \"require\\('./package.json'\\).dependencies['zod'] + ' | rq: ' + require\\('./package.json'\\).dependencies['@tanstack/react-query']\")",
+      "Bash(python -c ' *)",
+      "Bash(curl -s --max-time 15 \"https://winbergs-babies.duckdns.org/login/\" -o /tmp/bb_login.html -w \"status=%{http_code}\\\\n\")",
+      "Read(//tmp/**)",
+      "Bash(python \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-native/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/patch_questions.py\")"
     ]
   }
 }

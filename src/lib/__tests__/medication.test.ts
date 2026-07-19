@@ -18,6 +18,7 @@ function med(partial: Partial<MedicationEntry> & { name: string; time: string })
     tags: [],
     creator: 'Sarah',
     dose: partial.dose ?? 5,
+    doseUnit: partial.doseUnit ?? 'mg',
     schedule: partial.schedule ?? 'scheduled',
     repeatHours: partial.repeatHours ?? 8,
     ...partial,

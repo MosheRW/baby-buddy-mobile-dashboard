@@ -36,7 +36,11 @@ interface EntryBase {
 
 // --- Per-type entry payloads ------------------------------------------------
 
-export type PooColor = 'yellow' | 'green' | 'brown' | 'black' | 'red';
+/**
+ * Baby Buddy's diaper `color` enum is exactly these four — the handoff's fifth
+ * swatch (red) has no server representation, so it isn't offered.
+ */
+export type PooColor = 'yellow' | 'green' | 'brown' | 'black';
 
 export interface DiaperEntry extends EntryBase {
   type: 'diaper';
@@ -66,15 +70,29 @@ export interface FeedingEntry extends EntryBase {
 
 export type MedicationSchedule = 'scheduled' | 'asNeeded';
 
+/** Baby Buddy's `dosage_unit` enum. */
+export type DosageUnit = 'mg' | 'ml' | 'tablets' | 'drops';
+
 export interface MedicationEntry extends EntryBase {
   type: 'medication';
   name: string;
   dose: number;
+  /**
+   * Server-side `dosage_unit`. The form has no unit picker (the handoff's dose
+   * stepper is unitless), so this is preserved on edit and defaults to mg on
+   * create rather than silently rewriting an existing entry's unit.
+   */
+  doseUnit: DosageUnit;
+  /**
+   * Scheduled vs as-needed has no server field; it round-trips as an
+   * "as-needed" tag (absent = scheduled). See api/normalize.ts.
+   */
   schedule: MedicationSchedule;
-  /** Hours until the next dose is due / eligible again. */
+  /** Hours until the next dose is due / eligible again (`next_dose_interval`). */
   repeatHours: number;
 }
 
+/** No server field — round-trips as a tag. See api/normalize.ts. */
 export type TemperatureMethod = 'oral' | 'ear' | 'forehead';
 
 export interface TemperatureEntry extends EntryBase {
@@ -128,8 +146,18 @@ export type LoginMode = 'babybuddy' | 'homeassistant';
 
 export interface Session {
   mode: LoginMode;
-  /** Server or Home Assistant base URL. */
+  /**
+   * Base URL of the Baby Buddy server. For the Home Assistant add-on this
+   * includes the ingress path segment, e.g.
+   * `http://homeassistant.local:8123/<addon-slug>`.
+   */
   baseUrl: string;
   /** Display name of the signed-in user (drives the author tag). */
   userName: string;
+  /**
+   * Baby Buddy API key, sent as `Authorization: Token …`. Obtained either by
+   * pasting it from the User Settings page or by bootstrapping a web session
+   * with username/password and reading it off `/api/profile`.
+   */
+  token: string;
 }

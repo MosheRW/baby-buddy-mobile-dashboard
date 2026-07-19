@@ -1,70 +1,141 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import {
-  ActionButton,
-  AppText,
-  ChipRow,
-  FieldLabel,
-  TextField,
-  TagRow,
-} from '../../components';
+import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { EntryType } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
-import { entryTypeLabel } from '../../lib/entryDisplay';
-import { CURRENT_USER } from '../../data/mockData';
-import { elapsedClock, isTimerType } from '../../lib/timers';
-import { useTimerStore } from '../../stores';
+import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
+import { draftToEntry, emptyDraft, entryToDraft } from '../../lib/formDraft';
+import { isTimerType } from '../../lib/timers';
+import { errorMessage } from '../../api/client';
+import { useDashboardData, useSaveEntry } from '../../data/queries';
+import { useAuthStore, useFormStore, useSettingsStore, useTimerStore } from '../../stores';
 import { useTimerTick } from '../../hooks/useTick';
+import { entriesForChild } from '../dashboard/selectors';
+import { DateTimeField } from './DateTimeField';
+import { DiaperFields } from './fields/DiaperFields';
+import { FeedingFields } from './fields/FeedingFields';
+import { MedicationFields } from './fields/MedicationFields';
+import { TemperatureFields } from './fields/TemperatureFields';
+import { TummyTimeFields } from './fields/TummyTimeFields';
+import { SleepFields } from './fields/SleepFields';
 
 const TYPE_OPTIONS: { value: EntryType; label: string }[] = (
-  [
-    'diaper',
-    'feeding',
-    'medication',
-    'temperature',
-    'tummyTime',
-    'sleep',
-    'note',
-  ] as EntryType[]
+  ['diaper', 'feeding', 'medication', 'temperature', 'tummyTime', 'sleep', 'note'] as EntryType[]
 ).map((t) => ({ value: t, label: entryTypeLabel[t] }));
 
 type Props = NativeStackScreenProps<MainStackParamList, 'LogEntry'>;
 
 /**
- * Phase 2 form shell: header, entry-type chip row, time, note, and tags with
- * Save/Delete footer. The per-type field groups (diaper toggles, feeding
- * method/timer, medication dose, etc.) are added in Phase 4.
+ * The single create/edit form for all seven entry types. The shell (type chips,
+ * time, note, tags, footer) is constant; the middle section swaps in the
+ * per-type field group. All state lives in formStore so the screen itself is
+ * just wiring — the field-visibility rules are pure functions in lib/formDraft.
  */
 export function LogEntryScreen({ route, navigation }: Props) {
   const { mode, type: initialType, entryId, childId } = route.params;
-  const [type, setType] = useState<EntryType>(initialType ?? 'diaper');
-  const [note, setNote] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-
   const isEdit = mode === 'edit';
 
-  // Minimal timer control (feeding/sleep/tummy) so timers survive form close and
-  // drive the dashboard strip. The full timer UX (end-time pickers, amount from
-  // duration) is added in Phase 4.
-  const timers = useTimerStore((s) => s.timers);
-  const startTimer = useTimerStore((s) => s.startTimer);
+  const { children, entries } = useDashboardData();
+  const child = children.find((c) => c.id === childId);
+  const editingEntry = entryId ? entries.find((e) => e.id === entryId) : undefined;
+
+  const perChildMl = useSettingsStore((s) => s.defaultFoodMl[childId]);
+  const defaultFoodMl = perChildMl ?? child?.defaultFoodMl ?? 120;
+
+  const type = useFormStore((s) => s.type);
+  const draft = useFormStore((s) => s.draft);
+  const openForm = useFormStore((s) => s.openForm);
+  const setType = useFormStore((s) => s.setType);
+  const patch = useFormStore((s) => s.patchDraft);
+
   const stopTimer = useTimerStore((s) => s.stopTimer);
   const timerNow = useTimerTick();
-  const activeTimer =
-    isTimerType(type) && childId
-      ? timers.find((t) => t.type === type && t.childId === childId)
-      : undefined;
+
+  const userName = useAuthStore((s) => s.session?.userName) ?? 'you';
+
+  // Seed the store once per opened entry. In edit mode this waits for the
+  // entry to load, so `readyKey` gates rendering on a hydrated draft.
+  const formKey = `${mode}:${childId}:${entryId ?? ''}`;
+  const [readyKey, setReadyKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (readyKey === formKey) return;
+    if (isEdit && !editingEntry) return; // entries still loading
+    openForm({
+      mode,
+      type: editingEntry?.type ?? initialType ?? 'diaper',
+      childId,
+      editingEntryId: entryId ?? null,
+      draft: editingEntry
+        ? entryToDraft(editingEntry, defaultFoodMl)
+        : emptyDraft(Date.now(), defaultFoodMl),
+    });
+    // One-time seeding, guarded by the key above — it can't cascade because
+    // the next run returns early.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReadyKey(formKey);
+  }, [
+    formKey,
+    readyKey,
+    isEdit,
+    editingEntry,
+    openForm,
+    mode,
+    initialType,
+    childId,
+    entryId,
+    defaultFoodMl,
+  ]);
+
+  const saveEntry = useSaveEntry();
+
+  const save = () => {
+    const entry = draftToEntry({
+      draft,
+      type,
+      childId,
+      // Empty id = create; the server assigns the real one.
+      id: editingEntry?.id ?? '',
+      creator: editingEntry?.creator ?? userName,
+    });
+
+    saveEntry.mutate(entry, {
+      onSuccess: () => {
+        // A timer that produced this entry has done its job — clear it only
+        // once the entry is safely saved, so a failed save doesn't lose it.
+        if (isTimerType(type)) stopTimer(type, childId);
+        navigation.goBack();
+      },
+    });
+  };
+
+  const remove = () => {
+    if (!editingEntry) return;
+    navigation.navigate('DeleteConfirm', {
+      entryId: editingEntry.id,
+      entryLabel: entryTitle(editingEntry),
+    });
+  };
+
+  const fieldProps = { draft, patch, childId, mode, now: timerNow };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <AppText size={fontSize.cardTitle} weight="800">
-          {isEdit ? 'Edit entry' : 'New entry'}
-        </AppText>
+        <View>
+          <AppText size={fontSize.cardTitle} weight="800">
+            {isEdit ? 'Edit entry' : 'New entry'}
+          </AppText>
+          {child ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {child.name}
+            </AppText>
+          ) : null}
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -75,94 +146,73 @@ export function LogEntryScreen({ route, navigation }: Props) {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ChipRow layout="wrap" value={type} onChange={setType} options={TYPE_OPTIONS} />
+      {readyKey !== formKey ? null : (
+        <>
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <ChipRow layout="wrap" value={type} onChange={setType} options={TYPE_OPTIONS} />
 
-        <View>
-          <FieldLabel>Time</FieldLabel>
-          <View style={styles.timeField}>
-            <AppText size={fontSize.body} weight="700">
-              {new Date().toLocaleString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
-            </AppText>
-          </View>
-        </View>
+            <DateTimeField label="Time" value={draft.time} onChange={(time) => patch({ time })} />
 
-        {/* Minimal timer control for timer-capable types (full UX in Phase 4). */}
-        {isTimerType(type) && childId ? (
-          <View>
-            <FieldLabel>Timer</FieldLabel>
-            {activeTimer ? (
-              <View style={styles.timerRunning}>
-                <AppText size={fontSize.cardTitle} weight="800" color={colors.accent}>
-                  {elapsedClock(activeTimer.startedAt, timerNow)}
-                </AppText>
-                <ActionButton
-                  label="Stop timer"
-                  variant="danger"
-                  onPress={() => stopTimer(type, childId)}
-                />
-              </View>
-            ) : (
-              <ActionButton
-                label="Start timer"
-                variant="neutral"
-                fullWidth
-                onPress={() => startTimer(type, childId)}
+            {type === 'diaper' ? <DiaperFields draft={draft} patch={patch} /> : null}
+            {type === 'feeding' ? <FeedingFields {...fieldProps} /> : null}
+            {type === 'medication' ? (
+              <MedicationFields
+                draft={draft}
+                patch={patch}
+                entries={entriesForChild(entries, childId)}
               />
-            )}
+            ) : null}
+            {type === 'temperature' ? <TemperatureFields draft={draft} patch={patch} /> : null}
+            {type === 'tummyTime' ? <TummyTimeFields {...fieldProps} /> : null}
+            {type === 'sleep' ? <SleepFields {...fieldProps} /> : null}
+
+            <View>
+              <FieldLabel>Note</FieldLabel>
+              <TextField
+                multilineFixed
+                placeholder="Optional note"
+                value={draft.note}
+                onChangeText={(note) => patch({ note })}
+              />
+            </View>
+
+            <View>
+              <FieldLabel>Tags</FieldLabel>
+              <TagRow
+                authorTag={`by ${editingEntry?.creator ?? userName}`}
+                tags={draft.tags}
+                onAdd={(t) => patch({ tags: [...draft.tags, t] })}
+                onRemove={(i) => patch({ tags: draft.tags.filter((_, idx) => idx !== i) })}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={styles.footerWrap}>
+            {saveEntry.isError ? (
+              <AppText
+                size={fontSize.metaSm}
+                weight="700"
+                color={colors.danger}
+                style={styles.saveError}
+              >
+                {errorMessage(saveEntry.error)}
+              </AppText>
+            ) : null}
+            <View style={styles.footer}>
+              {isEdit ? (
+                <ActionButton label="Delete" variant="danger" flex={1} onPress={remove} />
+              ) : null}
+              <ActionButton
+                label={saveEntry.isPending ? 'Saving…' : 'Save'}
+                variant="accent"
+                flex={2}
+                disabled={saveEntry.isPending}
+                onPress={save}
+              />
+            </View>
           </View>
-        ) : null}
-
-        {/* Placeholder for remaining per-type fields (Phase 4). */}
-        <View style={styles.typeNote}>
-          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-            {entryTypeLabel[type]} fields are added in Phase 4.
-          </AppText>
-        </View>
-
-        <View>
-          <FieldLabel>Note</FieldLabel>
-          <TextField
-            multilineFixed
-            placeholder="Optional note"
-            value={note}
-            onChangeText={setNote}
-          />
-        </View>
-
-        <View>
-          <FieldLabel>Tags</FieldLabel>
-          <TagRow
-            authorTag={`by ${CURRENT_USER}`}
-            tags={tags}
-            onAdd={(t) => setTags((prev) => [...prev, t])}
-            onRemove={(i) => setTags((prev) => prev.filter((_, idx) => idx !== i))}
-          />
-        </View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        {isEdit ? (
-          <ActionButton
-            label="Delete"
-            variant="danger"
-            flex={1}
-            onPress={() =>
-              navigation.navigate('DeleteConfirm', {
-                entryId: entryId ?? '',
-                entryLabel: entryTypeLabel[type],
-              })
-            }
-          />
-        ) : null}
-        <ActionButton label="Save" variant="accent" flex={2} onPress={() => navigation.goBack()} />
-      </View>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -192,31 +242,16 @@ const styles = StyleSheet.create({
     padding: spacing['2xl'],
     gap: spacing['4xl'],
   },
-  timeField: {
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    paddingVertical: spacing.xl,
+  footerWrap: {
     paddingHorizontal: spacing['2xl'],
-    alignItems: 'flex-end',
   },
-  typeNote: {
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    padding: spacing['2xl'],
-  },
-  timerRunning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    gap: spacing.lg,
+  saveError: {
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',
     gap: spacing.lg,
-    padding: spacing['2xl'],
+    paddingVertical: spacing['2xl'],
   },
 });

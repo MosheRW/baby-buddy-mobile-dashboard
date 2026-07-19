@@ -1,19 +1,14 @@
 /**
  * In-progress log-entry form state. Not persisted (ephemeral per edit session).
- * The `draft` is a loose bag here; Phase 4 gives it a per-type typed shape as it
- * builds the full form. Timers deliberately live in timerStore, not here, so
- * they survive the form closing.
+ * The draft's shape and its conversions to/from a domain `Entry` are pure and
+ * live in `src/lib/formDraft.ts`. Timers deliberately live in timerStore, not
+ * here, so they survive the form closing.
  */
 import { create } from 'zustand';
-import type { EntryType, Tag } from '../api/types';
+import type { EntryType } from '../api/types';
+import { emptyDraft, type FormDraft } from '../lib/formDraft';
 
-export interface FormDraft {
-  time: string; // ISO
-  note: string;
-  tags: Tag[];
-  // Per-type fields are added ad hoc in Phase 4 (pee/poo, kind/method, dose, …).
-  [key: string]: unknown;
-}
+export type { FormDraft };
 
 interface FormState {
   mode: 'create' | 'edit';
@@ -26,14 +21,11 @@ interface FormState {
     type: EntryType;
     childId: string;
     editingEntryId?: string | null;
-    draft?: Partial<FormDraft>;
+    draft?: FormDraft;
   }) => void;
+  setType: (type: EntryType) => void;
   patchDraft: (patch: Partial<FormDraft>) => void;
   reset: () => void;
-}
-
-function emptyDraft(): FormDraft {
-  return { time: new Date().toISOString(), note: '', tags: [] };
 }
 
 export const useFormStore = create<FormState>((set) => ({
@@ -43,13 +35,10 @@ export const useFormStore = create<FormState>((set) => ({
   editingEntryId: null,
   draft: emptyDraft(),
   openForm: ({ mode, type, childId, editingEntryId = null, draft }) =>
-    set({
-      mode,
-      type,
-      childId,
-      editingEntryId,
-      draft: { ...emptyDraft(), ...draft },
-    }),
+    set({ mode, type, childId, editingEntryId, draft: draft ?? emptyDraft() }),
+  // Switching type keeps the draft: the fields are one flat record, so the
+  // user's diaper toggles survive a detour through Feeding and back.
+  setType: (type) => set({ type }),
   patchDraft: (patch) => set((state) => ({ draft: { ...state.draft, ...patch } })),
   reset: () =>
     set({

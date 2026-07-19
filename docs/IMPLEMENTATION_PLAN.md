@@ -85,8 +85,8 @@ SegmentedToggle (login mode, temp method, scheduled/as-needed) · Chip + ChipRow
 - Wire Dashboard to logic: needed/eligible med rows, food-total window, feed filter + day grouping, adaptive nav (carousel ≤2 / tabs ≥3), timer strip + quick-action disabled/live-elapsed states, 60s/1s ticks.
 - **Done when:** unit tests green; dashboard behaves per handoff against mock data.
 
-### Phase 4 — Log Entry form, all 7 types
-- Typed `formDraft` union + per-type field groups with the exact conditional rules:
+### Phase 4 — Log Entry form, all 7 types ✅ done
+- Typed `formDraft` + per-type field groups with the exact conditional rules:
   - Diaper: independent Pee/Poo toggles + poo color swatches.
   - Feeding: type→method dependency, timer (create mode, one per child), duration stepper only for direct-breast w/o timer, amount stepper for bottle/solid, default ml from settings.
   - Medication: recent-suggestions prefill, scheduled/PRN toggle, decimal dose stepper, repeat chips + custom hours (0.5 step), dynamic label wording.
@@ -94,15 +94,46 @@ SegmentedToggle (login mode, temp method, scheduled/as-needed) · Chip + ChipRow
   - Common: datetime picker, note textarea, tags (auto "by {creator}"), edit-mode Delete → confirm sheet.
 - Create + edit + delete against mock store; timer chips on Dashboard jump into the right form.
 - **Done when:** clicking through the interactive prototype and the app side-by-side shows identical conditional behavior.
+- **Shipped as:** one flat `FormDraft` record rather than a per-type union — switching the Type chip mid-edit then has to preserve the other types' fields (the prototype does), which a union would discard. `draftToEntry` reads only the saved type's fields, so the extra fields never reach the server.
+- Field-visibility rules and draft⇄entry conversion are pure in `src/lib/formDraft.ts` (25 unit tests); the screen and field groups are wiring only.
+- `dataSource` gained a `subscribe()` change notification so the dashboard refetches after a save/delete. Phase 5 replaces it with React Query cache invalidation.
+- `@react-native-community/datetimepicker` has no web implementation, so `DateTimeField` uses the Android picker on-target and degrades to a `YYYY-MM-DD HH:mm` text field in the web QA preview.
 
-### Phase 5 — API integration
+### Phase 5 — API integration ⚠️ built, not verified against a live server
 - Fetch wrapper with timeout + zod parsing; two auth flows:
   - **Direct Baby Buddy:** POST credentials → obtain API token (or use `/api/profile` with token), store in secure store, `Authorization: Token …` thereafter.
   - **Home Assistant add-on:** base URL + long-lived access token via the add-on's ingress path — verify the exact ingress route against a real HA instance early, this is the riskiest unknown in the plan.
 - Endpoints: `GET /api/children/`, per-type entry list endpoints (`changes`, `feedings`, `notes`, `sleep`, `temperature`, `tummy-times`, and medication via notes/tags or the meds endpoint depending on server version — confirm against target Baby Buddy version), POST/PATCH/DELETE per type.
 - `normalize.ts` maps every response into the internal `Entry` union; React Query hooks (`useChildren`, `useEntries(childId)`, mutations with optimistic updates) replace the mock provider.
 - Loading skeletons on dashboard/feed, error banner + retry, auth-failure handling → logout.
-- **Done when:** app runs against a real Baby Buddy instance end-to-end (both auth modes).
+- **Done when:** app runs against a real Baby Buddy instance end-to-end (both auth modes). **Not yet met** — no authenticated run has happened (see "Outstanding" below).
+
+#### What the real schema changed (verified against the server's own `openapi-schema.yml`)
+
+Open questions 2 and 3 are now answered:
+- **HA add-on route:** the add-on is served at `<ha-host>:8123/<addon-slug>` and is plain Baby Buddy underneath, so both login modes are the same transport — a base URL plus a Baby Buddy API key. The HA *long-lived token* is not involved.
+- **Medication:** `/api/medication/` exists (confirmed live, returns 403 not 404), so no notes/tags workaround is needed for the entries themselves.
+
+Model divergences and how they're handled — all in `api/normalize.ts`:
+
+| Design / internal | Server reality | Resolution |
+|---|---|---|
+| 5 poo colors incl. red | `color` enum is black/brown/green/yellow | red dropped from `PooColor` + `pooSwatch` |
+| `temperature.method` | no such field | round-trips as an `oral`/`ear`/`forehead` tag |
+| medication scheduled/as-needed | no such field | `as-needed` tag; absent = scheduled |
+| `dose` (unitless) | `dosage` + `dosage_unit` enum | `doseUnit` in the model, default `mg`, preserved on edit; no picker |
+| `sleep.ongoing` | no field (ongoing = a running Timer) | `end` omitted; a null `end` reads back as ongoing |
+| feeding `durationMinutes` | derived from start/end | sent as `end = start + duration` |
+| tummy-time note | no `notes` field (has `milestone`) | note ⇄ `milestone` |
+| author of an entry | not recorded on any entry endpoint | `by {creator}` tag, stripped from user tags on read |
+
+**Auth:** Baby Buddy enables only Session + Token auth (`BasicAuthentication` is off) and has no token-issuing endpoint, so the handoff's username/password login can't be implemented directly. Per the product decision, both paths ship: the password fields drive a login-form bootstrap (parse `csrfmiddlewaretoken` → POST `/login/` → read `api_key` off `/api/profile`) and every failure falls back to a "paste your API key" field. Only the token is kept; the cookie session is never reused.
+
+**Outstanding before this phase is truly done:**
+1. An authenticated end-to-end run (read + create + edit + delete) against a real server — nothing below the auth boundary has executed against live data.
+2. Confirm `/api/profile` actually returns `api_key` on this server version; if it doesn't, the password path always degrades to the API-key field.
+3. Confirm the HA ingress path accepts `Authorization: Token …` without a Home Assistant session.
+4. Server ids are namespaced internally as `{type}:{id}` — worth re-checking after the first real edit/delete.
 
 ### Phase 6 — Server-backed timers
 - Start/stop via `/api/timers/`; store `serverTimerId` in `timerStore`; on app launch reconcile local persisted timers with server-side active timers (server wins).
@@ -117,6 +148,6 @@ SegmentedToggle (login mode, temp method, scheduled/as-needed) · Chip + ChipRow
 ## 5. Open questions (need answers before/during the relevant phase)
 
 1. **Icons** (Phase 1): keep custom-drawn geometric glyphs, or an icon library? Handoff says ask the design owner.
-2. **HA add-on API route** (Phase 5): exact ingress/base path and auth header for the Baby Buddy add-on — needs a real HA instance to verify.
-3. **Target Baby Buddy server version** (Phase 5): affects whether medications use a dedicated endpoint or the notes/tags convention.
+2. ~~**HA add-on API route**~~ — answered: the add-on sits at `<ha-host>:8123/<addon-slug>` and is plain Baby Buddy underneath, so it takes the same `Authorization: Token ...` header as a direct server. Still needs one authenticated run to confirm ingress does not additionally require a Home Assistant session.
+3. ~~**Target Baby Buddy server version**~~ — answered: the target server exposes `/api/medication/`, so medications use the dedicated endpoint. Only the scheduled/as-needed flag rides on a tag.
 4. **Android package id / app name** (Phase 0): "TBD by dev" in the handoff.

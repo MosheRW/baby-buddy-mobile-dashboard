@@ -45,6 +45,18 @@ export const tints = {
 } as const;
 
 /**
+ * The poo-color swatches offered in the diaper form. Clinical colors, so these
+ * are literal swatch values rather than UI-surface tints. Limited to Baby
+ * Buddy's four-value `color` enum (see PooColor) — the handoff drew five.
+ */
+export const pooSwatch = {
+  yellow: '#E8C25C',
+  green: '#7FA05A',
+  brown: '#8A6242',
+  black: '#3A3230',
+} as const;
+
+/**
  * Per-child avatar tint, generated from the child's hue (handoff uses
  * hues 30 / 200 / 320 / 100 in demo data). Approximates
  * bg = oklch(0.93 0.05 hue), fg = oklch(0.5 0.1 hue).
