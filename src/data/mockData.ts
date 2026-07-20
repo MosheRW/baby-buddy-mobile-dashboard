@@ -104,7 +104,9 @@ export const mockEntries: Entry[] = [
     time: ago(6 * HOUR),
     endTime: ago(4 * HOUR - 30 * MIN),
     sleepType: 'nap',
-    tags: [authorTag()],
+    // Real tags on a couple of fixtures, so the form's tag quick-pick and the
+    // feed's tag row have something to render in the mock preview.
+    tags: [authorTag(), { label: 'swaddled' }, { label: 'white noise' }],
     creator: CURRENT_USER,
     note: 'Napped well',
   },

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText, FieldLabel } from '../../../components';
+import { AppText, FieldLabel, Stepper } from '../../../components';
 import { colors, fontSize, pooSwatch, radii, spacing, tints } from '../../../theme';
 import type { PooColor } from '../../../api/types';
-import type { FormDraft } from '../../../lib/formDraft';
+import { diaperAmountLabel, type FormDraft } from '../../../lib/formDraft';
 
 interface FieldProps {
   draft: FormDraft;
@@ -54,6 +54,18 @@ export function DiaperFields({ draft, patch }: FieldProps) {
             </Pressable>
           ))}
         </View>
+      </View>
+
+      <View>
+        <FieldLabel>{diaperAmountLabel(draft.pee, draft.poo)}</FieldLabel>
+        <Stepper
+          value={draft.diaperAmount}
+          onChange={(diaperAmount) => patch({ diaperAmount })}
+          step={1}
+          min={1}
+          max={10}
+          suffix=" / 10"
+        />
       </View>
     </>
   );

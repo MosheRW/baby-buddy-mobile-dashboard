@@ -4,12 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import type { EntryType } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
 import { draftToEntry, emptyDraft, entryToDraft } from '../../lib/formDraft';
 import { isTimerType } from '../../lib/timers';
+import { recentTagSuggestions } from '../../lib/tags';
 import { errorMessage, serverNow } from '../../api/client';
 import { useDashboardData, useSaveEntry } from '../../data/queries';
 import { useAuthStore, useFormStore, useSettingsStore } from '../../stores';
@@ -125,6 +126,11 @@ export function LogEntryScreen({ route, navigation }: Props) {
   };
 
   const fieldProps = { draft, patch, childId, mode, now: timerNow };
+  const childEntries = entriesForChild(entries, childId);
+
+  // Suggestions look across all children — a caregiver's tag vocabulary is
+  // theirs — but never re-offer a tag already on this draft.
+  const tagSuggestions = recentTagSuggestions(entries, type, { exclude: draft.tags });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -157,13 +163,11 @@ export function LogEntryScreen({ route, navigation }: Props) {
             <DateTimeField label="Time" value={draft.time} onChange={(time) => patch({ time })} />
 
             {type === 'diaper' ? <DiaperFields draft={draft} patch={patch} /> : null}
-            {type === 'feeding' ? <FeedingFields {...fieldProps} /> : null}
+            {type === 'feeding' ? (
+              <FeedingFields {...fieldProps} entries={childEntries} defaultFoodMl={defaultFoodMl} />
+            ) : null}
             {type === 'medication' ? (
-              <MedicationFields
-                draft={draft}
-                patch={patch}
-                entries={entriesForChild(entries, childId)}
-              />
+              <MedicationFields draft={draft} patch={patch} entries={childEntries} />
             ) : null}
             {type === 'temperature' ? <TemperatureFields draft={draft} patch={patch} /> : null}
             {type === 'tummyTime' ? <TummyTimeFields {...fieldProps} /> : null}
@@ -181,6 +185,23 @@ export function LogEntryScreen({ route, navigation }: Props) {
 
             <View>
               <FieldLabel>Tags</FieldLabel>
+              {tagSuggestions.length > 0 ? (
+                <View style={styles.tagSuggestions}>
+                  {tagSuggestions.map((label) => (
+                    <Pressable
+                      key={label}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Add tag ${label}`}
+                      onPress={() => patch({ tags: [...draft.tags, label] })}
+                      style={styles.tagSuggestion}
+                    >
+                      <AppText size={fontSize.metaSm} weight="700" color={tints.suggestion.fg}>
+                        + {label}
+                      </AppText>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
               <TagRow
                 authorTag={`by ${editingEntry?.creator ?? userName}`}
                 tags={draft.tags}
@@ -244,6 +265,22 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing['2xl'],
     gap: spacing['4xl'],
+  },
+  tagSuggestions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  tagSuggestion: {
+    // Dashed outline marks these as offers rather than applied tags.
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: tints.suggestion.border,
+    backgroundColor: tints.suggestion.bg,
+    borderRadius: radii.chipSmall,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   footerWrap: {
     paddingHorizontal: spacing['2xl'],

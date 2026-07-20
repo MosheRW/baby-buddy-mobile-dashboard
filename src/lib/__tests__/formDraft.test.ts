@@ -1,17 +1,26 @@
 import type { DiaperEntry, FeedingEntry, MedicationEntry, SleepEntry } from '../../api/types';
 import {
   amountUnit,
+  baselinePatch,
+  defaultSleepType,
+  diaperAmountLabel,
   draftToEntry,
   emptyDraft,
   entryToDraft,
   isCustomRepeat,
   isDirectBreast,
+  medSuggestionPatch,
   methodForKindChange,
   methodsForKind,
   repeatLabel,
   showsAmount,
+  showsBodyArea,
+  showsDose,
   showsDuration,
+  showsMaxDose,
+  showsRoute,
 } from '../formDraft';
+import { medLimitSummaries } from '../medication';
 
 const NOW = Date.parse('2026-07-19T10:00:00.000Z');
 
@@ -70,9 +79,9 @@ describe('feeding field visibility', () => {
   });
 
   it('shows amount for bottle feeds and for solids', () => {
-    expect(showsAmount('breastMilk', 'bottle')).toBe(true);
-    expect(showsAmount('solidFood', 'selfFed')).toBe(true);
-    expect(showsAmount('breastMilk', 'leftBreast')).toBe(false);
+    expect(showsAmount('breastMilk', 'bottle', 'grains')).toBe(true);
+    expect(showsAmount('solidFood', 'selfFed', 'grains')).toBe(true);
+    expect(showsAmount('breastMilk', 'leftBreast', 'grains')).toBe(false);
   });
 
   it('shows duration only for direct breast with no timer running', () => {
@@ -207,13 +216,22 @@ describe('entryToDraft', () => {
       id: 'e1',
       creator: 'Sarah',
       type: 'feeding',
-      draft: makeDraft({ kind: 'solidFood', method: 'parentFed', amount: 40, note: 'peas' }),
+      // `grains` rather than the default `fruits`: fruit portions carry no
+      // amount, so the amount assertion below would be testing nothing.
+      draft: makeDraft({
+        kind: 'solidFood',
+        method: 'parentFed',
+        solidFoodType: 'grains',
+        amount: 40,
+        note: 'oats',
+      }),
     });
     const draft = entryToDraft(entry);
     expect(draft.kind).toBe('solidFood');
     expect(draft.method).toBe('parentFed');
+    expect(draft.solidFoodType).toBe('grains');
     expect(draft.amount).toBe(40);
-    expect(draft.note).toBe('peas');
+    expect(draft.note).toBe('oats');
   });
 
   it('strips the author tag so it is not editable or duplicated on re-save', () => {
@@ -235,5 +253,280 @@ describe('entryToDraft', () => {
       draft: { ...emptyDraft(NOW), ...entryToDraft(entry) },
     });
     expect(resaved.tags.filter((t) => t.author)).toHaveLength(1);
+  });
+});
+
+describe('solid food type', () => {
+  it('hides the amount for solids nobody weighs, shows it for the rest', () => {
+    expect(showsAmount('solidFood', 'selfFed', 'fruits')).toBe(false);
+    expect(showsAmount('solidFood', 'selfFed', 'vegetables')).toBe(false);
+    expect(showsAmount('solidFood', 'selfFed', 'grains')).toBe(true);
+    expect(showsAmount('solidFood', 'selfFed', 'protein')).toBe(true);
+    expect(showsAmount('solidFood', 'selfFed', 'dairy')).toBe(true);
+  });
+
+  it('still shows the amount for a bottle whatever the solid type says', () => {
+    // The solid type is a leftover from an earlier selection here — a flat
+    // draft keeps it around, and it must not suppress the bottle's amount.
+    expect(showsAmount('breastMilk', 'bottle', 'fruits')).toBe(true);
+  });
+
+  it('is recorded only on solid feeds', () => {
+    const common = { childId: 'c1', id: 'e1', creator: 'Sarah', type: 'feeding' as const };
+    const solid = draftToEntry({
+      ...common,
+      draft: makeDraft({ kind: 'solidFood', method: 'selfFed', solidFoodType: 'dairy' }),
+    }) as FeedingEntry;
+    expect(solid.solidFoodType).toBe('dairy');
+
+    const bottle = draftToEntry({
+      ...common,
+      draft: makeDraft({ kind: 'formula', method: 'bottle', solidFoodType: 'dairy' }),
+    }) as FeedingEntry;
+    expect(bottle.solidFoodType).toBeUndefined();
+  });
+});
+
+describe('feeding baselines', () => {
+  it('captures the bottle quantity for bottles and the duration for the breast', () => {
+    expect(baselinePatch('bottle', 150, 18)).toEqual({ defaultQtyAtEntry: 150 });
+    expect(baselinePatch('leftBreast', 150, 18)).toEqual({ defaultTimeAtEntry: 18 });
+    expect(baselinePatch('bothBreasts', 150, 18)).toEqual({ defaultTimeAtEntry: 18 });
+  });
+
+  it('captures nothing for solid-food methods', () => {
+    expect(baselinePatch('selfFed', 150, 18)).toEqual({});
+    expect(baselinePatch('parentFed', 150, 18)).toEqual({});
+  });
+
+  it('carries a null through rather than inventing a baseline', () => {
+    // No breast history yet — the entry should record no baseline at all, so
+    // the feed draws no gauge rather than a gauge against a made-up normal.
+    expect(baselinePatch('rightBreast', 150, null)).toEqual({ defaultTimeAtEntry: null });
+  });
+
+  it('attaches each baseline only to the method it describes', () => {
+    const common = { childId: 'c1', id: 'e1', creator: 'Sarah', type: 'feeding' as const };
+    // Both are set in the draft (the user tried bottle, then switched).
+    const draft = makeDraft({ defaultQtyAtEntry: 150, defaultTimeAtEntry: 18 });
+
+    const breast = draftToEntry({
+      ...common,
+      draft: { ...draft, kind: 'breastMilk', method: 'leftBreast' },
+    }) as FeedingEntry;
+    expect(breast.defaultTimeAtEntry).toBe(18);
+    expect(breast.defaultQtyAtEntry).toBeUndefined();
+
+    const bottle = draftToEntry({
+      ...common,
+      draft: { ...draft, kind: 'formula', method: 'bottle' },
+    }) as FeedingEntry;
+    expect(bottle.defaultQtyAtEntry).toBe(150);
+    expect(bottle.defaultTimeAtEntry).toBeUndefined();
+  });
+
+  it('keeps an edited entry on its original baseline', () => {
+    const entry = draftToEntry({
+      childId: 'c1',
+      id: 'e1',
+      creator: 'Sarah',
+      type: 'feeding',
+      draft: makeDraft({ kind: 'formula', method: 'bottle', defaultQtyAtEntry: 90 }),
+    });
+    // A later Settings change raised the default to 200; the old entry keeps 90.
+    expect(entryToDraft(entry, 200).defaultQtyAtEntry).toBe(90);
+  });
+});
+
+describe('diaper amount', () => {
+  it('names the amount after whichever contents are present', () => {
+    expect(diaperAmountLabel(true, true)).toBe('Amount');
+    expect(diaperAmountLabel(false, true)).toBe('Poo amount');
+    expect(diaperAmountLabel(true, false)).toBe('Pee amount');
+  });
+
+  it('round-trips through the entry', () => {
+    const entry = draftToEntry({
+      childId: 'c1',
+      id: 'e1',
+      creator: 'Sarah',
+      type: 'diaper',
+      draft: makeDraft({ diaperAmount: 8 }),
+    }) as DiaperEntry;
+    expect(entry.amount).toBe(8);
+    expect(entryToDraft(entry).diaperAmount).toBe(8);
+  });
+});
+
+describe('medication unit-dependent fields', () => {
+  it('hides the dose for paste only', () => {
+    expect(showsDose('ml')).toBe(true);
+    expect(showsDose('tablets')).toBe(true);
+    expect(showsDose('paste')).toBe(false);
+  });
+
+  it('shows route for tablets and body area for paste', () => {
+    expect(showsRoute('tablets')).toBe(true);
+    expect(showsRoute('ml')).toBe(false);
+    expect(showsBodyArea('paste')).toBe(true);
+    expect(showsBodyArea('tablets')).toBe(false);
+  });
+
+  it('shows the 24h limit for as-needed medication only', () => {
+    expect(showsMaxDose('asNeeded')).toBe(true);
+    expect(showsMaxDose('scheduled')).toBe(false);
+  });
+
+  it('saves route and body area only under the unit that reveals them', () => {
+    const common = { childId: 'c1', id: 'e1', creator: 'Sarah', type: 'medication' as const };
+    const draft = makeDraft({ medName: 'Tylenol', route: 'anal', bodyArea: 'left cheek' });
+
+    const tablets = draftToEntry({
+      ...common,
+      draft: { ...draft, doseUnit: 'tablets' },
+    }) as MedicationEntry;
+    expect(tablets.route).toBe('anal');
+    expect(tablets.bodyArea).toBeUndefined();
+
+    const paste = draftToEntry({
+      ...common,
+      draft: { ...draft, doseUnit: 'paste' },
+    }) as MedicationEntry;
+    expect(paste.bodyArea).toBe('left cheek');
+    expect(paste.route).toBeUndefined();
+
+    const ml = draftToEntry({ ...common, draft: { ...draft, doseUnit: 'ml' } }) as MedicationEntry;
+    expect(ml.route).toBeUndefined();
+    expect(ml.bodyArea).toBeUndefined();
+  });
+
+  it('drops a whitespace-only body area', () => {
+    const entry = draftToEntry({
+      childId: 'c1',
+      id: 'e1',
+      creator: 'Sarah',
+      type: 'medication',
+      draft: makeDraft({ doseUnit: 'paste', bodyArea: '   ' }),
+    }) as MedicationEntry;
+    expect(entry.bodyArea).toBeUndefined();
+  });
+});
+
+describe('medication 24h limit', () => {
+  const common = { childId: 'c1', id: 'e1', creator: 'Sarah', type: 'medication' as const };
+
+  it('records a stated limit on an as-needed dose', () => {
+    const entry = draftToEntry({
+      ...common,
+      draft: makeDraft({ medName: 'Tylenol', schedule: 'asNeeded', maxDose24h: 20 }),
+    }) as MedicationEntry;
+    expect(entry.maxDose24h).toBe(20);
+  });
+
+  it('states no limit when the field is left blank, rather than clearing one', () => {
+    // Resolved decision (DESIGN_REFRESH_PLAN §2 Batch B): an entry with no
+    // stated limit is silent about the limit. `medLimitSummaries` resolves the
+    // pair's limit from the newest entry that *states* one, so a blank field
+    // carries the existing limit forward instead of dropping it.
+    const entry = draftToEntry({
+      ...common,
+      draft: makeDraft({ medName: 'Tylenol', schedule: 'asNeeded', maxDose24h: null }),
+    }) as MedicationEntry;
+    expect(entry.maxDose24h).toBeUndefined();
+
+    const earlier: MedicationEntry = {
+      ...(draftToEntry({
+        ...common,
+        id: 'e0',
+        draft: makeDraft({ medName: 'Tylenol', schedule: 'asNeeded', maxDose24h: 20 }),
+      }) as MedicationEntry),
+      time: new Date(NOW - 3 * 60 * 60 * 1000).toISOString(),
+    };
+    const summaries = medLimitSummaries([earlier, { ...entry, dose: 5 }], NOW);
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0].limit).toBe(20);
+  });
+
+  it('does not attach a limit to a scheduled dose', () => {
+    const entry = draftToEntry({
+      ...common,
+      draft: makeDraft({ schedule: 'scheduled', maxDose24h: 20 }),
+    }) as MedicationEntry;
+    expect(entry.maxDose24h).toBeUndefined();
+  });
+
+  it('round-trips an existing limit into the edit form', () => {
+    const entry = draftToEntry({
+      ...common,
+      draft: makeDraft({ medName: 'Tylenol', schedule: 'asNeeded', maxDose24h: 20 }),
+    });
+    expect(entryToDraft(entry).maxDose24h).toBe(20);
+  });
+});
+
+describe('medSuggestionPatch', () => {
+  function med(patch: Partial<MedicationEntry> = {}): MedicationEntry {
+    return {
+      id: 'medication:1',
+      childId: 'c1',
+      type: 'medication',
+      time: new Date(NOW).toISOString(),
+      tags: [],
+      creator: 'Sarah',
+      name: 'Tylenol',
+      dose: 5,
+      doseUnit: 'ml',
+      schedule: 'asNeeded',
+      repeatHours: 4,
+      ...patch,
+    };
+  }
+
+  it('carries the whole medicine forward, not just its name', () => {
+    expect(
+      medSuggestionPatch(
+        med({ doseUnit: 'tablets', route: 'anal', maxDose24h: 6, repeatHours: 8 }),
+      ),
+    ).toEqual({
+      medName: 'Tylenol',
+      dose: 5,
+      doseUnit: 'tablets',
+      route: 'anal',
+      bodyArea: '',
+      schedule: 'asNeeded',
+      repeatHours: 8,
+      maxDose24h: 6,
+    });
+  });
+
+  it('falls back to the defaults for fields the suggestion does not carry', () => {
+    const patch = medSuggestionPatch(med());
+    expect(patch.route).toBe('orally');
+    expect(patch.bodyArea).toBe('');
+    expect(patch.maxDose24h).toBeNull();
+  });
+});
+
+describe('sleep type', () => {
+  it('guesses nap during the day and night after 7pm', () => {
+    const at = (hour: number) => new Date(2026, 6, 19, hour, 0, 0).getTime();
+    expect(defaultSleepType(at(9))).toBe('nap');
+    expect(defaultSleepType(at(18))).toBe('nap');
+    expect(defaultSleepType(at(19))).toBe('night');
+    expect(defaultSleepType(at(3))).toBe('night');
+    expect(defaultSleepType(at(6))).toBe('night');
+    expect(defaultSleepType(at(7))).toBe('nap');
+  });
+
+  it('round-trips through the entry', () => {
+    const entry = draftToEntry({
+      childId: 'c1',
+      id: 'e1',
+      creator: 'Sarah',
+      type: 'sleep',
+      draft: makeDraft({ sleepType: 'nap' }),
+    }) as SleepEntry;
+    expect(entry.sleepType).toBe('nap');
+    expect(entryToDraft(entry).sleepType).toBe('nap');
   });
 });

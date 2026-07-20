@@ -42,6 +42,9 @@ export const tints = {
   overdue: { bg: '#F7DFDA', fg: '#A63A24' }, // soft red (overdue/urgent)
   sleep: { bg: '#E8E9F3' }, // soft lavender
   tummy: { bg: '#E4EFE4' }, // soft green
+  // Offered-but-not-applied surfaces (the tag quick-pick chips). Carries a
+  // border as well, since the dashed outline is what marks them as offers.
+  suggestion: { bg: '#FCEFE9', fg: '#96543D', border: '#E6A98D' },
 } as const;
 
 /**

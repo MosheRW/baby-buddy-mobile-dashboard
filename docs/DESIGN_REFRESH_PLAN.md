@@ -283,7 +283,52 @@ The icon sign-off the Refactor Execution Plan listed as an open item is
 **approved** — build against `Entry Icon Options.dc.html` (see §3.1), which
 takes precedence over the dashboard prototype's inline shapes.
 
-### Batch D — Log Entry form
+### Batch D — Log Entry form ✅ done
+
+`npm test` 220 passing (+23; `formDraft.test.ts` 25 → 48), typecheck and lint
+clean. Verified in the web mock preview, field by field: unit → dose
+step/label, tablets → Route, paste → no dose + Body area, as-needed → the 24h
+limit, suggestion prefill switching unit *and* schedule, Solid Food → food-type
+row with Amount hidden on Fruits and back in grams on Grains, the diaper
+`5 / 10` stepper with its label following Pee/Poo, Nap/Night above the sleep
+timer, and the tag quick-pick adding a tag and dropping it from the offers.
+
+Decisions made while implementing, worth review:
+
+- **A blank 24h limit patches `null`, and `null` means "state nothing".**
+  `draftToEntry` turns it into an absent `maxDose24h`, which `medLimitSummaries`
+  reads as "this entry is silent about the limit" — so the pair's existing
+  limit stands. There's a test that spells this out with a prior limited entry,
+  because the naive reading (blank = clear) is one character away and the
+  failure is silent. The prototype's helper text ("Leave blank for no limit")
+  is wrong for us and was reworded.
+- **The limit input keeps its own raw string.** Binding the box to the parsed
+  number erases the decimal point as you type it. It re-seeds from the draft
+  via React's "adjust state when a prop changes" pattern, which is how a
+  suggestion prefill and edit hydration reach the box — with a ref, ESLint's
+  `react-hooks/refs` rejects it, and it has to be state.
+- **Baselines are stamped at selection, not at save.** `baselinePatch` runs from
+  the kind and method handlers. `emptyDraft` also seeds `defaultQtyAtEntry`,
+  since a new draft opens on Bottle and would otherwise save without one.
+- **Each baseline is gated on its own method on the way out**, mirroring the
+  read-side gating in `normalize.ts`: a flat draft keeps whichever baseline an
+  earlier selection left behind, and it must not attach to a different method.
+- **`entryToDraft` keeps the entry's original baselines** rather than
+  re-capturing today's, so editing a week-old feed doesn't re-scale its gauge.
+- **`maxDose24h` is gated on as-needed** to match the field being hidden for
+  scheduled doses — setting a limit and then switching to Scheduled drops it.
+- **`sleepType` defaults from the clock** (nap 07:00–18:59, night otherwise),
+  per the prototype, rather than a fixed `'night'`.
+- **`emptyDraft`'s medication defaults moved to the prototype's** — `5 ml`,
+  not `1 mg`.
+- Fixtures gained two real tags (`swaddled`, `white noise` on the nap), since
+  nothing in the mock set had a non-author tag and the quick-pick row had
+  nothing to render.
+
+Not re-run: `npm run test:live`. Batch D changed no API code — the new fields
+were already round-tripped against the real server in Batch A.
+
+#### Original scope
 
 Files: `src/lib/formDraft.ts` (+ its 25 tests), `src/features/logEntry/fields/*`.
 

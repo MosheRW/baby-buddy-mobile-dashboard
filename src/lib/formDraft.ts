@@ -13,9 +13,12 @@ import type {
   EntryType,
   FeedingKind,
   FeedingMethod,
+  MedicationEntry,
+  MedicationRoute,
   MedicationSchedule,
   PooColor,
   SleepType,
+  SolidFoodType,
   Tag,
   TemperatureMethod,
 } from '../api/types';
@@ -33,6 +36,8 @@ export interface FormDraft {
   pee: boolean;
   poo: boolean;
   pooColor: PooColor;
+  /** 1–10 "how full", shown as an `x/10` badge in the feed. */
+  diaperAmount: number;
 
   // feeding
   kind: FeedingKind;
@@ -41,12 +46,29 @@ export interface FormDraft {
   amount: number;
   /** Minutes, for direct-breast feeds logged without a timer. */
   durationMinutes: number;
+  solidFoodType: SolidFoodType;
+  /**
+   * The "normal" amount/duration captured at the moment the method was picked,
+   * so the feed's gauge compares against what was normal *then* — a later
+   * Settings edit must not retroactively move an old entry's baseline.
+   */
+  defaultQtyAtEntry: number | null;
+  defaultTimeAtEntry: number | null;
 
   // medication
   medName: string;
   dose: number;
-  /** Server-side dosage unit; preserved on edit, not surfaced in the form. */
   doseUnit: DosageUnit;
+  /** Tablets only. */
+  route: MedicationRoute;
+  /** Paste only, free text. */
+  bodyArea: string;
+  /**
+   * As-needed only. `null` means "don't state a limit on this entry" — which
+   * is *not* the same as clearing one: the newest entry that states a limit
+   * still governs the (name, child) pair. See `medLimitSummaries`.
+   */
+  maxDose24h: number | null;
   schedule: MedicationSchedule;
   repeatHours: number;
 
@@ -73,15 +95,23 @@ export function emptyDraft(now: number = Date.now(), defaultFoodMl = 120): FormD
     pee: true,
     poo: false,
     pooColor: 'yellow',
+    diaperAmount: 5,
 
     kind: 'breastMilk',
     method: 'bottle',
     amount: defaultFoodMl,
     durationMinutes: 15,
+    solidFoodType: 'fruits',
+    // A new draft opens on Bottle, so the bottle baseline is captured up front.
+    defaultQtyAtEntry: defaultFoodMl,
+    defaultTimeAtEntry: null,
 
     medName: '',
-    dose: 1,
-    doseUnit: 'mg',
+    dose: 5,
+    doseUnit: 'ml',
+    route: 'orally',
+    bodyArea: '',
+    maxDose24h: null,
     schedule: 'scheduled',
     repeatHours: 6,
 
@@ -91,8 +121,18 @@ export function emptyDraft(now: number = Date.now(), defaultFoodMl = 120): FormD
     tummyMinutes: 10,
 
     stillSleeping: true,
-    sleepType: 'night',
+    sleepType: defaultSleepType(now),
   };
+}
+
+/**
+ * Daytime sleep is a nap, night-time sleep isn't. Guessing from the clock beats
+ * a fixed default: the toggle is one tap either way, but it's right most of the
+ * time without one.
+ */
+export function defaultSleepType(now: number = Date.now()): SleepType {
+  const hour = new Date(now).getHours();
+  return hour >= 7 && hour < 19 ? 'nap' : 'night';
 }
 
 // --- Field visibility rules -------------------------------------------------
@@ -122,9 +162,37 @@ export function isDirectBreast(method: FeedingMethod): boolean {
   return method === 'leftBreast' || method === 'rightBreast' || method === 'bothBreasts';
 }
 
-/** Amount stepper shows for bottle feeds and for solids. */
-export function showsAmount(kind: FeedingKind, method: FeedingMethod): boolean {
-  return method === 'bottle' || kind === 'solidFood';
+/** Solid-food types, in the prototype's chip order. */
+export const SOLID_FOOD_TYPES: SolidFoodType[] = [
+  'fruits',
+  'vegetables',
+  'grains',
+  'protein',
+  'dairy',
+];
+
+export const solidFoodTypeLabel: Record<SolidFoodType, string> = {
+  fruits: 'Fruits',
+  vegetables: 'Vegetables',
+  grains: 'Grains',
+  protein: 'Protein',
+  dairy: 'Dairy',
+};
+
+/** Solids whose portion nobody weighs — the amount field is noise for them. */
+const UNWEIGHED_SOLIDS: SolidFoodType[] = ['fruits', 'vegetables'];
+
+/**
+ * Amount stepper shows for bottle feeds, and for solids except the ones served
+ * as whole pieces (a few grapes isn't a gram count anyone records).
+ */
+export function showsAmount(
+  kind: FeedingKind,
+  method: FeedingMethod,
+  solidFoodType: SolidFoodType,
+): boolean {
+  if (method === 'bottle') return true;
+  return kind === 'solidFood' && !UNWEIGHED_SOLIDS.includes(solidFoodType);
 }
 
 /**
@@ -138,6 +206,70 @@ export function showsDuration(method: FeedingMethod, timerRunning: boolean): boo
 /** Unit suffix for the feeding amount. */
 export function amountUnit(kind: FeedingKind): string {
   return kind === 'solidFood' ? ' g' : ' ml';
+}
+
+/**
+ * The baseline to stamp on the draft when a feeding method is picked. Bottle
+ * feeds are measured against the child's usual amount, direct-breast feeds
+ * against that side's recent average duration; other methods carry neither.
+ *
+ * Returned as a patch rather than applied in place because it has to happen at
+ * the moment of selection — see `defaultQtyAtEntry`.
+ */
+export function baselinePatch(
+  method: FeedingMethod,
+  defaultFoodMl: number | null,
+  defaultTimeMinutes: number | null,
+): Partial<FormDraft> {
+  if (method === 'bottle') return { defaultQtyAtEntry: defaultFoodMl };
+  if (isDirectBreast(method)) return { defaultTimeAtEntry: defaultTimeMinutes };
+  return {};
+}
+
+/** The diaper amount's label names whichever contents are actually present. */
+export function diaperAmountLabel(pee: boolean, poo: boolean): string {
+  if (pee && poo) return 'Amount';
+  return poo ? 'Poo amount' : 'Pee amount';
+}
+
+/** Paste is measured by where it went, not how much — there's no dose to enter. */
+export function showsDose(unit: DosageUnit): boolean {
+  return unit !== 'paste';
+}
+
+/** Only tablets can go in one of two ends. */
+export function showsRoute(unit: DosageUnit): boolean {
+  return unit === 'tablets';
+}
+
+export function showsBodyArea(unit: DosageUnit): boolean {
+  return unit === 'paste';
+}
+
+/**
+ * A 24h ceiling only means something for as-needed medication — a scheduled
+ * course's ceiling is the schedule.
+ */
+export function showsMaxDose(schedule: MedicationSchedule): boolean {
+  return schedule === 'asNeeded';
+}
+
+/**
+ * Prefill from a recent medication. Carries the whole shape forward, not just
+ * the name — re-logging a dose of something already given is the common case,
+ * and its unit/route/limit are part of "the same medicine".
+ */
+export function medSuggestionPatch(m: MedicationEntry): Partial<FormDraft> {
+  return {
+    medName: m.name,
+    dose: m.dose,
+    doseUnit: m.doseUnit,
+    route: m.route ?? 'orally',
+    bodyArea: m.bodyArea ?? '',
+    schedule: m.schedule,
+    repeatHours: m.repeatHours,
+    maxDose24h: m.maxDose24h ?? null,
+  };
 }
 
 /** Preset repeat intervals; anything else is "Custom". */
@@ -185,18 +317,27 @@ export function draftToEntry({ draft, type, childId, id, creator }: ToEntryParam
         pee: draft.pee,
         poo: draft.poo,
         pooColor: draft.poo ? draft.pooColor : undefined,
+        amount: draft.diaperAmount,
       };
 
     case 'feeding': {
       const method = methodForKindChange(draft.kind, draft.method);
+      const solid = draft.kind === 'solidFood';
       return {
         ...base,
         type: 'feeding',
         endTime: draft.endTime ?? undefined,
         kind: draft.kind,
         method,
-        amount: showsAmount(draft.kind, method) ? draft.amount : undefined,
+        amount: showsAmount(draft.kind, method, draft.solidFoodType) ? draft.amount : undefined,
         durationMinutes: isDirectBreast(method) ? draft.durationMinutes : undefined,
+        solidFoodType: solid ? draft.solidFoodType : undefined,
+        // Gate each baseline on the method it describes, so one left behind by
+        // an earlier selection can't attach itself to a different method.
+        defaultQtyAtEntry: method === 'bottle' ? (draft.defaultQtyAtEntry ?? undefined) : undefined,
+        defaultTimeAtEntry: isDirectBreast(method)
+          ? (draft.defaultTimeAtEntry ?? undefined)
+          : undefined,
       };
     }
 
@@ -207,6 +348,11 @@ export function draftToEntry({ draft, type, childId, id, creator }: ToEntryParam
         name: draft.medName.trim(),
         dose: draft.dose,
         doseUnit: draft.doseUnit,
+        route: showsRoute(draft.doseUnit) ? draft.route : undefined,
+        bodyArea: showsBodyArea(draft.doseUnit)
+          ? draft.bodyArea.trim() || undefined
+          : undefined,
+        maxDose24h: showsMaxDose(draft.schedule) ? (draft.maxDose24h ?? undefined) : undefined,
         schedule: draft.schedule,
         repeatHours: draft.repeatHours,
       };
@@ -255,17 +401,26 @@ export function entryToDraft(entry: Entry, defaultFoodMl?: number): FormDraft {
       draft.pee = entry.pee;
       draft.poo = entry.poo;
       if (entry.pooColor) draft.pooColor = entry.pooColor;
+      if (entry.amount != null) draft.diaperAmount = entry.amount;
       break;
     case 'feeding':
       draft.kind = entry.kind;
       draft.method = entry.method;
       if (entry.amount != null) draft.amount = entry.amount;
       if (entry.durationMinutes != null) draft.durationMinutes = entry.durationMinutes;
+      if (entry.solidFoodType) draft.solidFoodType = entry.solidFoodType;
+      // Keep the original baselines rather than re-capturing today's — editing
+      // a week-old feed must not re-scale its gauge to this week's normal.
+      draft.defaultQtyAtEntry = entry.defaultQtyAtEntry ?? null;
+      draft.defaultTimeAtEntry = entry.defaultTimeAtEntry ?? null;
       break;
     case 'medication':
       draft.medName = entry.name;
       draft.dose = entry.dose;
       draft.doseUnit = entry.doseUnit;
+      if (entry.route) draft.route = entry.route;
+      if (entry.bodyArea) draft.bodyArea = entry.bodyArea;
+      draft.maxDose24h = entry.maxDose24h ?? null;
       draft.schedule = entry.schedule;
       draft.repeatHours = entry.repeatHours;
       break;
