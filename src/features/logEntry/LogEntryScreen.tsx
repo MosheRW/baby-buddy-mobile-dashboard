@@ -5,10 +5,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
-import type { EntryType } from '../../api/types';
+import type { EntryType, MedicationEntry } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
-import { draftToEntry, emptyDraft, entryToDraft } from '../../lib/formDraft';
+import { draftToEntry, emptyDraft, entryToDraft, medSuggestionPatch } from '../../lib/formDraft';
 import { isTimerType } from '../../lib/timers';
 import { recentTagSuggestions } from '../../lib/tags';
 import { errorMessage, serverNow } from '../../api/client';
@@ -38,7 +38,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'LogEntry'>;
  * just wiring — the field-visibility rules are pure functions in lib/formDraft.
  */
 export function LogEntryScreen({ route, navigation }: Props) {
-  const { mode, type: initialType, entryId, childId } = route.params;
+  const { mode, type: initialType, entryId, childId, prefillMedEntryId } = route.params;
   const isEdit = mode === 'edit';
 
   const { children, entries } = useDashboardData();
@@ -59,14 +59,23 @@ export function LogEntryScreen({ route, navigation }: Props) {
 
   const userName = useAuthStore((s) => s.session?.userName) ?? 'you';
 
+  // A repeat dose started from a dashboard med row: same medicine, same dose,
+  // schedule and interval, but a fresh entry at the current time.
+  const prefillMed = prefillMedEntryId
+    ? entries.find(
+        (e): e is MedicationEntry => e.id === prefillMedEntryId && e.type === 'medication',
+      )
+    : undefined;
+
   // Seed the store once per opened entry. In edit mode this waits for the
   // entry to load, so `readyKey` gates rendering on a hydrated draft.
-  const formKey = `${mode}:${childId}:${entryId ?? ''}`;
+  const formKey = `${mode}:${childId}:${entryId ?? ''}:${prefillMedEntryId ?? ''}`;
   const [readyKey, setReadyKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (readyKey === formKey) return;
     if (isEdit && !editingEntry) return; // entries still loading
+    if (prefillMedEntryId && !prefillMed) return; // ditto for the source dose
     openForm({
       mode,
       type: editingEntry?.type ?? initialType ?? 'diaper',
@@ -74,9 +83,12 @@ export function LogEntryScreen({ route, navigation }: Props) {
       editingEntryId: entryId ?? null,
       draft: editingEntry
         ? entryToDraft(editingEntry, defaultFoodMl)
-        : // serverNow, not Date.now: the server rejects times in its own future,
-          // so a phone running slightly fast can't log a "now" entry.
-          emptyDraft(serverNow(), defaultFoodMl),
+        : {
+            // serverNow, not Date.now: the server rejects times in its own
+            // future, so a phone running slightly fast can't log a "now" entry.
+            ...emptyDraft(serverNow(), defaultFoodMl),
+            ...(prefillMed ? medSuggestionPatch(prefillMed) : {}),
+          },
     });
     // One-time seeding, guarded by the key above — it can't cascade because
     // the next run returns early.
@@ -93,6 +105,8 @@ export function LogEntryScreen({ route, navigation }: Props) {
     childId,
     entryId,
     defaultFoodMl,
+    prefillMedEntryId,
+    prefillMed,
   ]);
 
   const saveEntry = useSaveEntry();

@@ -8,6 +8,11 @@ export interface LogEntryParams {
   type?: EntryType;
   /** The entry being edited, when mode === 'edit'. */
   entryId?: string;
+  /**
+   * Create mode only: an existing medication entry to seed the draft from, so
+   * tapping a med row on the dashboard opens a pre-filled repeat dose.
+   */
+  prefillMedEntryId?: string;
 }
 
 export interface DeleteConfirmParams {

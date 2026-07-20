@@ -15,6 +15,7 @@ import { colors, fontSize, radii, shadows, spacing } from '../../theme';
 import { greeting, longDate } from '../../lib/dates';
 import type { Child, Entry, EntryType } from '../../api/types';
 import type { TimerType } from '../../lib/timers';
+import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
 import { useAuthStore, useSettingsStore, useUiStore } from '../../stores';
@@ -61,6 +62,17 @@ export function DashboardScreen({ navigation }: Props) {
   const openCreate = (childId: string, type: EntryType) => {
     dismiss();
     navigation.navigate('LogEntry', { mode: 'create', childId, type });
+  };
+
+  /** Repeat dose from a med row — the form opens prefilled from that entry. */
+  const openDose = (childId: string, status: MedStatus) => {
+    dismiss();
+    navigation.navigate('LogEntry', {
+      mode: 'create',
+      childId,
+      type: 'medication',
+      prefillMedEntryId: status.entryId,
+    });
   };
 
   const openTimer = (childId: string, type: TimerType) => {
@@ -171,6 +183,7 @@ export function DashboardScreen({ navigation }: Props) {
             timerNow={timerNow}
             onQuickAction={openCreate}
             onOpenMedBreakdown={openMedBreakdown}
+            onLogDose={openDose}
           />
         ) : null}
 

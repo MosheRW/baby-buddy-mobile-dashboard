@@ -149,14 +149,25 @@ export function foodTrend(entries: Entry[], now: number = Date.now()): FoodTrend
   const last24 = foodTotalRange(entries, 24, 0, now);
   const prior7Days = foodTotalRange(entries, 192, 24, now);
   const avgPerDay = Math.round(prior7Days / 7);
+  // With no prior history the bar gauges today against itself, so it reads
+  // full rather than empty. A fresh install has no norm to fall short of, and
+  // an empty bar under "120ml today" looks like a bug.
+  const base = avgPerDay > 0 ? avgPerDay : last24 || 1;
+  // 4% floor so a token feed still reads as a bar rather than as nothing — but
+  // nothing fed is nothing fed, and an empty bar is the honest picture of it.
   const percent =
-    avgPerDay === 0 ? (last24 > 0 ? 100 : 0) : Math.max(0, Math.min(100, Math.round((last24 / avgPerDay) * 100)));
+    last24 === 0 ? 0 : Math.max(4, Math.min(100, Math.round((last24 / base) * 100)));
   return {
     last24,
     avgPerDay,
     up: avgPerDay === 0 ? last24 > 0 : last24 >= avgPerDay,
     percent,
   };
+}
+
+/** "120ml today vs 95ml/day (7d avg)" — the caption under the trend bar. */
+export function foodTrendLabel(trend: FoodTrend): string {
+  return `${trend.last24}ml today vs ${trend.avgPerDay}ml/day (7d avg)`;
 }
 
 // --- Feed gauge -------------------------------------------------------------

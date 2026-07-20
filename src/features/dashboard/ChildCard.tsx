@@ -18,11 +18,13 @@ import {
 import { entryTitle, medGlyphKind } from '../../lib/entryDisplay';
 import {
   countdownLabel,
+  eligibleStatusLabel,
   formatDose,
   medLimitSummaries,
+  neededStatusLabel,
   type MedLimitSummary,
 } from '../../lib/medication';
-import { foodTrend } from '../../lib/feed';
+import { foodTrend, foodTrendLabel } from '../../lib/feed';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
 import { useTimerStore } from '../../stores';
 
@@ -37,6 +39,8 @@ interface ChildCardProps {
   onQuickAction: (type: EntryType) => void;
   /** Opens the 24h medication breakdown sheet for this child. */
   onOpenMedBreakdown?: () => void;
+  /** Opens the medication form prefilled from an existing dose of that med. */
+  onLogDose?: (status: MedStatus) => void;
   width?: number;
 }
 
@@ -48,6 +52,7 @@ export function ChildCard({
   timerNow,
   onQuickAction,
   onOpenMedBreakdown,
+  onLogDose,
   width,
 }: ChildCardProps) {
   const childEntries = entriesForChild(entries, child.id);
@@ -92,67 +97,101 @@ export function ChildCard({
           label="Last pee"
           value={pee ? timeAgo(pee.time, now) : '—'}
           tint={tints.pee}
+          glyph="diaperPee"
           style={styles.stat}
         />
         <StatTile
           label="Last poo"
           value={poo ? timeAgo(poo.time, now) : '—'}
           tint={tints.poo}
+          glyph="diaperPoo"
           style={styles.stat}
         />
       </View>
 
+      {/* The 24h intake summary belongs to this tile, not to the food total
+          below it — it's context for the feed that just happened. */}
       <StatTile
         label="Last feeding"
         value={feeding ? `${entryTitle(feeding)} · ${timeAgo(feeding.time, now)}` : '—'}
         tint={tints.feeding}
+        glyph="feedingBottle"
+      >
+        <FoodTrend trend={trend} />
+      </StatTile>
+
+      <StatTile
+        label={`Food, ${foodWindowHours}h`}
+        value={`${total} ml`}
+        tint={{ bg: colors.tileNeutral }}
       />
 
       {needed.map((m) => (
-        <MedRow key={`n-${m.name}`} status={m} kind="needed" />
+        <MedRow key={`n-${m.name}`} status={m} kind="needed" now={now} onPress={onLogDose} />
       ))}
       {eligible.map((m) => (
-        <MedRow key={`e-${m.name}`} status={m} kind="eligible" />
+        <MedRow key={`e-${m.name}`} status={m} kind="eligible" now={now} onPress={onLogDose} />
       ))}
       {limits.map((m) => (
         <MedLimitTile key={`l-${m.name}`} summary={m} now={now} onPress={onOpenMedBreakdown} />
       ))}
-
-      <View>
-        <View style={styles.foodTotal}>
-          <AppText size={fontSize.bodySm} weight="700" color={colors.textSecondary}>
-            Food total ({foodWindowHours}h)
-          </AppText>
-          <AppText size={fontSize.bodySm} weight="800">
-            {total} ml
-          </AppText>
-        </View>
-        <FoodTrend trend={trend} />
-      </View>
 
       <QuickActions onAction={onQuickAction} runningTimers={runningTimers} />
     </Card>
   );
 }
 
-function MedRow({ status, kind }: { status: MedStatus; kind: 'needed' | 'eligible' }) {
-  const due = status.isDue;
+/**
+ * A medicine this child is on: what it is, when it was last given, and where
+ * that puts the next dose. Stays on the calm cream tile until it actually wants
+ * attention — a permanently coloured row is a permanently ignored one.
+ *
+ * Tapping opens the medication form prefilled from this dose. Unlike the
+ * prototype, which only wires the tap once the med is due, the row is always
+ * tappable: giving a dose early is legitimate, and a tap target that silently
+ * does nothing is a bug rather than a design.
+ */
+function MedRow({
+  status,
+  kind,
+  now,
+  onPress,
+}: {
+  status: MedStatus;
+  kind: 'needed' | 'eligible';
+  now: number;
+  onPress?: (status: MedStatus) => void;
+}) {
+  // Scheduled meds warn a few minutes ahead; an as-needed med has nothing to be
+  // late for, so it only lights up once it's actually available again.
+  const urgent = kind === 'needed' ? status.urgent : status.isDue;
   const tint = kind === 'needed' ? tints.overdue : tints.eligible;
-  const bg = due ? tint.bg : colors.neutral;
-  const fg = due ? tint.fg : colors.textSecondary;
-
-  const label = kind === 'needed' ? `${status.name} needed` : `Eligible for ${status.name}`;
-  const value = due ? (kind === 'needed' ? 'overdue' : 'now') : `in ${countdownLabel(status.dueInMs)}`;
+  const bg = urgent ? tint.bg : colors.tileNeutral;
+  const fg = urgent ? tint.fg : colors.textSecondary;
 
   return (
-    <View style={[styles.medRow, { backgroundColor: bg }]}>
-      <AppText size={fontSize.bodySm} weight="700" color={fg}>
-        {label}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Log a dose of ${status.name}`}
+      disabled={onPress == null}
+      onPress={() => onPress?.(status)}
+      style={[styles.medRow, { backgroundColor: bg }]}
+    >
+      <View style={styles.medIcon}>
+        <EntryGlyph kind={medGlyphKind(status.unit)} size={13} color={fg} />
+      </View>
+      <View style={styles.medName}>
+        <AppText size={fontSize.meta} weight="700" color={fg}>
+          {status.name}
+        </AppText>
+        <AppText size={fontSize.micro} weight="600" color={fg} style={styles.faded}>
+          last {timeAgo(new Date(status.lastTakenAt).toISOString(), now)}
+        </AppText>
+      </View>
+      <AppText size={fontSize.metaSm} weight="800" color={fg} style={styles.medStatus}>
+        {kind === 'needed' ? neededStatusLabel(status) : eligibleStatusLabel(status)}
       </AppText>
-      <AppText size={fontSize.bodySm} weight="800" color={fg}>
-        {value}
-      </AppText>
-    </View>
+    </Pressable>
   );
 }
 
@@ -212,24 +251,29 @@ function MedLimitTile({
   );
 }
 
-/** Today's food total against the previous 7 days' daily average. */
+/**
+ * Today's food total against the previous 7 days' daily average.
+ *
+ * Always rendered. It used to bail out when the average was 0, which is exactly
+ * the case a new account is in — the summary simply never appeared. `foodTrend`
+ * now gauges today against itself when there's no norm yet.
+ */
 function FoodTrend({ trend }: { trend: ReturnType<typeof foodTrend> }) {
-  if (trend.avgPerDay === 0) return null;
   return (
     <View style={styles.trend}>
-      <View style={styles.barTrack}>
+      <View style={[styles.barTrack, styles.trendTrack]}>
         <View
           style={[
             styles.barFill,
             {
               width: `${trend.percent}%`,
-              backgroundColor: trend.up ? colors.accent : colors.textMuted,
+              backgroundColor: trend.up ? colors.trendUp : colors.trendDown,
             },
           ]}
         />
       </View>
-      <AppText size={fontSize.micro} weight="600" color={colors.textMuted} style={styles.trendText}>
-        {trend.last24} ml today vs {trend.avgPerDay} ml daily average
+      <AppText size={fontSize.micro} weight="700" color={colors.textSecondary}>
+        {foodTrendLabel(trend)}
       </AppText>
     </View>
   );
@@ -258,19 +302,27 @@ const styles = StyleSheet.create({
   stat: {
     flex: 1,
   },
-  foodTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-  },
   medRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.md,
     borderRadius: radii.tile,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  medIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: radii.iconButton,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medName: {
+    flex: 1,
+  },
+  medStatus: {
+    textAlign: 'right',
   },
   limitTile: {
     backgroundColor: tints.eligible.bg,
@@ -310,10 +362,9 @@ const styles = StyleSheet.create({
   },
   trend: {
     gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
-  trendText: {
-    // Left-aligned under the bar, matching the food-total row above.
+  trendTrack: {
+    backgroundColor: tints.feeding.track,
   },
 });

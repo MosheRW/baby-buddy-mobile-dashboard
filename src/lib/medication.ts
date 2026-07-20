@@ -53,14 +53,33 @@ export function formatDose(dose: number, unit: DosageUnit): string {
   return `${dose.toFixed(spec.precision)}${spec.suffix}`;
 }
 
+/** How close to due a scheduled dose has to be before the row turns red. */
+const NEAR_DUE_MS = 5 * 60 * 1000;
+
 export interface MedStatus {
   name: string;
+  /** The entry this status was derived from — the dashboard prefills from it. */
+  entryId: string;
+  /** Dose unit of that entry, for the row's glyph. */
+  unit: DosageUnit;
+  /** Epoch ms of the last dose. */
+  lastTakenAt: number;
+  /** ms since that dose. */
+  elapsedMs: number;
   /** Epoch ms when the next dose is due / eligible. */
   dueAt: number;
   /** ms until due; <= 0 means due now / overdue. */
   dueInMs: number;
   /** True once due (overdue for scheduled, eligible for PRN). */
   isDue: boolean;
+  /**
+   * Past the midpoint of the interval. Before it, the row counts *up* from the
+   * last dose ("40m since last dose"); after it, it counts *down* to the next.
+   * Early in an 8-hour cycle "due in 7h 20m" is noise, not information.
+   */
+  halfOver: boolean;
+  /** Due, overdue, or within five minutes of due — the row goes red. */
+  urgent: boolean;
 }
 
 function medicationEntries(entries: Entry[]): MedicationEntry[] {
@@ -85,9 +104,24 @@ function dedupeByNameMostRecent(meds: MedicationEntry[]): MedicationEntry[] {
 }
 
 function toStatus(m: MedicationEntry, now: number): MedStatus {
-  const dueAt = timeOf(m) + m.repeatHours * HOUR;
+  const lastTakenAt = timeOf(m);
+  const interval = m.repeatHours * HOUR;
+  const dueAt = lastTakenAt + interval;
   const dueInMs = dueAt - now;
-  return { name: m.name, dueAt, dueInMs, isDue: dueInMs <= 0 };
+  const elapsedMs = now - lastTakenAt;
+  const isDue = dueInMs <= 0;
+  return {
+    name: m.name,
+    entryId: m.id,
+    unit: m.doseUnit,
+    lastTakenAt,
+    elapsedMs,
+    dueAt,
+    dueInMs,
+    isDue,
+    halfOver: interval > 0 ? elapsedMs >= interval / 2 : true,
+    urgent: isDue || dueInMs <= NEAR_DUE_MS,
+  };
 }
 
 /** Scheduled meds whose next dose falls within ±24h of now, soonest first. */
@@ -140,12 +174,33 @@ export function medicationSuggestions(entries: Entry[]): MedicationEntry[] {
   return out;
 }
 
-/** "Xh Ym" countdown for a positive ms duration (clamped at 0). */
+/**
+ * "2h 15m" / "45m" for a duration in ms, sign-insensitive. Under an hour the
+ * hour segment is dropped — "0h 45m" reads like a placeholder.
+ */
 export function countdownLabel(ms: number): string {
-  const totalMin = Math.max(0, Math.round(ms / 60000));
+  const totalMin = Math.round(Math.abs(ms) / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  return `${h}h ${m}m`;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/**
+ * The right-hand status on a scheduled ("needed") medication row.
+ *
+ * Before the halfway point the useful number is how long it's been; after it,
+ * how long is left. See `halfOver`.
+ */
+export function neededStatusLabel(status: MedStatus): string {
+  if (!status.halfOver) return `${countdownLabel(status.elapsedMs)} since last dose`;
+  return status.isDue
+    ? `overdue by ${countdownLabel(status.dueInMs)}`
+    : `due in ${countdownLabel(status.dueInMs)}`;
+}
+
+/** The right-hand status on an as-needed ("eligible") medication row. */
+export function eligibleStatusLabel(status: MedStatus): string {
+  return status.isDue ? 'eligible now' : `eligible in ${countdownLabel(status.dueInMs)}`;
 }
 
 // --- 24h dose limits --------------------------------------------------------

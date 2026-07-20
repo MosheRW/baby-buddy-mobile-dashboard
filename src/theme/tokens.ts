@@ -25,6 +25,17 @@ export const colors = {
   // Neutral chip / disabled surfaces
   neutral: '#EDE9E6',
 
+  /**
+   * The warmer, lighter cream the prototype uses for *informational* tiles —
+   * the "Food, Nh" total and a medication row that isn't urgent yet. Distinct
+   * from `neutral`, which reads as "disabled".
+   */
+  tileNeutral: '#F6F3EE',
+
+  // Feeding-trend gauge: today at or above the 7-day norm, or below it.
+  trendUp: '#5F9E62',
+  trendDown: '#A8813F',
+
   // On-accent / on-danger foreground
   onAccent: '#FFFFFF',
 } as const;
@@ -37,11 +48,18 @@ export const colors = {
 export const tints = {
   pee: { bg: '#EAF1F6', fg: '#3E6E86' }, // soft blue
   poo: { bg: '#F5EEDD', fg: '#8A6A2E' }, // soft amber
-  feeding: { bg: '#F6DFD6', fg: '#9A4A34' }, // warm peach
+  // Warm peach. `track` is the unfilled part of the trend gauge drawn on top of
+  // `bg`, so it has to be darker than the card-level neutral the other bars use.
+  feeding: { bg: '#F6DFD6', fg: '#9A4A34', track: '#E4D2CB' },
   eligible: { bg: '#F9E7EE', fg: '#9A3560' }, // soft pink (medication eligible)
   overdue: { bg: '#F7DFDA', fg: '#A63A24' }, // soft red (overdue/urgent)
   sleep: { bg: '#E8E9F3' }, // soft lavender
   tummy: { bg: '#E4EFE4' }, // soft green
+  // Quick-action buttons: a soft peach wash with terracotta content, not a
+  // solid accent fill — six saturated blocks would dominate the card.
+  quickAction: { bg: '#F5EBE6', fg: '#9A4A34' },
+  // The "More" button, which stands apart from the five typed ones.
+  more: { bg: '#EAE3DB', fg: '#5B534E' },
   // Offered-but-not-applied surfaces (the tag quick-pick chips). Carries a
   // border as well, since the dashed outline is what marks them as offers.
   suggestion: { bg: '#FCEFE9', fg: '#96543D', border: '#E6A98D' },

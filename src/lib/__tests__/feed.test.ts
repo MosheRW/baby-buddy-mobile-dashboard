@@ -5,6 +5,7 @@ import {
   filterAndGroup,
   foodTotal,
   foodTrend,
+  foodTrendLabel,
 } from '../feed';
 import type { DiaperEntry, Entry, FeedingEntry, FeedingMethod } from '../../api/types';
 
@@ -178,6 +179,17 @@ describe('foodTrend', () => {
     expect(trend.avgPerDay).toBe(0);
     expect(trend.last24).toBe(150);
     expect(trend.up).toBe(true);
+    // The reported bug: with no norm to compare against the bar used to vanish.
+    // It now gauges today against itself and reads full.
+    expect(trend.percent).toBe(100);
+  });
+
+  it('floors a tiny fraction of the norm at a visible sliver', () => {
+    const entries: Entry[] = [
+      feeding('today', NOW - HOUR, 1),
+      ...Array.from({ length: 7 }, (_, i) => feeding(`p${i}`, NOW - (i + 1) * DAY, 500)),
+    ];
+    expect(foodTrend(entries, NOW).percent).toBe(4);
   });
 
   it('reports a down day', () => {
@@ -192,6 +204,14 @@ describe('foodTrend', () => {
 
   it('is flat and not-up with no data at all', () => {
     expect(foodTrend([], NOW)).toMatchObject({ last24: 0, avgPerDay: 0, up: false, percent: 0 });
+  });
+});
+
+describe('foodTrendLabel', () => {
+  it('reads as the prototype writes it', () => {
+    expect(foodTrendLabel(foodTrend([feeding('t', NOW - HOUR, 120)], NOW))).toBe(
+      '120ml today vs 0ml/day (7d avg)',
+    );
   });
 });
 

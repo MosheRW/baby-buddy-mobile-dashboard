@@ -3,6 +3,8 @@ import {
   eligibleMeds,
   medicationSuggestions,
   countdownLabel,
+  neededStatusLabel,
+  eligibleStatusLabel,
   DOSE_UNITS,
   doseFieldLabel,
   formatDose,
@@ -151,9 +153,63 @@ describe('medicationSuggestions', () => {
 });
 
 describe('countdownLabel', () => {
-  it('formats as "Xh Ym" and clamps negatives to zero', () => {
+  it('formats as "Xh Ym", dropping a zero hour, and ignores sign', () => {
     expect(countdownLabel(7 * HOUR + 5 * 60000)).toBe('7h 5m');
-    expect(countdownLabel(-1000)).toBe('0h 0m');
+    expect(countdownLabel(45 * 60000)).toBe('45m');
+    expect(countdownLabel(-1000)).toBe('0m');
+    // Overdue durations arrive negative; the caller supplies the wording.
+    expect(countdownLabel(-(2 * HOUR))).toBe('2h 0m');
+  });
+});
+
+describe('status labels', () => {
+  const scheduled = (agoHours: number, repeatHours = 8) =>
+    neededMeds(
+      [med({ name: 'Amoxicillin', time: iso(NOW - agoHours * HOUR), repeatHours })],
+      NOW,
+    )[0];
+
+  it('counts up from the last dose before the halfway point', () => {
+    expect(neededStatusLabel(scheduled(1))).toBe('1h 0m since last dose');
+  });
+
+  it('counts down to the next dose past the halfway point', () => {
+    expect(neededStatusLabel(scheduled(6))).toBe('due in 2h 0m');
+  });
+
+  it('names the overdue amount once past due', () => {
+    expect(neededStatusLabel(scheduled(10))).toBe('overdue by 2h 0m');
+  });
+
+  it('marks a scheduled med urgent only near or past due', () => {
+    expect(scheduled(1).urgent).toBe(false);
+    expect(scheduled(10).urgent).toBe(true);
+    // 4 minutes out, inside the 5-minute window.
+    expect(neededMeds([med({ name: 'A', time: iso(NOW - (8 * HOUR - 4 * 60000)) })], NOW)[0].urgent).toBe(
+      true,
+    );
+  });
+
+  it('frames as-needed meds around eligibility', () => {
+    const [soon] = eligibleMeds(
+      [med({ name: 'Tylenol', time: iso(NOW - 5 * HOUR), repeatHours: 6, schedule: 'asNeeded' })],
+      NOW,
+    );
+    expect(eligibleStatusLabel(soon)).toBe('eligible in 1h 0m');
+
+    const [now] = eligibleMeds(
+      [med({ name: 'Tylenol', time: iso(NOW - 7 * HOUR), repeatHours: 6, schedule: 'asNeeded' })],
+      NOW,
+    );
+    expect(eligibleStatusLabel(now)).toBe('eligible now');
+  });
+
+  it('carries the source entry and unit for the row glyph and prefill', () => {
+    const entry = med({ name: 'Tylenol', time: iso(NOW - 1 * HOUR), doseUnit: 'ml' });
+    const [status] = neededMeds([entry], NOW);
+    expect(status.entryId).toBe(entry.id);
+    expect(status.unit).toBe('ml');
+    expect(status.lastTakenAt).toBe(NOW - 1 * HOUR);
   });
 });
 

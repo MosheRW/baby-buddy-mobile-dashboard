@@ -3,6 +3,7 @@ import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { Child, Entry, EntryType } from '../../api/types';
+import type { MedStatus } from '../../lib/medication';
 import { ChildCard } from './ChildCard';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -19,6 +20,7 @@ interface ChildNavProps {
   timerNow: number;
   onQuickAction: (childId: string, type: EntryType) => void;
   onOpenMedBreakdown: (child: Child) => void;
+  onLogDose: (childId: string, status: MedStatus) => void;
 }
 
 /**
@@ -39,6 +41,7 @@ function CarouselNav({
   timerNow,
   onQuickAction,
   onOpenMedBreakdown,
+  onLogDose,
 }: ChildNavProps) {
   const step = CARD_W + spacing.lg;
   return (
@@ -64,6 +67,7 @@ function CarouselNav({
               timerNow={timerNow}
               onQuickAction={(type) => onQuickAction(child.id, type)}
               onOpenMedBreakdown={() => onOpenMedBreakdown(child)}
+              onLogDose={(status) => onLogDose(child.id, status)}
             />
           </View>
         ))}
@@ -94,6 +98,7 @@ function TabsNav({
   timerNow,
   onQuickAction,
   onOpenMedBreakdown,
+  onLogDose,
 }: ChildNavProps) {
   const active = childList[activeIndex] ?? childList[0];
   return (
@@ -131,6 +136,7 @@ function TabsNav({
           timerNow={timerNow}
           onQuickAction={(type) => onQuickAction(active.id, type)}
           onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
+          onLogDose={(status) => onLogDose(active.id, status)}
         />
       </View>
     </View>

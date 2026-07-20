@@ -1,8 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../components';
-import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { ActionGlyph, type ActionGlyphKind } from '../../components/glyphs/entryGlyphs';
+import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import type { EntryType } from '../../api/types';
 import type { GlyphKind } from '../../lib/entryDisplay';
 
@@ -10,20 +10,28 @@ interface QuickAction {
   type: EntryType;
   label: string;
   /**
-   * The sub-type these buttons stand for. A quick action opens a blank form,
-   * so it has no entry to derive a glyph from — it picks the default the form
-   * itself opens on (pee diaper, bottle feed, ml medication, night sleep).
+   * A quick action opens a blank form, so it stands for a whole category rather
+   * than for any one entry's sub-type — hence the category glyphs (nappy,
+   * capsule, ellipsis) rather than the pee-droplet / dropper-bottle / moon the
+   * form happens to default to.
    */
-  glyph: GlyphKind;
+  glyph: ActionGlyphKind | GlyphKind;
+  /** The "More" button reads as chrome, not as a sixth entry type. */
+  muted?: boolean;
 }
 
+/**
+ * Order and set are the prototype's. "More" opens the temperature form, which
+ * is also the prototype's behaviour — it is the only remaining type with a
+ * dedicated field group, and notes stay reachable from the form's type chips.
+ */
 const ACTIONS: QuickAction[] = [
-  { type: 'diaper', label: 'Diaper', glyph: 'diaperPee' },
+  { type: 'diaper', label: 'Diaper', glyph: 'nappy' },
   { type: 'feeding', label: 'Food', glyph: 'feedingBottle' },
-  { type: 'medication', label: 'Medication', glyph: 'medMl' },
-  { type: 'temperature', label: 'Temp', glyph: 'temperature' },
-  { type: 'sleep', label: 'Sleep', glyph: 'night' },
+  { type: 'sleep', label: 'Sleep', glyph: 'nap' },
   { type: 'tummyTime', label: 'Tummy', glyph: 'tummyTime' },
+  { type: 'medication', label: 'Medication', glyph: 'pill' },
+  { type: 'temperature', label: 'More', glyph: 'more', muted: true },
 ];
 
 interface QuickActionsProps {
@@ -39,6 +47,9 @@ export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps
       {ACTIONS.map((action) => {
         const running = runningTimers[action.type];
         const disabled = running != null;
+        const tint = action.muted ? tints.more : tints.quickAction;
+        const bg = disabled ? colors.neutral : tint.bg;
+        const fg = disabled ? colors.textMuted : tint.fg;
         return (
           <Pressable
             key={action.type}
@@ -48,22 +59,14 @@ export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps
             onPress={() => onAction(action.type)}
             style={({ pressed }) => [
               styles.button,
-              { backgroundColor: disabled ? colors.neutral : colors.accent },
+              { backgroundColor: bg },
               pressed && !disabled && styles.pressed,
             ]}
           >
             <View style={styles.glyph}>
-              <EntryGlyph
-                kind={action.glyph}
-                size={22}
-                color={disabled ? colors.textMuted : colors.onAccent}
-              />
+              <ActionGlyph kind={action.glyph} size={22} color={fg} />
             </View>
-            <AppText
-              size={fontSize.micro}
-              weight="800"
-              color={disabled ? colors.textMuted : colors.onAccent}
-            >
+            <AppText size={fontSize.micro} weight="700" color={fg}>
               {running ?? action.label}
             </AppText>
           </Pressable>
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.xs,
   },
   button: {
     // 3 per row: (100% - 2 gaps) / 3
@@ -86,8 +89,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    borderRadius: radii.control,
-    paddingVertical: spacing.xl,
+    borderRadius: radii.tile,
+    paddingVertical: spacing.md,
   },
   glyph: {
     height: 24,

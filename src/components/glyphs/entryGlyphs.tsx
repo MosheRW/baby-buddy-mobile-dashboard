@@ -275,6 +275,46 @@ export function TrashGlyph({ size, color = colors.textPrimary }: EntryGlyphProps
   );
 }
 
+// --- Quick-action category glyphs -------------------------------------------
+/**
+ * The dashboard's quick-action buttons open a *blank* form, so they stand for a
+ * category rather than for any entry's sub-type. The prototype draws them with
+ * their own shapes — a nappy, a capsule, three dots — not with the sub-type
+ * glyph the form happens to default to. Batch E used the latter; these restore
+ * the former. Sleep, Food and Tummy reuse the entry glyphs, which already match.
+ */
+
+export function NappyGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // The side tabs hang outside the 20px body, so the drawing box is 24 wide.
+  return (
+    <GlyphFrame size={size} w={24} h={13}>
+      <Path d={rr(2, 1, 20, 12, 5, 5, 10, 10)} fill={color} />
+      <Path d={rr(0, 2, 3, 5, 2, 0, 0, 2)} fill={color} />
+      <Path d={rr(21, 2, 3, 5, 0, 2, 2, 0)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function PillGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Capsule outline with the left half filled — the two-tone pill.
+  return (
+    <GlyphFrame size={size} w={20} h={10}>
+      <Path d={rr(0, 0, 10, 10, 5, 0, 0, 5)} fill={color} />
+      <Path d={rr(0, 0, 20, 10, 5, 5, 5, 5)} fill="none" stroke={color} strokeWidth={1.5} />
+    </GlyphFrame>
+  );
+}
+
+export function MoreGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={18} h={4}>
+      <Circle cx={2} cy={2} r={2} fill={color} />
+      <Circle cx={9} cy={2} r={2} fill={color} />
+      <Circle cx={16} cy={2} r={2} fill={color} />
+    </GlyphFrame>
+  );
+}
+
 // --- Resolver ---------------------------------------------------------------
 
 /**
@@ -307,5 +347,27 @@ export function EntryGlyph({
   color = colors.textPrimary,
 }: EntryGlyphProps & { kind: GlyphKind }) {
   const Component = GLYPHS[kind];
+  return <Component size={size} color={color} />;
+}
+
+/**
+ * Category glyphs, kept out of `GlyphKind` on purpose: that union is what
+ * `entryGlyphKind` must stay exhaustive over, and no entry ever resolves to a
+ * nappy or a "more" ellipsis.
+ */
+export type ActionGlyphKind = 'nappy' | 'pill' | 'more';
+
+const ACTION_GLYPHS: Record<ActionGlyphKind, React.ComponentType<EntryGlyphProps>> = {
+  nappy: NappyGlyph,
+  pill: PillGlyph,
+  more: MoreGlyph,
+};
+
+export function ActionGlyph({
+  kind,
+  size = 18,
+  color = colors.textPrimary,
+}: EntryGlyphProps & { kind: ActionGlyphKind | GlyphKind }) {
+  const Component = kind in ACTION_GLYPHS ? ACTION_GLYPHS[kind as ActionGlyphKind] : GLYPHS[kind as GlyphKind];
   return <Component size={size} color={color} />;
 }
