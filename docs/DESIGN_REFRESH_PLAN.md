@@ -129,7 +129,7 @@ New `src/lib/` modules with unit tests, following the existing
 
 - `src/lib/medication.ts` (extend): `medLimitSummaries` (24h taken vs
   `maxDose24h`, percent clamped to 4–100, red at ≥100), `medBreakdown24h`
-  (group by name, taken/count/remaining, sorted by name), and dose
+  (taken/count/remaining, sorted by name), and dose
   step/precision/label per unit (`mg:1, ml:0.1, tablets:0.5, drops:1,
   paste:0.5`).
 - `src/lib/feed.ts` (extend): `avgBreastDuration(child, side, 7d)`,
@@ -159,9 +159,9 @@ explicit that these are *"a reference for which glyph maps to which sub-type,
 not literal assets to port"*. We keep the existing hand-drawn `react-native-svg`
 approach and translate shape-for-shape.
 
-**This batch is gated on the icon sign-off** the Refactor Execution Plan lists as
-an open item — `Entry Icon Options.dc.html` exists in the design project and is
-presumably that sheet. Fetch and confirm before building 25 glyphs.
+The icon sign-off the Refactor Execution Plan listed as an open item is
+**approved** — build against `Entry Icon Options.dc.html` (see §3.1), which
+takes precedence over the dashboard prototype's inline shapes.
 
 ### Batch D — Log Entry form
 
@@ -207,20 +207,40 @@ Type chip without losing other types' fields) — just wider.
 
 ---
 
-## 3. Open questions
+## 3. Resolved decisions
 
-1. **Icon sign-off** — is `Entry Icon Options.dc.html` the sheet to build
-   against, and is it approved? Blocks Batch C.
-2. **`maxDose24h` storage** — `__maxdose24h` is per-entry in the prototype
-   (carried forward via med suggestions), not a per-child setting. That means
-   the limit only exists once a dose has been logged with one. Confirm that's
-   intended rather than a Settings-level config.
-3. **Dashboard layout** — the prototype switches on child count
-   (`isCarousel` for ≤2, `isTabs` for >2). Confirm whether the native app
-   already does this or whether it's part of this refresh.
-4. **Phase 7 ordering** — polish/release (empty states, a11y, EAS build) was
-   next. This refresh should land first, since it changes most of the surfaces
-   Phase 7 would polish.
+1. **Icon sign-off — approved.** Build Batch C against
+   `Entry Icon Options.dc.html`. Fetch it from the design project in step 0 and
+   treat it, not the dashboard prototype's inline shapes, as the glyph source of
+   truth where the two disagree.
+
+2. **`maxDose24h` is scoped to the (medication name, child) pair.** It is not a
+   global setting and not a property of one individual dose. It rides on the
+   entry on the wire (`__maxdose24h`), but every read path must resolve it as
+   *the limit currently in force for this medication, for this child* — i.e.
+   the value from the most recent entry with that name for that child, with
+   older entries' values ignored rather than averaged or summed.
+
+   Consequences to honor:
+   - `medLimitSummaries` and `medBreakdown24h` group by name **within one
+     child** (never across children) and take the latest entry's limit.
+   - Editing an entry's max dose retroactively changes the limit shown for that
+     medication — that is intended, it's how the pair's limit gets corrected.
+   - Med suggestions carry the limit forward so logging the next dose keeps it,
+     which is the mechanism that makes a per-pair limit persist at all.
+   - A limit set for Emma's Tylenol must not appear on Noah's Tylenol tile.
+     Worth an explicit unit test — it's the easy bug here.
+
+3. **Dashboard layout — reconcile, don't rebuild.** The native app already
+   implements the same threshold: `ChildNav.tsx:28` renders `TabsNav` at ≥3
+   children and `CarouselNav` at ≤2, matching the prototype's
+   `isCarousel = children.length <= 2`. The current rendering differs from the
+   updated prototype in detail, so Batch E includes a pass diffing `ChildNav` /
+   `ChildCard` against it — but the switch itself, and its threshold, stay.
+
+4. **Ordering — this refresh lands before Phase 7.** Polish/release (empty
+   states, keyboard/back/a11y, 1s-tick perf, EAS build) moves after, since this
+   work changes most of the surfaces Phase 7 would polish.
 
 ---
 
