@@ -160,7 +160,47 @@ endpoint" failure mode documented in CLAUDE.md. Every new field must be
 `.optional()` and tolerate `""`. Extend `npm run test:live` to assert real rows
 still parse **before** shipping.
 
-### Batch B — pure logic
+### Batch B — pure logic ✅ done
+
+`npm test` 174 passing (+44), typecheck and lint clean. All pure, no UI yet.
+
+Decisions made while implementing, worth review:
+
+- **Pair scoping is structural, not a caller contract.** `medLimitSummaries`
+  and `medBreakdown24h` key on `childId` + name (NUL-separated), so they're
+  correct even on a mixed-child list. The existing `neededMeds`/`eligibleMeds`
+  rely on the caller having scoped by child first; the new ones don't need to.
+  Tested with two children sharing a medicine name and different limits.
+- **`eligibleMeds` now excludes meds that carry a limit.** The prototype does
+  this (`eligibleList` filters `maxDose24h == null`) and without it the same
+  medicine renders in two dashboard sections at once. No interim regression:
+  nothing can set a limit until Batch D, so the exclusion is a no-op on today's
+  data.
+- **Limit resolution: newest entry that *specifies* a limit wins** — not the
+  newest entry outright. See open question below.
+- **`foodTrend`'s baseline excludes the last 24h** (window `(now-192h,
+  now-24h]`). Comparing today against a mean containing today would drag the
+  bar toward 100% and hide the deviation the card exists to show.
+- **`defaultTimeForMethod('bothBreasts')` sums the two sides' independent
+  averages** rather than averaging them — a both-sides feed runs about as long
+  as a left plus a right. A side with no history contributes 0, but if *neither*
+  side has history the result is `null`, so the entry carries no baseline rather
+  than a meaningless one.
+- **A direct-breast feed with no captured baseline gets no gauge at all**,
+  while amounts fall back to 240 ml / 60 g. There's no universal "normal"
+  number of minutes at the breast to fall back on.
+- `feedingGaugePercent` landed in `lib/feed.ts` rather than `lib/entryDisplay.ts`
+  as the plan said — it's feeding math, and it needs the same `FeedingMethod`
+  helpers.
+
+**Open question for Batch D:** should logging a dose with the limit field left
+empty *clear* the pair's limit? Current behaviour says no (the last specified
+limit stands), on the grounds that silently losing a safety limit is worse than
+needing an explicit edit to change it. The alternative — last entry wins
+outright — matches a literal reading of "the most recent entry's value" and
+makes clearing possible. Worth confirming before the form can produce either.
+
+#### Original scope
 
 New `src/lib/` modules with unit tests, following the existing
 `medication.ts` / `feed.ts` split:

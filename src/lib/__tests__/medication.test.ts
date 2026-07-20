@@ -3,6 +3,12 @@ import {
   eligibleMeds,
   medicationSuggestions,
   countdownLabel,
+  DOSE_UNITS,
+  doseFieldLabel,
+  formatDose,
+  medBreakdown24h,
+  medLimitSummaries,
+  type MedLimitSummary,
 } from '../medication';
 import type { Entry, MedicationEntry } from '../../api/types';
 
@@ -148,5 +154,152 @@ describe('countdownLabel', () => {
   it('formats as "Xh Ym" and clamps negatives to zero', () => {
     expect(countdownLabel(7 * HOUR + 5 * 60000)).toBe('7h 5m');
     expect(countdownLabel(-1000)).toBe('0h 0m');
+  });
+});
+
+// --- Dose units + 24h limits (Phase 8, Batch B) -----------------------------
+
+describe('dose units', () => {
+  it('gives each unit its own step and precision', () => {
+    expect(DOSE_UNITS.mg).toMatchObject({ step: 1, precision: 0 });
+    expect(DOSE_UNITS.ml).toMatchObject({ step: 0.1, precision: 1 });
+    expect(DOSE_UNITS.tablets).toMatchObject({ step: 0.5, precision: 1 });
+  });
+
+  it('formats symbol units tight and word units spaced', () => {
+    expect(formatDose(2.5, 'ml')).toBe('2.5ml');
+    expect(formatDose(500, 'mg')).toBe('500mg');
+    expect(formatDose(1, 'tablets')).toBe('1.0 tablets');
+  });
+
+  it('labels the dose field per unit', () => {
+    expect(doseFieldLabel('tablets')).toBe('Dose (Tablets)');
+  });
+});
+
+describe('medLimitSummaries', () => {
+  it('sums only the trailing 24h against the pair limit', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 30 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+      med({ name: 'Tylenol', time: iso(NOW - 5 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+      med({ name: 'Tylenol', time: iso(NOW - 2 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+    ];
+    const [s] = medLimitSummaries(entries, NOW);
+    // The 30h-old dose is outside the window.
+    expect(s.taken).toBe(10);
+    expect(s.limit).toBe(20);
+    expect(s.remaining).toBe(10);
+    expect(s.percent).toBe(50);
+    expect(s.atLimit).toBe(false);
+  });
+
+  it('never lets one child limit bleed onto another', () => {
+    // The bug this scoping exists to prevent: same medicine, two children.
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', childId: 'emma', time: iso(NOW - 2 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+      med({ name: 'Tylenol', childId: 'noah', time: iso(NOW - 1 * HOUR), dose: 3, maxDose24h: 9, schedule: 'asNeeded' }),
+    ];
+    const summaries = medLimitSummaries(entries, NOW);
+    expect(summaries).toHaveLength(2);
+
+    const emma = summaries.find((s) => s.childId === 'emma') as MedLimitSummary;
+    const noah = summaries.find((s) => s.childId === 'noah') as MedLimitSummary;
+    expect(emma).toMatchObject({ taken: 5, limit: 20 });
+    expect(noah).toMatchObject({ taken: 3, limit: 9 });
+  });
+
+  it('takes the limit from the most recent entry that specifies one', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 10 * HOUR), dose: 1, maxDose24h: 20, schedule: 'asNeeded' }),
+      med({ name: 'Tylenol', time: iso(NOW - 3 * HOUR), dose: 1, maxDose24h: 12, schedule: 'asNeeded' }),
+    ];
+    expect(medLimitSummaries(entries, NOW)[0].limit).toBe(12);
+  });
+
+  it('does not let a dose logged without a limit erase the pair limit', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 6 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+      // Logged later, limit field left empty.
+      med({ name: 'Tylenol', time: iso(NOW - 1 * HOUR), dose: 5, schedule: 'asNeeded' }),
+    ];
+    const [s] = medLimitSummaries(entries, NOW);
+    expect(s.limit).toBe(20);
+    expect(s.taken).toBe(10);
+  });
+
+  it('floors the bar at 4% and caps it at 100%', () => {
+    const tiny = medLimitSummaries(
+      [med({ name: 'A', time: iso(NOW - HOUR), dose: 0.1, maxDose24h: 100, schedule: 'asNeeded' })],
+      NOW,
+    );
+    expect(tiny[0].percent).toBe(4);
+
+    const over = medLimitSummaries(
+      [med({ name: 'A', time: iso(NOW - HOUR), dose: 30, maxDose24h: 20, schedule: 'asNeeded' })],
+      NOW,
+    );
+    expect(over[0].percent).toBe(100);
+    expect(over[0].atLimit).toBe(true);
+    expect(over[0].remaining).toBe(0);
+  });
+
+  it('keeps decimal sums free of floating-point noise', () => {
+    const entries: Entry[] = [
+      med({ name: 'A', time: iso(NOW - 2 * HOUR), dose: 2.3, maxDose24h: 10, schedule: 'asNeeded' }),
+      med({ name: 'A', time: iso(NOW - HOUR), dose: 2.4, maxDose24h: 10, schedule: 'asNeeded' }),
+    ];
+    expect(medLimitSummaries(entries, NOW)[0].taken).toBe(4.7);
+  });
+
+  it('returns nothing when no medicine has a limit', () => {
+    expect(medLimitSummaries([med({ name: 'A', time: iso(NOW) })], NOW)).toEqual([]);
+  });
+});
+
+describe('eligibleMeds vs limited meds', () => {
+  it('moves a limited as-needed med out of the eligible list', () => {
+    // Otherwise the same medicine appears in two dashboard sections at once.
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 2 * HOUR), schedule: 'asNeeded', maxDose24h: 20 }),
+      med({ name: 'Ibuprofen', time: iso(NOW - 2 * HOUR), schedule: 'asNeeded' }),
+    ];
+    expect(eligibleMeds(entries, NOW).map((s) => s.name)).toEqual(['Ibuprofen']);
+    expect(medLimitSummaries(entries, NOW).map((s) => s.name)).toEqual(['Tylenol']);
+  });
+
+  it('keeps the split per child', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', childId: 'emma', time: iso(NOW - 2 * HOUR), schedule: 'asNeeded', maxDose24h: 20 }),
+      med({ name: 'Tylenol', childId: 'noah', time: iso(NOW - 2 * HOUR), schedule: 'asNeeded' }),
+    ];
+    // Noah's Tylenol has no limit, so it stays eligible.
+    expect(eligibleMeds(entries, NOW)).toHaveLength(1);
+  });
+});
+
+describe('medBreakdown24h', () => {
+  it('counts doses and totals per pair, sorted by name', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 5 * HOUR), dose: 5, maxDose24h: 20 }),
+      med({ name: 'Tylenol', time: iso(NOW - 2 * HOUR), dose: 5, maxDose24h: 20 }),
+      med({ name: 'Amoxicillin', time: iso(NOW - 3 * HOUR), dose: 2.5 }),
+    ];
+    const rows = medBreakdown24h(entries, NOW);
+    expect(rows.map((r) => r.name)).toEqual(['Amoxicillin', 'Tylenol']);
+    expect(rows[1]).toMatchObject({ taken: 10, doses: 2, limit: 20, remaining: 10, atLimit: false });
+    expect(rows[0]).toMatchObject({ taken: 2.5, doses: 1, limit: null, remaining: null });
+  });
+
+  it('keeps the limit visible after the dose that carried it ages out', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 40 * HOUR), dose: 5, maxDose24h: 20 }),
+      med({ name: 'Tylenol', time: iso(NOW - 2 * HOUR), dose: 5 }),
+    ];
+    const [row] = medBreakdown24h(entries, NOW);
+    expect(row).toMatchObject({ taken: 5, doses: 1, limit: 20 });
+  });
+
+  it('excludes anything older than 24h', () => {
+    expect(medBreakdown24h([med({ name: 'A', time: iso(NOW - 25 * HOUR) })], NOW)).toEqual([]);
   });
 });
