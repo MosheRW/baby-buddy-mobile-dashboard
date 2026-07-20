@@ -47,6 +47,8 @@ export interface DiaperEntry extends EntryBase {
   pee: boolean;
   poo: boolean;
   pooColor?: PooColor;
+  /** Server-side `amount`, shown as an `x/10` badge in the feed. */
+  amount?: number;
 }
 
 export type FeedingKind = 'breastMilk' | 'formula' | 'fortifiedBreastMilk' | 'solidFood';
@@ -58,6 +60,9 @@ export type FeedingMethod =
   | 'selfFed'
   | 'parentFed';
 
+/** Solid-food category. No server field — round-trips as `__foodtype`. */
+export type SolidFoodType = 'fruits' | 'vegetables' | 'grains' | 'protein' | 'dairy';
+
 export interface FeedingEntry extends EntryBase {
   type: 'feeding';
   kind: FeedingKind;
@@ -66,23 +71,55 @@ export interface FeedingEntry extends EntryBase {
   amount?: number;
   /** Minutes, for direct-breast feeds without a timer. */
   durationMinutes?: number;
+  /** Only meaningful when `kind` is `solidFood`. */
+  solidFoodType?: SolidFoodType;
+  /**
+   * The child's default bottle amount (ml) *at the moment this entry was
+   * created* — deliberately frozen, so later Settings edits don't retroactively
+   * move the baseline the feed's gauge bar compares against.
+   */
+  defaultQtyAtEntry?: number;
+  /**
+   * Same idea for direct-breast feeds: the child's 7-day average duration
+   * (minutes) for this side at creation time. Note **minutes**, not seconds —
+   * `CHANGES_SINCE_LAST_HANDOFF.md` says seconds, but the prototype divides
+   * `durationMin` by it directly, so the prototype wins.
+   */
+  defaultTimeAtEntry?: number;
 }
 
 export type MedicationSchedule = 'scheduled' | 'asNeeded';
 
-/** Baby Buddy's `dosage_unit` enum. */
-export type DosageUnit = 'mg' | 'ml' | 'tablets' | 'drops';
+/** Baby Buddy's `dosage_unit` enum — exactly what the wire accepts. */
+export type WireDosageUnit = 'mg' | 'ml' | 'tablets' | 'drops';
+
+/**
+ * What the unit picker offers. `paste` is the one unit with no server
+ * representation, so it rides as `dosage_unit: 'ml'` + a `__unit:paste` tag.
+ * The other four are the server's own enum and need no tag.
+ */
+export type DosageUnit = WireDosageUnit | 'paste';
+
+/** Only meaningful for the `tablets` unit. No server field — `__route`. */
+export type MedicationRoute = 'orally' | 'anal';
 
 export interface MedicationEntry extends EntryBase {
   type: 'medication';
   name: string;
   dose: number;
-  /**
-   * Server-side `dosage_unit`. The form has no unit picker (the handoff's dose
-   * stepper is unitless), so this is preserved on edit and defaults to mg on
-   * create rather than silently rewriting an existing entry's unit.
-   */
+  /** Drives the dose stepper's step/precision/label and the per-unit glyph. */
   doseUnit: DosageUnit;
+  /** Tablets only. */
+  route?: MedicationRoute;
+  /** Paste only — free text, e.g. "left cheek". */
+  bodyArea?: string;
+  /**
+   * Max total dose per 24h. Scoped to the **(medication name, child) pair**:
+   * it rides on each entry, but readers resolve it as the value from the most
+   * recent entry with this name *for this child*. A limit set on one child's
+   * Tylenol must never surface on another child's.
+   */
+  maxDose24h?: number;
   /**
    * Scheduled vs as-needed has no server field; it round-trips as an
    * "as-needed" tag (absent = scheduled). See api/normalize.ts.
@@ -106,10 +143,15 @@ export interface TummyTimeEntry extends EntryBase {
   durationMinutes?: number;
 }
 
+/** Drives the distinct nap vs. night glyphs. Server-side `sleep.nap`. */
+export type SleepType = 'nap' | 'night';
+
 export interface SleepEntry extends EntryBase {
   type: 'sleep';
   /** True while the timer is running / child is still asleep (no endTime yet). */
   ongoing?: boolean;
+  /** `nap: true` on the wire; absent/false reads as `night`. */
+  sleepType: SleepType;
 }
 
 export interface NoteEntry extends EntryBase {

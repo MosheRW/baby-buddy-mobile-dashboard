@@ -103,6 +103,7 @@ export const mockEntries: Entry[] = [
     type: 'sleep',
     time: ago(6 * HOUR),
     endTime: ago(4 * HOUR - 30 * MIN),
+    sleepType: 'nap',
     tags: [authorTag()],
     creator: CURRENT_USER,
     note: 'Napped well',

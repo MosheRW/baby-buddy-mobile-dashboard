@@ -3,6 +3,7 @@ import { diaperChangeSchema, medicationSchema } from '../schemas';
 import {
   AS_NEEDED_TAG,
   ageLabel,
+  buildTags,
   denormalize,
   entryId,
   formatDuration,
@@ -356,6 +357,7 @@ describe('internal → wire', () => {
       tags,
       creator: 'Sarah',
       ongoing: true,
+      sleepType: 'night',
     });
     expect(ongoing).not.toHaveProperty('end');
 
@@ -367,6 +369,7 @@ describe('internal → wire', () => {
       endTime: '2026-07-19T11:00:00Z',
       tags,
       creator: 'Sarah',
+      sleepType: 'night',
       ongoing: false,
     });
     expect(ended).toMatchObject({ end: '2026-07-19T11:00:00Z' });
@@ -589,5 +592,271 @@ describe('blank choice fields', () => {
         tags: [],
       }).dosage_unit,
     ).toBeUndefined();
+  });
+});
+
+// --- Reserved tags (Phase 8, Batch A) ---------------------------------------
+
+describe('reserved tags', () => {
+  it('strips every __ tag from the user-visible list and decodes the known ones', () => {
+    const s = splitTags([
+      'by Sarah',
+      '__unit:paste',
+      '__route:anal',
+      '__bodyarea:left cheek',
+      '__foodtype:fruits',
+      '__defaultqty:120',
+      '__defaulttime:18',
+      '__maxdose24h:20',
+      'daycare',
+    ]);
+    // The whole point: none of the seven reach the UI.
+    expect(s.tags.map((t) => t.label)).toEqual(['by Sarah', 'daycare']);
+    expect(s.reserved).toEqual({
+      unit: 'paste',
+      route: 'anal',
+      bodyarea: 'left cheek',
+      foodtype: 'fruits',
+      defaultqty: '120',
+      defaulttime: '18',
+      maxdose24h: '20',
+    });
+  });
+
+  it('strips a __ tag whose key we do not recognise', () => {
+    // Forward compatibility: an unknown key must still never render as a chip.
+    const s = splitTags(['by Sarah', '__somefuturekey:7', 'park']);
+    expect(s.tags.map((t) => t.label)).toEqual(['by Sarah', 'park']);
+    expect(s.reserved).toEqual({});
+  });
+
+  it('keeps colons inside a free-text reserved value', () => {
+    expect(splitTags(['__bodyarea:back: upper left']).reserved.bodyarea).toBe('back: upper left');
+  });
+
+  it('refuses to write back a __ label that leaked into the tag list', () => {
+    expect(
+      buildTags([{ label: 'by Sarah' }, { label: '__unit:paste' }, { label: 'park' }]),
+    ).toEqual(['by Sarah', 'park']);
+  });
+});
+
+describe('medication units', () => {
+  const base = {
+    id: 'medication:9',
+    childId: '2',
+    type: 'medication' as const,
+    time: '2026-07-19T10:00:00Z',
+    tags: [{ label: 'by Sarah', author: true }],
+    creator: 'Sarah',
+    name: 'Tylenol',
+    dose: 2.5,
+    schedule: 'scheduled' as const,
+    repeatHours: 6,
+  };
+
+  const roundTrip = (entry: MedicationEntry): MedicationEntry => {
+    const wire = denormalize(entry);
+    return normalizeMedication({
+      id: 9,
+      child: 2,
+      name: wire.name as string,
+      dosage: wire.dosage as number,
+      dosage_unit: wire.dosage_unit as 'mg' | 'ml' | 'tablets' | 'drops',
+      time: wire.time as string,
+      next_dose_interval: wire.next_dose_interval as string,
+      notes: wire.notes as string,
+      tags: wire.tags as string[],
+    }) as MedicationEntry;
+  };
+
+  it('carries paste as ml plus a __unit tag, and recovers it', () => {
+    const entry: MedicationEntry = { ...base, doseUnit: 'paste', bodyArea: 'left cheek' };
+    const wire = denormalize(entry);
+    // paste is not in the server enum, so the wire value must be a legal one.
+    expect(wire.dosage_unit).toBe('ml');
+    expect(wire.tags).toEqual(['by Sarah', '__unit:paste', '__bodyarea:left cheek']);
+    expect(roundTrip(entry)).toEqual(entry);
+  });
+
+  it('sends the four real units with no __unit tag at all', () => {
+    for (const unit of ['mg', 'ml', 'tablets', 'drops'] as const) {
+      const wire = denormalize({ ...base, doseUnit: unit });
+      expect(wire.dosage_unit).toBe(unit);
+      expect(wire.tags).toEqual(['by Sarah']);
+    }
+  });
+
+  it('round-trips tablets with a route and a 24h limit', () => {
+    const entry: MedicationEntry = {
+      ...base,
+      doseUnit: 'tablets',
+      route: 'orally',
+      maxDose24h: 8,
+    };
+    expect(roundTrip(entry)).toEqual(entry);
+  });
+
+  it('drops a route/body-area that no longer matches the unit', () => {
+    // A stale __route left over from when the entry was in tablets must not
+    // resurface after the user switched to drops.
+    const back = normalizeMedication({
+      id: 9,
+      child: 2,
+      name: 'Tylenol',
+      dosage: 2,
+      dosage_unit: 'drops',
+      time: '2026-07-19T10:00:00Z',
+      tags: ['__route:anal', '__bodyarea:knee'],
+    }) as MedicationEntry;
+    expect(back.route).toBeUndefined();
+    expect(back.bodyArea).toBeUndefined();
+  });
+
+  it('ignores a route that is not one of the two allowed values', () => {
+    const back = normalizeMedication({
+      id: 9,
+      child: 2,
+      name: 'Tylenol',
+      dosage: 2,
+      dosage_unit: 'tablets',
+      time: '2026-07-19T10:00:00Z',
+      tags: ['__route:sideways'],
+    }) as MedicationEntry;
+    expect(back.route).toBeUndefined();
+  });
+});
+
+describe('feeding baselines and food type', () => {
+  it('round-trips a solid feed with its food type', () => {
+    const wire = denormalize({
+      id: 'feeding:4',
+      childId: '2',
+      type: 'feeding',
+      time: '2026-07-19T10:00:00Z',
+      endTime: '2026-07-19T10:20:00Z',
+      tags: [{ label: 'by Sarah', author: true }],
+      creator: 'Sarah',
+      kind: 'solidFood',
+      method: 'parentFed',
+      amount: 40,
+      solidFoodType: 'vegetables',
+    });
+    expect(wire.tags).toEqual(['by Sarah', '__foodtype:vegetables']);
+
+    const back = normalizeFeeding({
+      id: 4,
+      child: 2,
+      start: wire.start as string,
+      end: wire.end as string,
+      type: 'solid food',
+      method: 'parent fed',
+      amount: 40,
+      tags: wire.tags as string[],
+    });
+    expect(back).toMatchObject({ solidFoodType: 'vegetables' });
+  });
+
+  it('captures the bottle baseline and the direct-breast baseline separately', () => {
+    const bottle = denormalize({
+      id: 'feeding:5',
+      childId: '2',
+      type: 'feeding',
+      time: '2026-07-19T10:00:00Z',
+      endTime: '2026-07-19T10:15:00Z',
+      tags: [],
+      creator: 'Sarah',
+      kind: 'formula',
+      method: 'bottle',
+      amount: 90,
+      defaultQtyAtEntry: 120,
+      // Wrong-shaped baseline for this method — must not be written.
+      defaultTimeAtEntry: 18,
+    });
+    expect(bottle.tags).toEqual(['__defaultqty:120']);
+
+    const breast = denormalize({
+      id: 'feeding:6',
+      childId: '2',
+      type: 'feeding',
+      time: '2026-07-19T10:00:00Z',
+      endTime: '2026-07-19T10:18:00Z',
+      tags: [],
+      creator: 'Sarah',
+      kind: 'breastMilk',
+      method: 'leftBreast',
+      durationMinutes: 18,
+      defaultQtyAtEntry: 120,
+      defaultTimeAtEntry: 18,
+    });
+    expect(breast.tags).toEqual(['__defaulttime:18']);
+  });
+
+  it('ignores a food type on a non-solid feed', () => {
+    const back = normalizeFeeding({
+      id: 7,
+      child: 2,
+      start: '2026-07-19T10:00:00Z',
+      type: 'formula',
+      method: 'bottle',
+      tags: ['__foodtype:fruits'],
+    });
+    expect(back).toMatchObject({ solidFoodType: undefined });
+  });
+});
+
+describe('fields recovered from the server schema', () => {
+  it('round-trips a diaper amount', () => {
+    const wire = denormalize({
+      id: 'diaper:1',
+      childId: '2',
+      type: 'diaper',
+      time: '2026-07-19T10:00:00Z',
+      tags: [],
+      creator: 'Sarah',
+      pee: true,
+      poo: false,
+      amount: 7,
+    });
+    expect(wire.amount).toBe(7);
+
+    const back = normalizeDiaper({
+      id: 1,
+      child: 2,
+      time: '2026-07-19T10:00:00Z',
+      wet: true,
+      solid: false,
+      amount: 7,
+      tags: [],
+    });
+    expect(back).toMatchObject({ amount: 7 });
+  });
+
+  it('maps sleep nap/night onto the server nap boolean', () => {
+    expect(
+      denormalize({
+        id: 'sleep:1',
+        childId: '2',
+        type: 'sleep',
+        time: '2026-07-19T10:00:00Z',
+        endTime: '2026-07-19T11:00:00Z',
+        tags: [],
+        creator: 'Sarah',
+        sleepType: 'nap',
+      }).nap,
+    ).toBe(true);
+
+    const read = (nap: boolean | null) =>
+      normalizeSleep({
+        id: 1,
+        child: 2,
+        start: '2026-07-19T10:00:00Z',
+        end: '2026-07-19T11:00:00Z',
+        nap,
+        tags: [],
+      });
+    expect(read(true)).toMatchObject({ sleepType: 'nap' });
+    // A null nap is the common case on rows written by other clients.
+    expect(read(null)).toMatchObject({ sleepType: 'night' });
   });
 });

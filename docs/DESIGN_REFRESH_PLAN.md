@@ -103,7 +103,42 @@ fields.
 Ordered so each batch is independently shippable and testable. Batches 1–2 are
 data + logic (unit-testable, `npm test`); 3–5 are UI.
 
-### Batch A — types, normalize, and the reserved-tag layer
+### Batch A — types, normalize, and the reserved-tag layer ✅ done, verified live
+
+`npm test` 130 passing (+14), `npm run test:live` **20/20**, typecheck and lint
+clean. No `schemas.ts` change was needed — every field already existed on the
+wire schemas.
+
+**The scheme's load-bearing assumption is now proven, not assumed.** Baby Buddy
+tags are a Django model with slug generation, so it was entirely possible the
+server would mangle or reject a tag starting with `__` and containing a colon
+and a space. A live round-trip of `__bodyarea:left cheek` confirms it comes back
+verbatim, and `doseUnit: 'paste'` survives the ml + `__unit:paste` detour. That
+test is in the live suite permanently — if it ever fails, the scheme needs
+rethinking, not the form that tripped it.
+
+Also verified live: `diaper.amount` and `sleep.nap` round-trip as real fields,
+and every real row of all seven endpoints still parses (the "one bad row drops a
+whole endpoint" regression did not happen).
+
+The strip is mutation-tested: disabling the `__` branch in `splitTags` fails 6
+tests, so the leak guard isn't passing vacuously.
+
+Implementation notes worth keeping:
+- `splitTags` strips **every** `__` tag, known key or not, so an unrecognised
+  key from a future version still can't render as a chip. Unknown keys are
+  dropped on write rather than echoed — safe today (the scheme is ours alone),
+  but it means an older build editing a newer entry would lose the new key.
+- `buildTags` also filters `__` labels, so even a leak that reached `Tag[]`
+  can't be written back and made permanent.
+- Every reserved value is gated on the field that gives it meaning — `route`
+  only for tablets, `foodtype` only for solid, `defaultqty` only for bottle.
+  A stale tag from before the user switched units can't resurface.
+- `sleepType` is required on `SleepEntry` (not optional), which forced the four
+  construction sites to state it. `FormDraft` gained `sleepType` defaulting to
+  `'night'`; its UI toggle lands in Batch D.
+
+#### Original scope
 
 Files: `src/api/types.ts`, `src/api/normalize.ts`, `src/api/schemas.ts` (likely
 no change), `src/api/__tests__/normalize.test.ts`.

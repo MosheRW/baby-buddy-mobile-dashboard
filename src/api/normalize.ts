@@ -18,8 +18,11 @@ import type {
   EntryType,
   FeedingKind,
   FeedingMethod,
+  MedicationRoute,
+  SolidFoodType,
   Tag,
   TemperatureMethod,
+  WireDosageUnit,
 } from './types';
 import type {
   ChildDto,
@@ -84,12 +87,73 @@ const AUTHOR_PREFIX = 'by ';
 export const AS_NEEDED_TAG = 'as-needed';
 const TEMP_METHOD_TAGS: TemperatureMethod[] = ['oral', 'ear', 'forehead'];
 
+// --- Reserved tags ----------------------------------------------------------
+/**
+ * Fields with no Baby Buddy column, encoded as `__key:value` tags.
+ *
+ * These must never reach the UI as ordinary tags: a leak would show up as a
+ * real chip in the form's TagRow, in the feed row's tag line, *and* as a
+ * tappable filter — three bugs from one miss. So `splitTags` strips **every**
+ * `__`-prefixed tag, known key or not, and the internal `Tag[]` is the only
+ * thing UI code ever sees.
+ *
+ * Only keys we know are carried back out on write; an unrecognised `__` tag is
+ * dropped rather than echoed. That's safe because this scheme is ours alone,
+ * but it does mean a future version's new key would be lost if an older build
+ * edited the same entry.
+ */
+export const RESERVED_PREFIX = '__';
+
+export type ReservedKey =
+  | 'unit'
+  | 'route'
+  | 'bodyarea'
+  | 'foodtype'
+  | 'defaultqty'
+  | 'defaulttime'
+  | 'maxdose24h';
+
+export type ReservedTags = Partial<Record<ReservedKey, string>>;
+
+const RESERVED_KEYS = new Set<string>([
+  'unit',
+  'route',
+  'bodyarea',
+  'foodtype',
+  'defaultqty',
+  'defaulttime',
+  'maxdose24h',
+]);
+
+/** `__key:value`. The value may itself contain colons (body area is free text). */
+export function reservedTag(key: ReservedKey, value: string | number): string {
+  return `${RESERVED_PREFIX}${key}:${value}`;
+}
+
+function reservedNumber(reserved: ReservedTags, key: ReservedKey): number | undefined {
+  const raw = reserved[key];
+  if (raw == null || raw === '') return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function reservedEnum<T extends string>(
+  reserved: ReservedTags,
+  key: ReservedKey,
+  allowed: readonly T[],
+): T | undefined {
+  const raw = reserved[key];
+  return raw != null && (allowed as readonly string[]).includes(raw) ? (raw as T) : undefined;
+}
+
 interface SplitTags {
   /** Internal tags: author first (if any), then free-text tags. */
   tags: Tag[];
   creator: string;
   asNeeded: boolean;
   tempMethod: TemperatureMethod | null;
+  /** Decoded `__key:value` tags. Never part of `tags`. */
+  reserved: ReservedTags;
 }
 
 /** Pull the encoded metadata out of a server tag list. */
@@ -97,11 +161,20 @@ export function splitTags(raw: string[]): SplitTags {
   let creator = '';
   let asNeeded = false;
   let tempMethod: TemperatureMethod | null = null;
+  const reserved: ReservedTags = {};
   const free: string[] = [];
 
   for (const t of raw) {
     const lower = t.toLowerCase();
-    if (t.startsWith(AUTHOR_PREFIX) && !creator) {
+    if (t.startsWith(RESERVED_PREFIX)) {
+      // Stripped whether or not the key is one we know.
+      const rest = t.slice(RESERVED_PREFIX.length);
+      const sep = rest.indexOf(':');
+      if (sep > 0) {
+        const key = rest.slice(0, sep).toLowerCase();
+        if (RESERVED_KEYS.has(key)) reserved[key as ReservedKey] = rest.slice(sep + 1);
+      }
+    } else if (t.startsWith(AUTHOR_PREFIX) && !creator) {
       creator = t.slice(AUTHOR_PREFIX.length);
     } else if (lower === AS_NEEDED_TAG) {
       asNeeded = true;
@@ -116,12 +189,20 @@ export function splitTags(raw: string[]): SplitTags {
     ...(creator ? [{ label: `${AUTHOR_PREFIX}${creator}`, author: true }] : []),
     ...free.map((label) => ({ label })),
   ];
-  return { tags, creator, asNeeded, tempMethod };
+  return { tags, creator, asNeeded, tempMethod, reserved };
 }
 
-/** Rebuild the server tag list from internal tags plus encoded metadata. */
+/**
+ * Rebuild the server tag list from internal tags plus encoded metadata.
+ *
+ * Any `__`-prefixed label that somehow survived into `tags` is dropped here
+ * too, so a leak can't be written back and become permanent.
+ */
 export function buildTags(tags: Tag[], extra: string[] = []): string[] {
-  return [...tags.map((t) => t.label), ...extra];
+  return [
+    ...tags.map((t) => t.label).filter((label) => !label.startsWith(RESERVED_PREFIX)),
+    ...extra,
+  ];
 }
 
 // --- Child ------------------------------------------------------------------
@@ -197,6 +278,33 @@ const METHOD_TO: Record<FeedingMethod, FeedingDto['method']> = {
   selfFed: 'self fed',
 };
 
+const SOLID_FOOD_TYPES: readonly SolidFoodType[] = [
+  'fruits',
+  'vegetables',
+  'grains',
+  'protein',
+  'dairy',
+];
+const MEDICATION_ROUTES: readonly MedicationRoute[] = ['orally', 'anal'];
+const DIRECT_BREAST_METHODS: readonly FeedingMethod[] = [
+  'leftBreast',
+  'rightBreast',
+  'bothBreasts',
+];
+
+/** Left/right/both — the methods that measure a duration rather than an amount. */
+export function isDirectBreast(method: FeedingMethod): boolean {
+  return DIRECT_BREAST_METHODS.includes(method);
+}
+
+/**
+ * `paste` isn't in the server's `dosage_unit` enum, so it's stored as ml and
+ * recovered from the `__unit:paste` tag on read.
+ */
+export function toWireDosageUnit(unit: DosageUnit): WireDosageUnit {
+  return unit === 'paste' ? 'ml' : unit;
+}
+
 // --- Wire → internal --------------------------------------------------------
 
 export function normalizeDiaper(dto: DiaperChangeDto): Entry {
@@ -212,12 +320,15 @@ export function normalizeDiaper(dto: DiaperChangeDto): Entry {
     pee: dto.wet,
     poo: dto.solid,
     pooColor: dto.solid ? (dto.color ?? undefined) : undefined,
+    amount: dto.amount ?? undefined,
   };
 }
 
 export function normalizeFeeding(dto: FeedingDto): Entry {
-  const { tags, creator } = splitTags(dto.tags);
+  const { tags, creator, reserved } = splitTags(dto.tags);
   const durationMs = parseDuration(dto.duration);
+  const kind = KIND_FROM[dto.type];
+  const method = METHOD_FROM[dto.method];
   return {
     id: entryId('feeding', dto.id),
     childId: String(dto.child ?? ''),
@@ -227,16 +338,29 @@ export function normalizeFeeding(dto: FeedingDto): Entry {
     note: dto.notes || undefined,
     tags,
     creator,
-    kind: KIND_FROM[dto.type],
-    method: METHOD_FROM[dto.method],
+    kind,
+    method,
     amount: dto.amount ?? undefined,
     durationMinutes: durationMs != null ? Math.round(durationMs / 60_000) : undefined,
+    // Each reserved value is gated on the field that makes it meaningful, so a
+    // stale tag left over from an earlier edit can't resurface.
+    solidFoodType:
+      kind === 'solidFood'
+        ? reservedEnum(reserved, 'foodtype', SOLID_FOOD_TYPES)
+        : undefined,
+    defaultQtyAtEntry: method === 'bottle' ? reservedNumber(reserved, 'defaultqty') : undefined,
+    defaultTimeAtEntry: isDirectBreast(method)
+      ? reservedNumber(reserved, 'defaulttime')
+      : undefined,
   };
 }
 
 export function normalizeMedication(dto: MedicationDto): Entry {
-  const { tags, creator, asNeeded } = splitTags(dto.tags);
+  const { tags, creator, asNeeded, reserved } = splitTags(dto.tags);
   const intervalMs = parseDuration(dto.next_dose_interval);
+  // `paste` has no server enum value, so it rides as ml + a `__unit:paste` tag.
+  const doseUnit: DosageUnit =
+    reserved.unit === 'paste' ? 'paste' : ((dto.dosage_unit ?? 'mg') as WireDosageUnit);
   return {
     id: entryId('medication', dto.id),
     childId: String(dto.child),
@@ -247,7 +371,11 @@ export function normalizeMedication(dto: MedicationDto): Entry {
     creator,
     name: dto.name,
     dose: dto.dosage ?? 0,
-    doseUnit: (dto.dosage_unit ?? 'mg') as DosageUnit,
+    doseUnit,
+    route:
+      doseUnit === 'tablets' ? reservedEnum(reserved, 'route', MEDICATION_ROUTES) : undefined,
+    bodyArea: doseUnit === 'paste' ? reserved.bodyarea || undefined : undefined,
+    maxDose24h: reservedNumber(reserved, 'maxdose24h'),
     schedule: asNeeded ? 'asNeeded' : 'scheduled',
     repeatHours: intervalMs != null ? intervalMs / 3_600_000 : 0,
   };
@@ -281,6 +409,7 @@ export function normalizeSleep(dto: SleepDto): Entry {
     creator,
     // Baby Buddy has no "ongoing" flag; an unfinished sleep is one with no end.
     ongoing: !dto.end,
+    sleepType: dto.nap ? 'nap' : 'night',
   };
 }
 
@@ -406,6 +535,7 @@ export function denormalize(entry: Entry, now: number = Date.now()): Record<stri
         // Only send a color when there's solid content; the server rejects a
         // color on a wet-only change in some versions.
         ...(entry.poo && entry.pooColor ? { color: entry.pooColor } : {}),
+        amount: entry.amount ?? null,
         notes: entry.note ?? '',
         tags: buildTags(entry.tags),
       };
@@ -414,6 +544,16 @@ export function denormalize(entry: Entry, now: number = Date.now()): Record<stri
       // Duration is derived server-side from start/end, so a direct-breast feed
       // logged with a duration is sent as an end time.
       const { start, end } = resolveWindow(entry.time, entry.durationMinutes, now, entry.endTime);
+      const extra: string[] = [];
+      if (entry.kind === 'solidFood' && entry.solidFoodType) {
+        extra.push(reservedTag('foodtype', entry.solidFoodType));
+      }
+      if (entry.method === 'bottle' && entry.defaultQtyAtEntry != null) {
+        extra.push(reservedTag('defaultqty', entry.defaultQtyAtEntry));
+      }
+      if (isDirectBreast(entry.method) && entry.defaultTimeAtEntry != null) {
+        extra.push(reservedTag('defaulttime', entry.defaultTimeAtEntry));
+      }
       return {
         child,
         start,
@@ -422,21 +562,32 @@ export function denormalize(entry: Entry, now: number = Date.now()): Record<stri
         method: METHOD_TO[entry.method],
         amount: entry.amount ?? null,
         notes: entry.note ?? '',
-        tags: buildTags(entry.tags),
+        tags: buildTags(entry.tags, extra),
       };
     }
 
-    case 'medication':
+    case 'medication': {
+      const extra: string[] = [];
+      if (entry.schedule === 'asNeeded') extra.push(AS_NEEDED_TAG);
+      if (entry.doseUnit === 'paste') extra.push(reservedTag('unit', 'paste'));
+      if (entry.doseUnit === 'tablets' && entry.route) {
+        extra.push(reservedTag('route', entry.route));
+      }
+      if (entry.doseUnit === 'paste' && entry.bodyArea) {
+        extra.push(reservedTag('bodyarea', entry.bodyArea));
+      }
+      if (entry.maxDose24h != null) extra.push(reservedTag('maxdose24h', entry.maxDose24h));
       return {
         child,
         name: entry.name,
         dosage: entry.dose,
-        dosage_unit: entry.doseUnit,
+        dosage_unit: toWireDosageUnit(entry.doseUnit),
         time: entry.time,
         next_dose_interval: formatDuration(entry.repeatHours),
         notes: entry.note ?? '',
-        tags: buildTags(entry.tags, entry.schedule === 'asNeeded' ? [AS_NEEDED_TAG] : []),
+        tags: buildTags(entry.tags, extra),
       };
+    }
 
     case 'temperature':
       return {
@@ -451,6 +602,7 @@ export function denormalize(entry: Entry, now: number = Date.now()): Record<stri
       const body: Record<string, unknown> = {
         child,
         start: entry.time,
+        nap: entry.sleepType === 'nap',
         notes: entry.note ?? '',
         tags: buildTags(entry.tags),
       };

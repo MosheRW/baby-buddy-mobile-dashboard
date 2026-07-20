@@ -15,6 +15,7 @@ import type {
   FeedingMethod,
   MedicationSchedule,
   PooColor,
+  SleepType,
   Tag,
   TemperatureMethod,
 } from '../api/types';
@@ -58,6 +59,7 @@ export interface FormDraft {
 
   // sleep
   stillSleeping: boolean;
+  sleepType: SleepType;
 }
 
 /** Defaults for a brand-new entry. `defaultFoodMl` comes from settings per child. */
@@ -89,6 +91,7 @@ export function emptyDraft(now: number = Date.now(), defaultFoodMl = 120): FormD
     tummyMinutes: 10,
 
     stillSleeping: true,
+    sleepType: 'night',
   };
 }
 
@@ -230,6 +233,7 @@ export function draftToEntry({ draft, type, childId, id, creator }: ToEntryParam
         type: 'sleep',
         endTime: draft.stillSleeping ? undefined : (draft.endTime ?? undefined),
         ongoing: draft.stillSleeping,
+        sleepType: draft.sleepType,
       };
 
     case 'note':
@@ -274,6 +278,7 @@ export function entryToDraft(entry: Entry, defaultFoodMl?: number): FormDraft {
       break;
     case 'sleep':
       draft.stillSleeping = entry.ongoing ?? false;
+      draft.sleepType = entry.sleepType;
       break;
     case 'note':
       break;

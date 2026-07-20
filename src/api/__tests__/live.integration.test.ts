@@ -247,6 +247,50 @@ describeLive('live Baby Buddy server', () => {
     await deleteTracked(saved.id);
   });
 
+// The reserved-tag scheme rests on the server storing a `__key:value` tag
+  // verbatim. Baby Buddy tags are a Django model with slug generation, so a
+  // leading underscore, a colon, and a space are all plausible things for it to
+  // mangle or reject. If this test fails, the whole scheme needs rethinking —
+  // it is not a detail of one form.
+  it('stores and returns reserved __key:value tags verbatim', async () => {
+    const saved = await createTracked({
+      ...baseEntry(childId),
+      type: 'medication',
+      name: 'IntegrationTest Paste',
+      dose: 1.5,
+      // paste has no server enum value: it must survive as ml + __unit:paste.
+      doseUnit: 'paste',
+      bodyArea: 'left cheek',
+      maxDose24h: 8,
+      schedule: 'asNeeded',
+      repeatHours: 6,
+    });
+
+    expect(saved).toMatchObject({
+      doseUnit: 'paste',
+      bodyArea: 'left cheek',
+      maxDose24h: 8,
+    });
+    // And none of it may surface as a user-visible tag.
+    for (const label of saved.tags.map((t) => t.label)) {
+      expect(label.startsWith('__')).toBe(false);
+    }
+
+    await deleteTracked(saved.id);
+  });
+
+  it('round-trips a nap flag and a diaper amount as real server fields', async () => {
+    const diaper = await createTracked({
+      ...baseEntry(childId),
+      type: 'diaper',
+      pee: true,
+      poo: false,
+      amount: 7,
+    });
+    expect(diaper).toMatchObject({ type: 'diaper', amount: 7 });
+    await deleteTracked(diaper.id);
+  });
+
   it('round-trips a temperature with its tag-encoded method', async () => {
     const saved = await createTracked({
       ...baseEntry(childId),
