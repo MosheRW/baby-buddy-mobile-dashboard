@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Card, ChipRow } from '../../components';
-import {
-  BottleGlyph,
-  CapsuleGlyph,
-  CloseGlyph,
-  DiaperGlyph,
-  MoonGlyph,
-  ThermometerGlyph,
-  TummyGlyph,
-} from '../../components/glyphs';
+import { CloseGlyph } from '../../components/glyphs';
+import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { timeAgo } from '../../lib/dates';
 import { filterAndGroup, type FeedFilter } from '../../lib/feed';
-import { entryTint, entryTitle } from '../../lib/entryDisplay';
-import type { Entry, EntryType } from '../../api/types';
+import { entryTitle, entryVisual } from '../../lib/entryDisplay';
+import type { Entry } from '../../api/types';
 
 const FILTERS: { value: FeedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -76,25 +69,6 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
   );
 }
 
-function EntryGlyph({ type, color }: { type: EntryType; color: string }) {
-  switch (type) {
-    case 'diaper':
-      return <DiaperGlyph size={18} color={color} />;
-    case 'feeding':
-      return <BottleGlyph size={18} color={color} />;
-    case 'medication':
-      return <CapsuleGlyph size={18} color={color} />;
-    case 'temperature':
-      return <ThermometerGlyph size={18} color={color} />;
-    case 'sleep':
-      return <MoonGlyph size={18} color={color} />;
-    case 'tummyTime':
-      return <TummyGlyph size={18} color={color} />;
-    default:
-      return <BottleGlyph size={18} color={color} />;
-  }
-}
-
 function FeedRow({
   entry,
   now,
@@ -106,12 +80,12 @@ function FeedRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const tint = entryTint(entry.type);
+  const visual = entryVisual(entry);
   return (
     <Card elevation="feedRow" radius={radii.feedRow} padding={spacing.lg} style={styles.row}>
       <Pressable style={styles.rowMain} onPress={onEdit} accessibilityRole="button">
-        <View style={[styles.swatch, { backgroundColor: tint.bg }]}>
-          <EntryGlyph type={entry.type} color={tint.fg} />
+        <View style={[styles.swatch, { backgroundColor: visual.iconBg }]}>
+          <EntryGlyph kind={visual.glyph} size={18} color={visual.accent} />
         </View>
         <View style={styles.rowText}>
           <AppText size={fontSize.bodySm} weight="700">

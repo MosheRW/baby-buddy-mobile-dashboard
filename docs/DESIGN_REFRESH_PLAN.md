@@ -222,7 +222,47 @@ New `src/lib/` modules with unit tests, following the existing
   `amount / (__defaultqty ?? (solid ? 60 : 240))` for bottle/solid,
   `durationMin / __defaulttime` for direct breast; clamp 6–100%.
 
-### Batch C — icon system (the largest chunk; needs sign-off first)
+### Batch C — icon system ✅ done
+
+`npm test` 197 passing (+10), typecheck and lint clean. 18 glyphs in
+`components/glyphs/entryGlyphs.tsx`, up from 13 stroked ones.
+
+- **The new set is filled, not stroked.** The prototype draws every entry icon
+  as solid composed `<div>`s on a tinted swatch, and a stroked outline reads
+  quite differently at 18px. UI-chrome glyphs (chevron, close, gear, ±) stay
+  stroked — they're affordances, not entry icons.
+- **Authored in the prototype's own pixel space** and scaled to the 24×24 grid
+  by `GlyphFrame`, so every number in the file can be checked directly against
+  the prototype without converting units.
+- **Glyph *choice* is pure logic**: `entryGlyphKind` / `entryVisual` in
+  `lib/entryDisplay.ts`, unit-tested; `entryGlyphs.tsx` only draws. A new
+  `GlyphKind` fails to compile until it's drawn.
+- **Path geometry lives in `lib/glyphPaths.ts`**, also unit-tested — see below
+  for why that isn't over-engineering.
+- Crescents and the tablet gap use **even-odd cut-outs** rather than the
+  prototype's background-coloured inset shadows, so they work on any swatch
+  colour instead of assuming one.
+
+**Two real bugs, caught by rendering the glyphs rather than by tests passing.**
+`roundedRect` didn't implement CSS's radius-overflow rule, so
+`border-radius: 0 7px 7px 0` on a 14×7 box (the tummy-time body, and the sleep
+pillow at 18×8 r6) emitted arcs larger than the box and rendered as spikes and
+blobs. And `medTablets` took too big a bite out of the rear disc, because the
+prototype's 1.5px white ring is *inside* each 11px box — the coloured disc is
+r=4, not r=5.5. Both now have regression tests; disabling the clamp fails 3.
+
+The lesson worth keeping: a glyph batch can be fully green and completely wrong.
+The geometry needed looking at.
+
+`entryDisplay.ts` imports `theme/tokens` rather than the `theme` barrel — the
+barrel re-exports `typography`, which pulls in expo-font and can't load in the
+plain-node test env.
+
+**Left for Batch E:** `QuickActions` still uses the old stroked glyphs, so the
+dashboard's action buttons and the feed rows are in different styles until the
+dashboard pass. `ActivityFeed` is already switched over.
+
+#### Original scope
 
 `src/components/glyphs/` currently exports **13** SVG glyphs. The updated design
 uses roughly **25+**, including sub-type variants:

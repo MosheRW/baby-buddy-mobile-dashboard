@@ -2,8 +2,13 @@
  * Human-readable labels and tint selection for entries. Pure and shared between
  * the dashboard feed and the log-entry form.
  */
-import { tints, colors } from '../theme';
+// Imported from `theme/tokens` rather than the `theme` barrel on purpose: the
+// barrel re-exports `typography`, which pulls in @expo-google-fonts/expo-font
+// and can't load under the plain-node test environment. `src/lib` is pure, so
+// it should never reach for the font loader anyway.
+import { tints, colors, pooSwatch } from '../theme/tokens';
 import type {
+  DosageUnit,
   Entry,
   EntryType,
   FeedingKind,
@@ -91,3 +96,128 @@ export function entryTitle(entry: Entry): string {
       return 'Note';
   }
 }
+
+// --- Glyph + swatch selection (Phase 8, Batch C) ----------------------------
+
+/**
+ * Every distinct glyph an entry can show. A string union rather than a
+ * component reference so the choice stays pure and testable — `components/
+ * glyphs/entryGlyphs.tsx` maps each key to a drawing.
+ */
+export type GlyphKind =
+  | 'diaperPee'
+  | 'diaperPoo'
+  | 'diaperBoth'
+  | 'feedingBottle'
+  | 'feedingBreast'
+  | 'feedingSolid'
+  | 'medMg'
+  | 'medMl'
+  | 'medTablets'
+  | 'medDrops'
+  | 'medPaste'
+  | 'temperature'
+  | 'tummyTime'
+  | 'nap'
+  | 'night'
+  | 'note';
+
+/** Which glyph an entry gets, down to its sub-type. */
+export function entryGlyphKind(entry: Entry): GlyphKind {
+  switch (entry.type) {
+    case 'diaper':
+      if (entry.pee && entry.poo) return 'diaperBoth';
+      return entry.poo ? 'diaperPoo' : 'diaperPee';
+    case 'feeding':
+      if (entry.kind === 'solidFood') return 'feedingSolid';
+      // Only an actual breast method reads as a breast feed; breast milk from
+      // a bottle is still a bottle.
+      return isDirectBreastMethod(entry.method) ? 'feedingBreast' : 'feedingBottle';
+    case 'medication':
+      return MED_GLYPH_BY_UNIT[entry.doseUnit];
+    case 'temperature':
+      return 'temperature';
+    case 'tummyTime':
+      return 'tummyTime';
+    case 'sleep':
+      return entry.sleepType === 'nap' ? 'nap' : 'night';
+    case 'note':
+      return 'note';
+  }
+}
+
+const MED_GLYPH_BY_UNIT: Record<DosageUnit, GlyphKind> = {
+  mg: 'medMg',
+  ml: 'medMl',
+  tablets: 'medTablets',
+  drops: 'medDrops',
+  paste: 'medPaste',
+};
+
+function isDirectBreastMethod(method: FeedingMethod): boolean {
+  return method === 'leftBreast' || method === 'rightBreast' || method === 'bothBreasts';
+}
+
+/**
+ * A fever, in whichever unit the server is configured for.
+ *
+ * Baby Buddy stores a bare number and the API doesn't say which scale it's in,
+ * so this infers it: no human body temperature is 45 in Celsius, and none is
+ * 45 in Fahrenheit either (that would be hypothermic beyond survival), so the
+ * midpoint separates the two ranges cleanly.
+ */
+export function isFever(value: number): boolean {
+  const celsius = value > 45 ? (value - 32) / 1.8 : value;
+  return celsius >= 38;
+}
+
+export interface EntryVisual {
+  glyph: GlyphKind;
+  /** Foreground colour for the glyph. */
+  accent: string;
+  /** Swatch background behind the glyph, also the feed row's left accent. */
+  iconBg: string;
+  /** Set for a dirty diaper that recorded a colour. */
+  pooSwatchColor?: string;
+  /** "7/10" when a diaper recorded an amount. */
+  amountBadge?: string;
+  /** Red when feverish, green otherwise. */
+  tempDotColor?: string;
+}
+
+/**
+ * Glyph, colours and the small per-type adornments for one entry.
+ *
+ * A dirty diaper overrides the usual blue with its recorded stool colour —
+ * that reading is the point of the entry, so it drives the icon rather than
+ * being tucked into a secondary swatch.
+ */
+export function entryVisual(entry: Entry): EntryVisual {
+  const tint = entryTint(entry.type);
+  const visual: EntryVisual = {
+    glyph: entryGlyphKind(entry),
+    accent: tint.fg,
+    iconBg: tint.bg,
+  };
+
+  switch (entry.type) {
+    case 'diaper':
+      if (entry.poo) {
+        visual.accent = entry.pooColor ? pooSwatch[entry.pooColor] : tints.poo.fg;
+        visual.iconBg = tints.poo.bg;
+        if (entry.pooColor) visual.pooSwatchColor = pooSwatch[entry.pooColor];
+      }
+      if (entry.amount != null) visual.amountBadge = `${entry.amount}/10`;
+      break;
+    case 'temperature':
+      visual.tempDotColor = isFever(entry.value) ? colors.danger : FEVER_OK_COLOR;
+      break;
+    default:
+      break;
+  }
+
+  return visual;
+}
+
+/** Green "within normal range" dot for temperature readings. */
+const FEVER_OK_COLOR = '#4E8A5B';

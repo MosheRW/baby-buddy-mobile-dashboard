@@ -1,0 +1,311 @@
+/**
+ * Entry-type and sub-type glyphs for the refreshed design (Phase 8, Batch C).
+ *
+ * These are **filled** shapes, unlike the stroked UI-chrome glyphs in
+ * `./index.tsx` — the updated prototype draws every entry icon as solid
+ * composed `<div>`s sitting on a tinted swatch, and a stroked outline reads
+ * quite differently at 18px. Chrome glyphs (chevron, close, gear, ±) stay
+ * stroked; they're affordances, not entry icons.
+ *
+ * Each glyph is authored in the **prototype's own pixel space** and scaled to
+ * the 24×24 grid by `GlyphFrame`. That's deliberate: every number below can be
+ * checked directly against `Baby Buddy Dashboard App.dc.html` without mentally
+ * converting units. Sizes and offsets are transcribed from the feed's icon
+ * block; the sleep/tummy/note shapes additionally match the signed-off
+ * `Entry Icon Options.dc.html` picks (tummy 1a, note 2a, nap 3c, night 3d).
+ */
+import React from 'react';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
+import { colors } from '../../theme';
+import type { GlyphKind } from '../../lib/entryDisplay';
+import { circlePath, dropPath, fitToGrid, roundedRect as rr } from '../../lib/glyphPaths';
+
+export interface EntryGlyphProps {
+  size?: number;
+  color?: string;
+}
+
+/**
+ * Scales a glyph authored at `w`×`h` prototype pixels into the shared 24×24
+ * viewBox, centred, leaving a little breathing room inside the swatch.
+ */
+function GlyphFrame({
+  size = 18,
+  w,
+  h,
+  children,
+}: {
+  size?: number;
+  w: number;
+  h: number;
+  children: React.ReactNode;
+}) {
+  const { scale, dx, dy } = fitToGrid(w, h);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <G transform={`translate(${dx}, ${dy}) scale(${scale})`}>{children}</G>
+    </Svg>
+  );
+}
+
+// --- Diaper -----------------------------------------------------------------
+
+export function DiaperPeeGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={9} h={13}>
+      <Path d={dropPath(9, 13)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function DiaperPooGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={16} h={11}>
+      <Path d={rr(0, 0, 16, 11, 6, 6, 8, 8)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function DiaperBothGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Droplet + mound side by side, bottoms aligned, 3px gap.
+  return (
+    <GlyphFrame size={size} w={21} h={10}>
+      <G transform="translate(0, 0)">
+        <Path d={dropPath(7, 10)} fill={color} />
+      </G>
+      <G transform="translate(10, 1)">
+        <Path d={rr(0, 0, 11, 9, 5, 5, 6, 6)} fill={color} />
+      </G>
+    </GlyphFrame>
+  );
+}
+
+// --- Feeding ----------------------------------------------------------------
+
+export function FeedingBottleGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={16} h={18}>
+      <Path d={rr(5, 0, 6, 3, 2, 2, 1, 1)} fill={color} />
+      <Rect x={5.5} y={3} width={5} height={3} fill={color} />
+      <Path d={rr(0, 6, 16, 12, 3, 3, 3, 3)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function FeedingBreastGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // border-radius: 20% 75% 75% 20% / 30% 70% 70% 30% on an 11x15 box — square
+  // on the left, strongly rounded on the right.
+  const d = [
+    'M2.2,0',
+    'H2.75',
+    'A8.25,10.5 0 0 1 11,7.5',
+    'A8.25,10.5 0 0 1 2.75,15',
+    'H2.2',
+    'A2.2,4.5 0 0 1 0,10.5',
+    'V4.5',
+    'A2.2,4.5 0 0 1 2.2,0',
+    'Z',
+  ].join(' ');
+  return (
+    <GlyphFrame size={size} w={12.5} h={15}>
+      <Path d={d} fill={color} />
+      <Circle cx={11} cy={7.5} r={1.5} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function FeedingSolidGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Bowl + a single utensil stem.
+  return (
+    <GlyphFrame size={size} w={16} h={12}>
+      <Path d={rr(0, 3, 16, 9, 0, 0, 8, 8)} fill={color} />
+      <Rect x={7} y={0} width={2} height={7} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+// --- Medication (one per dose unit) -----------------------------------------
+
+export function MedMlGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Dropper bottle: conical top over a round body.
+  return (
+    <GlyphFrame size={size} w={9} h={13}>
+      <Path d="M4.5,0 L9,7 L0,7 Z" fill={color} />
+      <Circle cx={4.5} cy={8.5} r={4.5} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function MedMgGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Powder heap with grains above it.
+  return (
+    <GlyphFrame size={size} w={14} h={12}>
+      <Path d="M7,4 L14,12 L0,12 Z" fill={color} />
+      <Circle cx={2.7} cy={0.7} r={0.7} fill={color} />
+      <Circle cx={7} cy={1.7} r={0.7} fill={color} />
+      <Circle cx={11.2} cy={0.7} r={0.7} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function MedTabletsGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Two overlapping tablets. In the prototype each 11px disc carries a 1.5px
+  // white ring inside its own box, so the coloured disc is r=4 and the ring is
+  // what separates them. Reproduced here as an even-odd bite out of the rear
+  // disc, which — unlike a background-coloured stroke — works on any swatch.
+  const R = 4;
+  const rear = `${circlePath(12.5, 5.5, R)} ${circlePath(5.5, 5.5, R + 1.5)}`;
+  return (
+    <GlyphFrame size={size} w={18} h={11}>
+      <Path d={rear} fill={color} fillRule="evenodd" />
+      <Circle cx={5.5} cy={5.5} r={R} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function MedDropsGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Dropper with a falling drop beneath it.
+  return (
+    <GlyphFrame size={size} w={10} h={16}>
+      <Rect x={3.5} y={0} width={3} height={4} fill={color} />
+      <Path d="M5,4 L10,11 L0,11 Z" fill={color} />
+      <G transform="translate(3, 12)">
+        <Path d={dropPath(4, 4)} fill={color} />
+      </G>
+    </GlyphFrame>
+  );
+}
+
+export function MedPasteGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Tube with a squeeze of paste above the nozzle. Authored on a box extended
+  // upward by 3px so the blob isn't clipped.
+  return (
+    <GlyphFrame size={size} w={11} h={19}>
+      <G transform="translate(0, 3)">
+        <Path d={dropPath(3, 3)} transform="translate(4, -3)" fill={color} />
+        <Rect x={4.5} y={0} width={2} height={3} fill={color} />
+        <Path d={rr(2.5, 3, 6, 2, 1, 1, 1, 1)} fill={color} />
+        <Path d={rr(1, 7, 9, 9, 1, 1, 3, 3)} fill={color} />
+      </G>
+    </GlyphFrame>
+  );
+}
+
+// --- Temperature ------------------------------------------------------------
+
+export function TemperatureGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={10} h={18}>
+      <Path d={rr(2, 0, 6, 14, 3, 3, 3, 3)} fill={color} />
+      <Circle cx={5} cy={13} r={5} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+// --- Tummy time (option 1a) -------------------------------------------------
+
+export function TummyTimeGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Baby lying prone: head + curved body.
+  return (
+    <GlyphFrame size={size} w={22} h={15}>
+      <Circle cx={4.5} cy={4.5} r={4.5} fill={color} />
+      <Path d={rr(7, 8, 14, 7, 0, 7, 7, 0)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+// --- Sleep (options 3c / 3d) ------------------------------------------------
+
+export function NapGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Plain pillow/cloud.
+  return (
+    <GlyphFrame size={size} w={18} h={12}>
+      <Path d={rr(0, 4, 18, 8, 6, 6, 6, 6)} fill={color} />
+      <Circle cx={6} cy={4} r={4} fill={color} />
+      <Circle cx={12.5} cy={3.5} r={4.5} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function NightGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Pillow + crescent moon. The prototype fakes the crescent with an inset
+  // box-shadow in the swatch's own colour; an even-odd cut-out gives the same
+  // silhouette without needing to know the background.
+  const moon = `${circlePath(9, 3, 3)} ${circlePath(11, 1.5, 2.3)}`;
+  return (
+    <GlyphFrame size={size} w={19} h={18}>
+      <Path d={moon} fill={color} fillRule="evenodd" />
+      <Path d={rr(1, 10, 18, 8, 6, 6, 6, 6)} fill={color} />
+      <Circle cx={7} cy={10} r={4} fill={color} />
+      <Circle cx={13.5} cy={9.5} r={4.5} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+// --- Note (option 2a) -------------------------------------------------------
+
+export function NoteGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Document with lines of text; the page itself is a faint wash.
+  return (
+    <GlyphFrame size={size} w={14} h={18}>
+      <Path d={rr(0, 0, 14, 18, 2, 2, 2, 2)} fill={color} opacity={0.18} />
+      <Path d={rr(2.5, 4, 9, 1.6, 0.8, 0.8, 0.8, 0.8)} fill={color} />
+      <Path d={rr(2.5, 8, 9, 1.6, 0.8, 0.8, 0.8, 0.8)} fill={color} />
+      <Path d={rr(2.5, 12, 6, 1.6, 0.8, 0.8, 0.8, 0.8)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+// --- Feed row actions -------------------------------------------------------
+
+export function PencilGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={12} h={12}>
+      <Path d={rr(4.75, 0, 2.5, 12, 1.25, 1.25, 1.25, 1.25)} fill={color} transform="rotate(45, 6, 6)" />
+    </GlyphFrame>
+  );
+}
+
+export function TrashGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={13} h={11}>
+      <Rect x={0} y={0} width={13} height={2} fill={color} />
+      <Path d={rr(1, 2, 11, 9, 0, 0, 3, 3)} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+// --- Resolver ---------------------------------------------------------------
+
+/**
+ * Maps a glyph key to its component. The *choice* of key is pure logic in
+ * `lib/entryDisplay.ts` (unit-tested); this file only draws. Exhaustive by
+ * construction — a new `GlyphKind` fails to compile until it's drawn here.
+ */
+const GLYPHS: Record<GlyphKind, React.ComponentType<EntryGlyphProps>> = {
+  diaperPee: DiaperPeeGlyph,
+  diaperPoo: DiaperPooGlyph,
+  diaperBoth: DiaperBothGlyph,
+  feedingBottle: FeedingBottleGlyph,
+  feedingBreast: FeedingBreastGlyph,
+  feedingSolid: FeedingSolidGlyph,
+  medMg: MedMgGlyph,
+  medMl: MedMlGlyph,
+  medTablets: MedTabletsGlyph,
+  medDrops: MedDropsGlyph,
+  medPaste: MedPasteGlyph,
+  temperature: TemperatureGlyph,
+  tummyTime: TummyTimeGlyph,
+  nap: NapGlyph,
+  night: NightGlyph,
+  note: NoteGlyph,
+};
+
+export function EntryGlyph({
+  kind,
+  size = 18,
+  color = colors.textPrimary,
+}: EntryGlyphProps & { kind: GlyphKind }) {
+  const Component = GLYPHS[kind];
+  return <Component size={size} color={color} />;
+}
