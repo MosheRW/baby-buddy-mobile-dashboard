@@ -20,7 +20,16 @@ import fs from 'fs';
 import path from 'path';
 import { createBabyBuddyDataSource } from '../babybuddy';
 import { rawRequest, request, getClockSkewMs, serverNow } from '../client';
-import { profileSchema } from '../schemas';
+import {
+  diaperChangeSchema,
+  feedingSchema,
+  medicationSchema,
+  noteSchema,
+  profileSchema,
+  sleepSchema,
+  temperatureSchema,
+  tummyTimeSchema,
+} from '../schemas';
 import type { Entry, Session } from '../types';
 import { reconcileTimers } from '../../lib/timers';
 
@@ -143,6 +152,45 @@ describeLive('live Baby Buddy server', () => {
     expect([...times].sort((a, b) => b - a)).toEqual(times);
   });
 
+  /**
+   * The timeline test above only proves the entries that *did* parse look sane.
+   * A type whose rows all fail is silently dropped by the `Promise.allSettled`
+   * fan-out, which is exactly how `color: ""` hid a broken diaper endpoint
+   * behind a plausible-looking feed. This asserts per endpoint instead.
+   */
+  it.each([
+    ['changes', diaperChangeSchema],
+    ['feedings', feedingSchema],
+    ['medication', medicationSchema],
+    ['temperature', temperatureSchema],
+    ['sleep', sleepSchema],
+    ['tummy-times', tummyTimeSchema],
+    ['notes', noteSchema],
+  ])('parses every real row from /api/%s/', async (endpoint, schema) => {
+    const page = (await rawRequest({
+      baseUrl: session.baseUrl,
+      token: session.token,
+      path: `api/${endpoint}/`,
+      query: { limit: 100 },
+    })) as { count: number; results: unknown[] };
+
+    const failures = page.results
+      .map((row) => ({ row, result: schema.safeParse(row) }))
+      .filter((r) => !r.result.success);
+
+    if (failures.length > 0) {
+      const { row, result } = failures[0];
+      console.error(
+        `[${endpoint}] ${failures.length}/${page.results.length} rows failed:`,
+        JSON.stringify(result.error!.issues),
+        '\nfirst offending row:',
+        JSON.stringify(row),
+      );
+    }
+    expect(failures).toHaveLength(0);
+    console.log(`[${endpoint}] ${page.results.length} of ${page.count} rows parsed`);
+  });
+
   it('round-trips a note: create → read back → edit → delete', async () => {
     const saved = await createTracked({
       ...baseEntry(childId),
@@ -212,16 +260,35 @@ describeLive('live Baby Buddy server', () => {
   });
 
   it('round-trips a feeding, deriving duration from start/end', async () => {
-    const saved = await createTracked({
-      ...baseEntry(childId),
-      type: 'feeding',
-      kind: 'breastMilk',
-      method: 'leftBreast',
-      durationMinutes: 20,
-    });
+    // Feeding enforces validate_unique_period, so a fixed window collides with
+    // whatever the caregivers really logged. Walk back a day in hourly steps
+    // until one is free — the point of the test is the duration round trip, not
+    // the timestamp.
+    const DURATION = 20;
+    let saved: Entry | undefined;
+    let lastError: unknown;
+
+    for (let hoursBack = 1; hoursBack <= 24 && !saved; hoursBack += 1) {
+      const start = serverNow() - hoursBack * 3_600_000;
+      try {
+        saved = await createTracked({
+          ...baseEntry(childId),
+          time: new Date(start).toISOString(),
+          type: 'feeding',
+          kind: 'breastMilk',
+          method: 'leftBreast',
+          durationMinutes: DURATION,
+        });
+      } catch (error) {
+        if (!/intersects/i.test(String(error))) throw error;
+        lastError = error;
+      }
+    }
+
+    if (!saved) throw new Error(`No free 20-minute slot in the last 24h: ${String(lastError)}`);
     expect(saved).toMatchObject({ type: 'feeding', kind: 'breastMilk', method: 'leftBreast' });
     // Duration comes back derived server-side, not echoed from the request.
-    expect(saved.type === 'feeding' && saved.durationMinutes).toBe(20);
+    expect(saved.type === 'feeding' && saved.durationMinutes).toBe(DURATION);
     await deleteTracked(saved.id);
   });
 

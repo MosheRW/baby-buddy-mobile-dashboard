@@ -22,6 +22,18 @@ export function paginated<T extends z.ZodTypeAny>(item: T) {
 const tags = z.array(z.string()).default([]);
 const id = z.number();
 
+/**
+ * A Django choice field that allows blank comes back as `""`, not null — so a
+ * pee-only diaper change has `color: ""`. Treating that as "absent" is the
+ * difference between one row failing and the whole endpoint dropping out of the
+ * merged timeline (each type is parsed as a unit).
+ */
+function blankable<T extends z.ZodTypeAny>(schema: T) {
+  // preprocess, not transform: a transform's output type is always present, which
+  // would make the key required (as `X | undefined`) on every DTO literal.
+  return z.preprocess((v) => (v === '' || v === null ? undefined : v), schema.optional());
+}
+
 export const childSchema = z.object({
   id,
   first_name: z.string(),
@@ -38,7 +50,7 @@ export const diaperChangeSchema = z.object({
   time: z.string(),
   wet: z.boolean(),
   solid: z.boolean(),
-  color: z.enum(['black', 'brown', 'green', 'yellow']).nullable().optional(),
+  color: blankable(z.enum(['black', 'brown', 'green', 'yellow'])),
   amount: z.number().nullable().optional(),
   notes: z.string().nullable().optional(),
   tags,
@@ -62,7 +74,7 @@ export const medicationSchema = z.object({
   child: z.number(),
   name: z.string(),
   dosage: z.number().nullable().optional(),
-  dosage_unit: z.enum(['mg', 'ml', 'tablets', 'drops']).nullable().optional(),
+  dosage_unit: blankable(z.enum(['mg', 'ml', 'tablets', 'drops'])),
   time: z.string(),
   /** Django duration, "HH:MM:SS" or "D HH:MM:SS". */
   next_dose_interval: z.string().nullable().optional(),

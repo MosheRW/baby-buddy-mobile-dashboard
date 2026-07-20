@@ -1,4 +1,5 @@
 import type { MedicationEntry, TemperatureEntry } from '../types';
+import { diaperChangeSchema, medicationSchema } from '../schemas';
 import {
   AS_NEEDED_TAG,
   ageLabel,
@@ -526,5 +527,67 @@ describe('timers', () => {
       start: wire.start as string,
     });
     expect(back).toEqual({ type: 'feeding', childId: '3', startedAt, serverTimerId: 9 });
+  });
+});
+
+describe('blank choice fields', () => {
+  // Django serialises an unset choice field as "", not null. A pee-only change
+  // therefore arrives with color: "" — and rejecting it drops every diaper from
+  // the timeline, since each endpoint is parsed as a unit.
+  it('reads a pee-only change with color: "" as having no colour', () => {
+    const parsed = diaperChangeSchema.parse({
+      id: 495,
+      child: 1,
+      time: '2026-07-20T09:08:54Z',
+      wet: true,
+      solid: false,
+      color: '',
+      amount: null,
+      notes: null,
+      tags: [],
+    });
+    expect(parsed.color).toBeUndefined();
+    expect(normalizeDiaper(parsed)).toMatchObject({ pee: true, poo: false, pooColor: undefined });
+  });
+
+  it('still reads a real colour', () => {
+    expect(
+      diaperChangeSchema.parse({
+        id: 1,
+        child: 1,
+        time: '2026-07-20T09:08:54Z',
+        wet: false,
+        solid: true,
+        color: 'green',
+        tags: [],
+      }).color,
+    ).toBe('green');
+  });
+
+  it('rejects a colour the server does not define', () => {
+    expect(() =>
+      diaperChangeSchema.parse({
+        id: 1,
+        child: 1,
+        time: '2026-07-20T09:08:54Z',
+        wet: false,
+        solid: true,
+        color: 'red',
+        tags: [],
+      }),
+    ).toThrow();
+  });
+
+  it('reads a blank medication dosage_unit as absent', () => {
+    expect(
+      medicationSchema.parse({
+        id: 1,
+        child: 1,
+        name: 'X',
+        time: '2026-07-20T09:08:54Z',
+        dosage_unit: '',
+        tags: [],
+      }).dosage_unit,
+    ).toBeUndefined();
   });
 });
