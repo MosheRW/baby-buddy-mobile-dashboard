@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActionButton, AppText, FieldLabel } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { elapsedClock, type TimerType } from '../../lib/timers';
+import { serverNow } from '../../api/client';
 import { useTimerStore } from '../../stores';
 import { DateTimeField } from './DateTimeField';
 
@@ -54,7 +55,8 @@ export function TimerControl({
   }
 
   const stop = () => {
-    const endedAt = Date.now();
+    // serverNow so the end time isn't in the server's future (see client.ts).
+    const endedAt = serverNow();
     stopTimer(type, childId);
     onStop(timer.startedAt, endedAt);
   };

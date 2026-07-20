@@ -19,7 +19,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createBabyBuddyDataSource } from '../babybuddy';
-import { request } from '../client';
+import { request, getClockSkewMs, serverNow } from '../client';
 import { profileSchema } from '../schemas';
 import type { Entry, Session } from '../types';
 
@@ -69,7 +69,8 @@ function baseEntry(childId: string) {
   return {
     id: '',
     childId,
-    time: new Date().toISOString(),
+    // serverNow, not Date.now — the server rejects times in its own future.
+    time: new Date(serverNow()).toISOString(),
     tags: [{ label: 'by integration-test', author: true }],
     creator: 'integration-test',
   };
@@ -104,6 +105,7 @@ describeLive('live Baby Buddy server', () => {
       `[profile] username present: ${Boolean(profile.username)}; ` +
         `api_key exposed: ${Boolean(profile.api_key)}`,
     );
+    console.log(`[clock] server trails this device by ${-getClockSkewMs()}ms`);
   });
 
   it('lists children and normalizes them', async () => {
@@ -221,6 +223,7 @@ describeLive('live Baby Buddy server', () => {
     expect(saved.type === 'feeding' && saved.durationMinutes).toBe(20);
     await deleteTracked(saved.id);
   });
+
 });
 
 if (!configured) {

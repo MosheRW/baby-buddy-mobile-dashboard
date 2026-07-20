@@ -99,7 +99,7 @@ SegmentedToggle (login mode, temp method, scheduled/as-needed) · Chip + ChipRow
 - `dataSource` gained a `subscribe()` change notification so the dashboard refetches after a save/delete. Phase 5 replaces it with React Query cache invalidation.
 - `@react-native-community/datetimepicker` has no web implementation, so `DateTimeField` uses the Android picker on-target and degrades to a `YYYY-MM-DD HH:mm` text field in the web QA preview.
 
-### Phase 5 — API integration ⚠️ built, not verified against a live server
+### Phase 5 — API integration ✅ done, verified against a live server
 - Fetch wrapper with timeout + zod parsing; two auth flows:
   - **Direct Baby Buddy:** POST credentials → obtain API token (or use `/api/profile` with token), store in secure store, `Authorization: Token …` thereafter.
   - **Home Assistant add-on:** base URL + long-lived access token via the add-on's ingress path — verify the exact ingress route against a real HA instance early, this is the riskiest unknown in the plan.
@@ -129,11 +129,50 @@ Model divergences and how they're handled — all in `api/normalize.ts`:
 
 **Auth:** Baby Buddy enables only Session + Token auth (`BasicAuthentication` is off) and has no token-issuing endpoint, so the handoff's username/password login can't be implemented directly. Per the product decision, both paths ship: the password fields drive a login-form bootstrap (parse `csrfmiddlewaretoken` → POST `/login/` → read `api_key` off `/api/profile`) and every failure falls back to a "paste your API key" field. Only the token is kept; the cookie session is never reused.
 
-**Outstanding before this phase is truly done:**
-1. An authenticated end-to-end run (read + create + edit + delete) against a real server — nothing below the auth boundary has executed against live data.
-2. Confirm `/api/profile` actually returns `api_key` on this server version; if it doesn't, the password path always degrades to the API-key field.
-3. Confirm the HA ingress path accepts `Authorization: Token …` without a Home Assistant session.
-4. Server ids are namespaced internally as `{type}:{id}` — worth re-checking after the first real edit/delete.
+#### Authenticated run — done, and what it found
+
+`npm run test:live` (see `src/api/__tests__/live.integration.test.ts`, config `jest.integration.config.js`)
+runs the real client/schemas/normalizers against a live server. Credentials come from
+gitignored `.env.local`; the suite is excluded from `npm test` and skips cleanly without them.
+**All 8 tests pass**, covering auth, children, the merged timeline, and create/read/edit/delete
+round-trips for note, diaper, medication, temperature and feeding.
+
+Answered:
+- `/api/profile` **does** expose `api_key` → the username/password bootstrap has a key to read.
+- Entry-id namespacing survives real edit and delete.
+- Timeline on the test server: 100 feedings (= `PER_TYPE_LIMIT`, so capped), 65 notes, 4 sleeps, 2 medications.
+
+Three real bugs the run exposed, all fixed:
+
+1. **Clock skew broke every "now" entry.** Baby Buddy's `validate_time()` rejects any time
+   greater than the *server's* clock. The test server trails this machine by ~1.3s, so entries
+   stamped with the device's `Date.now()` were refused with "Date/time can not be in the future."
+   `client.ts` now tracks the offset from each response's `Date` header and exposes `serverNow()`
+   (with a 2s safety margin, since HTTP dates are second-granular); the form default and timer
+   stop both use it. Only `Note` escaped this — it is the one model with no `clean()`.
+2. **Duration entries sent an end time in the future.** `end = start + duration` from a "now"
+   start is by definition ahead of the server; Sleep and TummyTime validate `end` as well as
+   `start`. `resolveWindow()` now slides the window back to end at `now`, preserving the
+   duration the user entered — which also matches what "a 20-minute feed, logged just after"
+   actually means.
+3. **A failed secure-store read could hang the app on a blank screen.** `App` gates its entire
+   render on `hydrated`, which was only set on the success path. `onRehydrateStorage` now sets it
+   on both, `secureStorage` swallows read/write failures (degrading to "no saved session"), and
+   `App` has a 5s boot timeout as a hard backstop.
+
+Also learned: `validate_unique_period` rejects overlapping entries of the same type for one child,
+so a save can legitimately fail for reasons the UI doesn't predict — the error banner surfaces the
+server's message verbatim, which is what makes that tolerable.
+
+**Still outstanding:**
+1. **Web is a dead end for the real API.** Baby Buddy sends no `Access-Control-Allow-Origin`, so a
+   browser blocks every response — the web preview only works with `USE_MOCK_DATA`. Use Expo Go or
+   a device build against a live server. (Confirmed by preflight: 200 with no CORS headers.)
+2. The HA ingress path still hasn't been exercised with a token — same code path as direct, but
+   unproven; ingress may additionally require a Home Assistant session.
+3. The password/CSRF login bootstrap has not been run end-to-end (the live suite authenticates with
+   a token). The parser matches the real login page, and `api_key` is present, but the POST hasn't
+   been executed.
 
 ### Phase 6 — Server-backed timers
 - Start/stop via `/api/timers/`; store `serverTimerId` in `timerStore`; on app launch reconcile local persisted timers with server-side active timers (server wins).

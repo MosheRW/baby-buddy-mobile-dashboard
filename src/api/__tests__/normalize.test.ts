@@ -15,6 +15,7 @@ import {
   normalizeTummyTime,
   parseDuration,
   parseEntryId,
+  resolveWindow,
   splitTags,
 } from '../normalize';
 
@@ -381,6 +382,81 @@ describe('internal → wire', () => {
     });
     expect(body).toMatchObject({ milestone: 'rolled over', end: '2026-07-19T10:10:00.000Z' });
     expect(body).not.toHaveProperty('notes');
+  });
+});
+
+describe('resolveWindow (server rejects times in its own future)', () => {
+  const NOW = Date.parse('2026-07-19T12:00:00.000Z');
+
+  it('keeps a window that already ended in the past', () => {
+    const w = resolveWindow('2026-07-19T11:00:00.000Z', 20, NOW);
+    expect(w).toEqual({
+      start: '2026-07-19T11:00:00.000Z',
+      end: '2026-07-19T11:20:00.000Z',
+    });
+  });
+
+  it('slides a "now + duration" window back so it ends at now', () => {
+    // "A 20-minute feed logged right now" must not claim to end 20 minutes hence.
+    const w = resolveWindow('2026-07-19T12:00:00.000Z', 20, NOW);
+    expect(w).toEqual({
+      start: '2026-07-19T11:40:00.000Z',
+      end: '2026-07-19T12:00:00.000Z',
+    });
+  });
+
+  it('preserves the entered duration when sliding', () => {
+    const w = resolveWindow('2026-07-19T12:00:00.000Z', 45, NOW);
+    expect(Date.parse(w.end) - Date.parse(w.start)).toBe(45 * 60_000);
+  });
+
+  it('honours an explicit end time over the duration', () => {
+    const w = resolveWindow('2026-07-19T10:00:00.000Z', 20, NOW, '2026-07-19T10:05:00.000Z');
+    expect(w.end).toBe('2026-07-19T10:05:00.000Z');
+  });
+
+  it('never returns an end in the future when there is no duration', () => {
+    const w = resolveWindow('2026-07-19T18:00:00.000Z', undefined, NOW);
+    expect(Date.parse(w.end)).toBeLessThanOrEqual(NOW);
+  });
+});
+
+describe('denormalize timing', () => {
+  const NOW = Date.parse('2026-07-19T12:00:00.000Z');
+
+  it('does not send a tummy-time end in the future', () => {
+    const body = denormalize(
+      {
+        id: 'tummyTime:1',
+        childId: '2',
+        type: 'tummyTime',
+        time: '2026-07-19T12:00:00.000Z',
+        tags: [],
+        creator: 'Sarah',
+        durationMinutes: 10,
+      },
+      NOW,
+    );
+    expect(Date.parse(body.end as string)).toBeLessThanOrEqual(NOW);
+    expect(body.start).toBe('2026-07-19T11:50:00.000Z');
+  });
+
+  it('does not send a feeding end in the future', () => {
+    const body = denormalize(
+      {
+        id: 'feeding:1',
+        childId: '2',
+        type: 'feeding',
+        time: '2026-07-19T12:00:00.000Z',
+        tags: [],
+        creator: 'Sarah',
+        kind: 'breastMilk',
+        method: 'leftBreast',
+        durationMinutes: 20,
+      },
+      NOW,
+    );
+    expect(Date.parse(body.end as string)).toBeLessThanOrEqual(NOW);
   });
 });
 

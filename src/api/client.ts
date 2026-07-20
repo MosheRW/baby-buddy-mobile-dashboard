@@ -56,6 +56,43 @@ export class ParseError extends Error {
   }
 }
 
+// --- Server clock -----------------------------------------------------------
+// Baby Buddy rejects entry times in the future (`validate_time` compares against
+// the server's own clock), so a phone running even a second ahead of the server
+// cannot log a "now" entry. Every response carries a `Date` header, so we track
+// the offset and stamp new entries with the server's idea of now instead.
+
+let clockSkewMs = 0;
+
+/**
+ * HTTP `Date` is second-granular and the response spent some time in flight, so
+ * the measurement is only good to about a second. `serverNow` subtracts this
+ * margin to stay safely on the past side of the server's clock; a couple of
+ * seconds is immaterial for logging a feed or a diaper change.
+ */
+const CLOCK_SAFETY_MS = 2_000;
+
+function recordServerClock(header: string | null): void {
+  if (!header) return;
+  const serverMs = Date.parse(header);
+  if (Number.isFinite(serverMs)) clockSkewMs = serverMs - Date.now();
+}
+
+/** Current time as the server would see it, biased slightly into the past. */
+export function serverNow(): number {
+  return Date.now() + clockSkewMs - CLOCK_SAFETY_MS;
+}
+
+/** Milliseconds the server's clock trails this device's (negative = behind). */
+export function getClockSkewMs(): number {
+  return clockSkewMs;
+}
+
+/** Test seam. */
+export function __setClockSkewForTests(ms: number): void {
+  clockSkewMs = ms;
+}
+
 /** Join a base URL and path without doubling or dropping slashes. */
 export function joinUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
@@ -119,6 +156,9 @@ export async function rawRequest(options: RequestOptions): Promise<unknown> {
     clearTimeout(timer);
     signal?.removeEventListener('abort', onAbort);
   }
+
+  // Keep the clock offset fresh from every response, including error ones.
+  recordServerClock(response.headers.get('date'));
 
   if (response.status === 401 || response.status === 403) throw new AuthError();
 

@@ -321,10 +321,44 @@ export const ENDPOINT: Record<EntryType, string> = {
 };
 
 /**
+ * Resolve a timed entry's {start, end} from a start time plus a duration.
+ *
+ * Baby Buddy rejects any time in its own future (Sleep and TummyTime validate
+ * both ends; Feeding validates the start), so "started now, lasted 20 minutes"
+ * would always be refused. A caregiver logging a duration after the fact means
+ * "a 20-minute feed that just ended", so when the window would run past `now` we
+ * slide it back to end at `now` — preserving the duration the user entered
+ * rather than truncating it.
+ */
+export function resolveWindow(
+  start: string,
+  durationMinutes: number | undefined,
+  now: number,
+  explicitEnd?: string,
+): { start: string; end: string } {
+  if (explicitEnd) return { start, end: explicitEnd };
+
+  const startMs = Date.parse(start);
+  if (durationMinutes == null) return { start, end: new Date(Math.min(startMs, now)).toISOString() };
+
+  const durationMs = durationMinutes * 60_000;
+  const endMs = startMs + durationMs;
+  if (endMs <= now) return { start, end: new Date(endMs).toISOString() };
+
+  return {
+    start: new Date(now - durationMs).toISOString(),
+    end: new Date(now).toISOString(),
+  };
+}
+
+/**
  * Build the POST/PATCH body for an entry. `child` is the numeric server id.
  * Returns a plain record — the caller JSON-encodes it.
+ *
+ * `now` should be the server's clock (see `serverNow` in client.ts), not the
+ * device's, so duration windows land on the past side of the server's now.
  */
-export function denormalize(entry: Entry): Record<string, unknown> {
+export function denormalize(entry: Entry, now: number = Date.now()): Record<string, unknown> {
   const child = Number(entry.childId);
 
   switch (entry.type) {
@@ -344,12 +378,7 @@ export function denormalize(entry: Entry): Record<string, unknown> {
     case 'feeding': {
       // Duration is derived server-side from start/end, so a direct-breast feed
       // logged with a duration is sent as an end time.
-      const start = entry.time;
-      const end =
-        entry.endTime ??
-        (entry.durationMinutes != null
-          ? new Date(Date.parse(start) + entry.durationMinutes * 60_000).toISOString()
-          : start);
+      const { start, end } = resolveWindow(entry.time, entry.durationMinutes, now, entry.endTime);
       return {
         child,
         start,
@@ -396,12 +425,7 @@ export function denormalize(entry: Entry): Record<string, unknown> {
     }
 
     case 'tummyTime': {
-      const start = entry.time;
-      const end =
-        entry.endTime ??
-        (entry.durationMinutes != null
-          ? new Date(Date.parse(start) + entry.durationMinutes * 60_000).toISOString()
-          : start);
+      const { start, end } = resolveWindow(entry.time, entry.durationMinutes, now, entry.endTime);
       return {
         child,
         start,

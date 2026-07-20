@@ -29,8 +29,15 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth',
       storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({ session: state.session }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated();
+      // Must flip `hydrated` on BOTH paths: App gates its whole render on it, so
+      // a secure-store read that throws (locked keystore, unavailable module)
+      // would otherwise leave the app on a blank screen forever. A failed read
+      // just means no stored session — i.e. show Login.
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('[auth] could not restore the saved session:', error);
+        }
+        (state ?? useAuthStore.getState()).setHydrated();
       },
     },
   ),

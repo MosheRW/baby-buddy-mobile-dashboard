@@ -32,7 +32,7 @@ import {
   normalizeTummyTime,
   parseEntryId,
 } from './normalize';
-import { ParseError, rawRequest, request } from './client';
+import { ParseError, rawRequest, request, serverNow } from './client';
 
 /** How many of each entry type to pull for the timeline. */
 export const PER_TYPE_LIMIT = 100;
@@ -130,7 +130,7 @@ export function createBabyBuddyDataSource(
         ...auth(),
         path: `api/${ENDPOINT[entry.type]}/`,
         method: 'POST',
-        body: denormalize(entry),
+        body: denormalize(entry, serverNow()),
       });
       return PARSERS[entry.type](created);
     },
@@ -142,7 +142,7 @@ export function createBabyBuddyDataSource(
         ...auth(),
         path: `api/${ENDPOINT[entry.type]}/${parsed.serverId}/`,
         method: 'PATCH',
-        body: denormalize(entry),
+        body: denormalize(entry, serverNow()),
       });
       return PARSERS[entry.type](updated);
     },

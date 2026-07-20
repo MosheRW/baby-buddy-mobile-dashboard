@@ -10,7 +10,7 @@ import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
 import { draftToEntry, emptyDraft, entryToDraft } from '../../lib/formDraft';
 import { isTimerType } from '../../lib/timers';
-import { errorMessage } from '../../api/client';
+import { errorMessage, serverNow } from '../../api/client';
 import { useDashboardData, useSaveEntry } from '../../data/queries';
 import { useAuthStore, useFormStore, useSettingsStore, useTimerStore } from '../../stores';
 import { useTimerTick } from '../../hooks/useTick';
@@ -72,7 +72,9 @@ export function LogEntryScreen({ route, navigation }: Props) {
       editingEntryId: entryId ?? null,
       draft: editingEntry
         ? entryToDraft(editingEntry, defaultFoodMl)
-        : emptyDraft(Date.now(), defaultFoodMl),
+        : // serverNow, not Date.now: the server rejects times in its own future,
+          // so a phone running slightly fast can't log a "now" entry.
+          emptyDraft(serverNow(), defaultFoodMl),
     });
     // One-time seeding, guarded by the key above — it can't cascade because
     // the next run returns early.

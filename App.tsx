@@ -1,5 +1,5 @@
 import 'react-native-reanimated';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -14,10 +14,24 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 // flashes (fallback font, or Login before the stored session rehydrates).
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+/**
+ * Longest we'll hold the splash waiting for fonts or persisted state. Past this
+ * the app boots anyway — a missing font or an unreadable saved session is a
+ * degraded experience, but a splash screen that never goes away is a dead app.
+ */
+const BOOT_TIMEOUT_MS = 5_000;
+
 export default function App() {
   const fontsLoaded = useAppFonts();
   const hydrated = useAuthStore((s) => s.hydrated);
-  const ready = fontsLoaded && hydrated;
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => setTimedOut(true), BOOT_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, []);
+
+  const ready = (fontsLoaded && hydrated) || timedOut;
 
   const onLayout = useCallback(() => {
     if (ready) {
