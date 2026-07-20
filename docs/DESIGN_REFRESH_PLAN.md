@@ -31,7 +31,7 @@ Checked and deliberately **not** changed:
 | `README.md` | byte-identical to the design project's copy — the base handoff was never refreshed, exactly as `CHANGES_SINCE_LAST_HANDOFF.md` says ("out of date in the specific spots listed below"). Read the two together. |
 | `support.js` | byte-identical (64 206 bytes). The prototype renders against the committed runtime. |
 | `android-frame.jsx` | not re-fetched — a static bezel, and the prototype passes it the same `title` / `hint-size` props as before. `support.js` being unchanged makes a runtime drift implausible. |
-| `Entry Icon Options.dc.html` | left in the design project, not committed — see §3.1 for why, and for the decisions extracted from it. |
+| `Entry Icon Options.dc.html` | **committed** (17 122 bytes, 192 lines). Verified: all 12 option ids present exactly once, balanced markup, and the four *chosen* shapes byte-identical to the independently-committed prototype's inline versions — that last check is the one that matters, since Batch C builds from those. |
 
 Remaining: update CLAUDE.md's Status section to reorder Phase 7 after this work.
 
@@ -193,12 +193,14 @@ Decisions made while implementing, worth review:
   as the plan said — it's feeding math, and it needs the same `FeedingMethod`
   helpers.
 
-**Open question for Batch D:** should logging a dose with the limit field left
-empty *clear* the pair's limit? Current behaviour says no (the last specified
-limit stands), on the grounds that silently losing a safety limit is worse than
-needing an explicit edit to change it. The alternative — last entry wins
-outright — matches a literal reading of "the most recent entry's value" and
-makes clearing possible. Worth confirming before the form can produce either.
+**Resolved — an empty limit field means "unchanged", not "cleared".** The last
+entry that actually specifies a limit stands; silently losing a safety limit by
+omission is worse than needing an explicit edit to change one. So the only way
+to remove a limit is to edit the entry that set it and clear the field there.
+Batch D's medication form must therefore *not* treat a blank max-dose input as
+an instruction to drop `maxDose24h` from the draft — blank means "carry the
+pair's current limit forward". No code change; this is what Batch B already
+does.
 
 #### Original scope
 
@@ -303,8 +305,9 @@ Type chip without losing other types' fields) — just wider.
    Also note the sheet's *generic* sleep glyph (1c "Z" / 1d moon+sparkles) is
    dead — the nap/night pair supersedes it, and the prototype uses neither.
    Since every chosen shape is already in the refreshed prototype at final
-   size, **the prototype is the glyph source of truth for Batch C**; the options
-   sheet is only the sign-off record and stays in the design project.
+   size, **the prototype is the glyph source of truth for Batch C**; the sheet
+   is committed alongside it as the sign-off record, including the rejected
+   alternatives (1b, 1c, 1d, 2b, 3a, 3b, 3e, 3f).
 
    The sheet covers just these 4 families. The other ~21 glyphs (diaper
    pee/poo/both, feeding bottle/breast/solid, the 5 medication units,
