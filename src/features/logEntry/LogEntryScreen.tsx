@@ -12,8 +12,9 @@ import { draftToEntry, emptyDraft, entryToDraft } from '../../lib/formDraft';
 import { isTimerType } from '../../lib/timers';
 import { errorMessage, serverNow } from '../../api/client';
 import { useDashboardData, useSaveEntry } from '../../data/queries';
-import { useAuthStore, useFormStore, useSettingsStore, useTimerStore } from '../../stores';
+import { useAuthStore, useFormStore, useSettingsStore } from '../../stores';
 import { useTimerTick } from '../../hooks/useTick';
+import { useTimerActions } from '../../hooks/useTimers';
 import { entriesForChild } from '../dashboard/selectors';
 import { DateTimeField } from './DateTimeField';
 import { DiaperFields } from './fields/DiaperFields';
@@ -52,7 +53,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
   const setType = useFormStore((s) => s.setType);
   const patch = useFormStore((s) => s.patchDraft);
 
-  const stopTimer = useTimerStore((s) => s.stopTimer);
+  const { stop: stopTimer } = useTimerActions();
   const timerNow = useTimerTick();
 
   const userName = useAuthStore((s) => s.session?.userName) ?? 'you';

@@ -1,4 +1,12 @@
-import { elapsedClock, elapsedMs, findTimer, isTimerType, timerKey } from '../timers';
+import {
+  elapsedClock,
+  elapsedMs,
+  findTimer,
+  isTimerType,
+  reconcileTimers,
+  timerKey,
+  timerTypeFromName,
+} from '../timers';
 import type { RunningTimer } from '../timers';
 
 const NOW = 1_000_000_000_000;
@@ -36,5 +44,63 @@ describe('timer helpers', () => {
     expect(elapsedClock(NOW, NOW + 5000)).toBe('00:05');
     expect(elapsedClock(NOW, NOW + 65000)).toBe('01:05');
     expect(elapsedClock(NOW, NOW + 725000)).toBe('12:05');
+  });
+});
+
+describe('timerTypeFromName', () => {
+  it('recognises the names we write', () => {
+    expect(timerTypeFromName('Feeding')).toBe('feeding');
+    expect(timerTypeFromName('Sleep')).toBe('sleep');
+    expect(timerTypeFromName('Tummy Time')).toBe('tummyTime');
+  });
+
+  it('tolerates casing and spacing drift from the web UI', () => {
+    expect(timerTypeFromName('  tummytime ')).toBe('tummyTime');
+    expect(timerTypeFromName('TUMMY  TIME')).toBe('tummyTime');
+  });
+
+  it('leaves unrelated timers unclassified rather than guessing', () => {
+    expect(timerTypeFromName('Quick Timer')).toBeUndefined();
+    expect(timerTypeFromName('')).toBeUndefined();
+    expect(timerTypeFromName(null)).toBeUndefined();
+  });
+});
+
+describe('reconcileTimers', () => {
+  const local = (over: Partial<RunningTimer> = {}): RunningTimer => ({
+    type: 'feeding',
+    childId: 'c1',
+    startedAt: NOW,
+    ...over,
+  });
+
+  it('adopts a timer started elsewhere', () => {
+    const server = [local({ type: 'sleep', serverTimerId: 7 })];
+    expect(reconcileTimers([], server)).toEqual(server);
+  });
+
+  it('drops a local timer whose server copy is gone — it was stopped elsewhere', () => {
+    expect(reconcileTimers([local({ serverTimerId: 7 })], [])).toEqual([]);
+  });
+
+  it('keeps a local-only timer that never reached the server', () => {
+    const offline = local();
+    expect(reconcileTimers([offline], [])).toEqual([offline]);
+  });
+
+  it('lets the server copy win over a local one for the same (type, child)', () => {
+    const server = [local({ startedAt: NOW - 60_000, serverTimerId: 7 })];
+    expect(reconcileTimers([local()], server)).toEqual(server);
+  });
+
+  it('does not re-adopt a timer whose stop is still in flight', () => {
+    const server = [local({ serverTimerId: 7 })];
+    expect(reconcileTimers([], server, [7])).toEqual([]);
+  });
+
+  it('returns timers oldest first', () => {
+    const older = local({ type: 'sleep', startedAt: NOW - 5000, serverTimerId: 1 });
+    const newer = local({ type: 'tummyTime', startedAt: NOW, serverTimerId: 2 });
+    expect(reconcileTimers([], [newer, older]).map((t) => t.type)).toEqual(['sleep', 'tummyTime']);
   });
 });

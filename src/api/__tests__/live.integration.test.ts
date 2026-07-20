@@ -19,9 +19,10 @@
 import fs from 'fs';
 import path from 'path';
 import { createBabyBuddyDataSource } from '../babybuddy';
-import { request, getClockSkewMs, serverNow } from '../client';
+import { rawRequest, request, getClockSkewMs, serverNow } from '../client';
 import { profileSchema } from '../schemas';
 import type { Entry, Session } from '../types';
+import { reconcileTimers } from '../../lib/timers';
 
 function loadEnvLocal(): Record<string, string> {
   const file = path.resolve(__dirname, '../../../.env.local');
@@ -224,6 +225,73 @@ describeLive('live Baby Buddy server', () => {
     await deleteTracked(saved.id);
   });
 
+  describe('timers', () => {
+    /** Server timer ids this block created, swept in afterEach. */
+    const timers = new Set<number>();
+
+    afterEach(async () => {
+      for (const id of timers) {
+        try {
+          await dataSource.stopTimer(id);
+        } catch {
+          /* already stopped by the test */
+        }
+      }
+      timers.clear();
+    });
+
+    it('starts a timer, lists it back, and stops it', async () => {
+      const started = await dataSource.startTimer('sleep', childId, serverNow());
+      timers.add(started.serverTimerId!);
+
+      expect(started).toMatchObject({ type: 'sleep', childId });
+      expect(started.serverTimerId).toEqual(expect.any(Number));
+
+      const listed = await dataSource.getTimers();
+      const found = listed.find((t) => t.serverTimerId === started.serverTimerId);
+      expect(found).toMatchObject({ type: 'sleep', childId });
+      // The start time survives the round trip to the second (the server
+      // returns its own microsecond-precision timestamp).
+      expect(Math.abs(found!.startedAt - started.startedAt)).toBeLessThan(1000);
+
+      await dataSource.stopTimer(started.serverTimerId!);
+      timers.delete(started.serverTimerId!);
+
+      const after = await dataSource.getTimers();
+      expect(after.some((t) => t.serverTimerId === started.serverTimerId)).toBe(false);
+    });
+
+    it('reconciles a server timer into an empty local store', async () => {
+      const started = await dataSource.startTimer('tummyTime', childId, serverNow());
+      timers.add(started.serverTimerId!);
+
+      const server = await dataSource.getTimers();
+      const merged = reconcileTimers([], server);
+      expect(merged.some((t) => t.serverTimerId === started.serverTimerId)).toBe(true);
+
+      // Stopped on the server → a local copy claiming that id must not survive.
+      await dataSource.stopTimer(started.serverTimerId!);
+      timers.delete(started.serverTimerId!);
+
+      const afterStop = await dataSource.getTimers();
+      expect(reconcileTimers(merged, afterStop)).toEqual([]);
+    });
+
+    it('ignores a timer it cannot attribute to a type', async () => {
+      // What Baby Buddy's own web UI creates — not ours to adopt.
+      const raw = (await rawRequest({
+        baseUrl: session.baseUrl,
+        token: session.token,
+        path: 'api/timers/',
+        method: 'POST',
+        body: { child: Number(childId), name: 'Quick Timer' },
+      })) as { id: number };
+      timers.add(raw.id);
+
+      const listed = await dataSource.getTimers();
+      expect(listed.some((t) => t.serverTimerId === raw.id)).toBe(false);
+    });
+  });
 });
 
 if (!configured) {

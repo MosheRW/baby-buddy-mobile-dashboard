@@ -3,6 +3,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../theme';
 import { useAuthStore } from '../stores';
+import { useTimerSync } from '../hooks/useTimers';
 import type { MainStackParamList } from './types';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { DashboardScreen } from '../features/dashboard/DashboardScreen';
@@ -25,6 +26,9 @@ const navTheme = {
 
 export function RootNavigator() {
   const session = useAuthStore((s) => s.session);
+  // Above every screen, so a timer started elsewhere is already reconciled by
+  // the time the dashboard or the form reads the store.
+  useTimerSync();
 
   return (
     <NavigationContainer theme={navTheme}>

@@ -13,6 +13,8 @@ import {
   normalizeSleep,
   normalizeTemperature,
   normalizeTummyTime,
+  denormalizeTimer,
+  normalizeTimer,
   parseDuration,
   parseEntryId,
   resolveWindow,
@@ -488,5 +490,41 @@ describe('round-trip', () => {
       tags: wire.tags as string[],
     });
     expect(back).toEqual(original);
+  });
+});
+
+describe('timers', () => {
+  it('classifies a server timer by its name', () => {
+    expect(
+      normalizeTimer({ id: 12, child: 3, name: 'Tummy Time', start: '2026-07-20T10:00:00Z' }),
+    ).toEqual({
+      type: 'tummyTime',
+      childId: '3',
+      startedAt: Date.parse('2026-07-20T10:00:00Z'),
+      serverTimerId: 12,
+    });
+  });
+
+  it('ignores timers it cannot attribute', () => {
+    const start = '2026-07-20T10:00:00Z';
+    // Someone else's timer in the Baby Buddy web UI.
+    expect(normalizeTimer({ id: 1, child: 3, name: 'Quick Timer', start })).toBeNull();
+    // Baby Buddy allows a timer with no child; we have nowhere to file it.
+    expect(normalizeTimer({ id: 2, child: null, name: 'Sleep', start })).toBeNull();
+    expect(normalizeTimer({ id: 3, child: 3, name: 'Sleep', start: 'not a date' })).toBeNull();
+  });
+
+  it('round-trips through the wire shape', () => {
+    const startedAt = Date.parse('2026-07-20T10:00:00Z');
+    const wire = denormalizeTimer('feeding', '3', startedAt);
+    expect(wire).toEqual({ child: 3, name: 'Feeding', start: '2026-07-20T10:00:00.000Z' });
+
+    const back = normalizeTimer({
+      id: 9,
+      child: wire.child as number,
+      name: wire.name as string,
+      start: wire.start as string,
+    });
+    expect(back).toEqual({ type: 'feeding', childId: '3', startedAt, serverTimerId: 9 });
   });
 });

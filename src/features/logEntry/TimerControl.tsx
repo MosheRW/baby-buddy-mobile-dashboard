@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActionButton, AppText, FieldLabel } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { elapsedClock, type TimerType } from '../../lib/timers';
-import { serverNow } from '../../api/client';
+import { useTimerActions } from '../../hooks/useTimers';
 import { useTimerStore } from '../../stores';
 import { DateTimeField } from './DateTimeField';
 
@@ -37,8 +37,7 @@ export function TimerControl({
   onStop,
 }: TimerControlProps) {
   const timer = useTimerStore((s) => s.timers.find((t) => t.type === type && t.childId === childId));
-  const startTimer = useTimerStore((s) => s.startTimer);
-  const stopTimer = useTimerStore((s) => s.stopTimer);
+  const { start, stop: stopTimer } = useTimerActions();
 
   if (!timer) {
     return (
@@ -48,17 +47,15 @@ export function TimerControl({
           label="Start timer"
           variant="neutral"
           fullWidth
-          onPress={() => startTimer(type, childId)}
+          onPress={() => start(type, childId)}
         />
       </View>
     );
   }
 
   const stop = () => {
-    // serverNow so the end time isn't in the server's future (see client.ts).
-    const endedAt = serverNow();
-    stopTimer(type, childId);
-    onStop(timer.startedAt, endedAt);
+    const span = stopTimer(type, childId);
+    if (span) onStop(span.startedAt, span.endedAt);
   };
 
   return (

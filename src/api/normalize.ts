@@ -29,8 +29,15 @@ import type {
   NoteDto,
   SleepDto,
   TemperatureDto,
+  TimerDto,
   TummyTimeDto,
 } from './schemas';
+import {
+  TIMER_NAMES,
+  timerTypeFromName,
+  type RunningTimer,
+  type TimerType,
+} from '../lib/timers';
 
 // --- Entry ids --------------------------------------------------------------
 // Server ids are per-endpoint integers, so change #1 and feeding #1 both exist.
@@ -304,6 +311,34 @@ export function normalizeNote(dto: NoteDto): Entry {
     note: dto.note,
     tags,
     creator,
+  };
+}
+
+/**
+ * A server timer becomes a `RunningTimer` only if we can tell what it is for.
+ * Baby Buddy timers carry no type and may have no child (its web UI can start a
+ * generic one), so anything we can't classify is left alone rather than guessed
+ * at — adopting a stranger's timer would attach it to the wrong entry on stop.
+ */
+export function normalizeTimer(dto: TimerDto): RunningTimer | null {
+  const type = timerTypeFromName(dto.name);
+  if (!type || dto.child == null) return null;
+
+  const startedAt = Date.parse(dto.start);
+  if (!Number.isFinite(startedAt)) return null;
+
+  return { type, childId: String(dto.child), startedAt, serverTimerId: dto.id };
+}
+
+export function denormalizeTimer(
+  type: TimerType,
+  childId: string,
+  startedAt: number,
+): Record<string, unknown> {
+  return {
+    child: Number(childId),
+    name: TIMER_NAMES[type],
+    start: new Date(startedAt).toISOString(),
   };
 }
 

@@ -14,12 +14,14 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query';
 import type { Child, Entry } from '../api/types';
+import type { RunningTimer, TimerType } from '../lib/timers';
 import { useAuthStore } from '../stores/authStore';
 import { dataSource } from './dataSource';
 
 export const queryKeys = {
   children: ['children'] as const,
   entries: ['entries'] as const,
+  timers: ['timers'] as const,
 };
 
 /** Signed-out users have nothing to fetch; queries stay disabled until then. */
@@ -108,5 +110,51 @@ export function useDeleteEntry(): UseMutationResult<void, unknown, string> {
   return useMutation({
     mutationFn: (id: string) => dataSource.deleteEntry(id),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * Timers running on the server. Polled rather than pushed — Baby Buddy has no
+ * websocket, and a timer another caregiver stopped should still disappear here
+ * within a minute or so.
+ */
+export function useServerTimers() {
+  const enabled = useEnabled();
+  return useQuery({
+    queryKey: queryKeys.timers,
+    queryFn: ({ signal }) => dataSource.getTimers(signal),
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    // A timer failing to load must not surface as a dashboard error — the
+    // local copy keeps running and `reconcileTimers` simply has nothing to add.
+    retry: 1,
+  });
+}
+
+export interface StartTimerVars {
+  type: TimerType;
+  childId: string;
+  startedAt: number;
+}
+
+export function useStartTimer(): UseMutationResult<RunningTimer, unknown, StartTimerVars> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ type, childId, startedAt }: StartTimerVars) =>
+      dataSource.startTimer(type, childId, startedAt),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: queryKeys.timers });
+    },
+  });
+}
+
+export function useStopTimer(): UseMutationResult<void, unknown, number> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (serverTimerId: number) => dataSource.stopTimer(serverTimerId),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: queryKeys.timers });
+    },
   });
 }

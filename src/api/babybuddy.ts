@@ -17,11 +17,15 @@ import {
   paginated,
   sleepSchema,
   temperatureSchema,
+  timerSchema,
   tummyTimeSchema,
 } from './schemas';
+import type { RunningTimer, TimerType } from '../lib/timers';
 import {
   ENDPOINT,
   denormalize,
+  denormalizeTimer,
+  normalizeTimer,
   normalizeChild,
   normalizeDiaper,
   normalizeFeeding,
@@ -37,12 +41,20 @@ import { ParseError, rawRequest, request, serverNow } from './client';
 /** How many of each entry type to pull for the timeline. */
 export const PER_TYPE_LIMIT = 100;
 
+/** Running timers are few by nature; this is a sanity bound, not paging. */
+const TIMER_LIMIT = 50;
+
 export interface DataSource {
   getChildren(signal?: AbortSignal): Promise<Child[]>;
   getEntries(signal?: AbortSignal): Promise<Entry[]>;
   createEntry(entry: Entry): Promise<Entry>;
   updateEntry(entry: Entry): Promise<Entry>;
   deleteEntry(id: string): Promise<void>;
+  /** Timers currently running on the server that we can classify. */
+  getTimers(signal?: AbortSignal): Promise<RunningTimer[]>;
+  startTimer(type: TimerType, childId: string, startedAt: number): Promise<RunningTimer>;
+  /** Stopping a Baby Buddy timer means deleting it — the model has no end. */
+  stopTimer(serverTimerId: number): Promise<void>;
 }
 
 /**
@@ -154,6 +166,42 @@ export function createBabyBuddyDataSource(
       await rawRequest({
         ...auth(),
         path: `api/${ENDPOINT[parsed.type]}/${parsed.serverId}/`,
+        method: 'DELETE',
+      });
+    },
+
+    async getTimers(signal) {
+      const page = await request(paginated(timerSchema), {
+        ...auth(),
+        path: 'api/timers/',
+        query: { limit: TIMER_LIMIT },
+        signal,
+      });
+      return page.results
+        .map(normalizeTimer)
+        .filter((t): t is RunningTimer => t !== null)
+        .sort((a, b) => a.startedAt - b.startedAt);
+    },
+
+    async startTimer(type, childId, startedAt) {
+      const created = await request(timerSchema, {
+        ...auth(),
+        path: 'api/timers/',
+        method: 'POST',
+        // Timer.clean() runs validate_time on start, so this must already be a
+        // server-relative timestamp — callers pass serverNow(), not Date.now().
+        body: denormalizeTimer(type, childId, startedAt),
+      });
+      const timer = normalizeTimer(created);
+      // Only unclassifiable if the server rewrote what we just sent.
+      if (!timer) throw new ParseError('timer', []);
+      return timer;
+    },
+
+    async stopTimer(serverTimerId) {
+      await rawRequest({
+        ...auth(),
+        path: `api/timers/${serverTimerId}/`,
         method: 'DELETE',
       });
     },

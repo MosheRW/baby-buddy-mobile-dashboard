@@ -174,10 +174,46 @@ server's message verbatim, which is what makes that tolerable.
    a token). The parser matches the real login page, and `api_key` is present, but the POST hasn't
    been executed.
 
-### Phase 6 — Server-backed timers
-- Start/stop via `/api/timers/`; store `serverTimerId` in `timerStore`; on app launch reconcile local persisted timers with server-side active timers (server wins).
-- Saving a feeding/sleep/tummy entry from a running timer submits with the timer reference so Baby Buddy computes duration.
-- **Done when:** a timer started in the app shows in the Baby Buddy web UI and survives app kill.
+### Phase 6 — Server-backed timers ✅ done, verified against a live server
+
+Start/stop go through `/api/timers/`, `timerStore` carries `serverTimerId`, and the server's running
+timers are reconciled into the store on launch and on every poll.
+
+**What the server actually does** (probed before writing anything — the spec was misleading):
+
+| Assumption going in | Reality |
+| --- | --- |
+| `/api/timers/{id}/restart/` exists | **405 on this server**, GET and POST alike. Not used. |
+| A timer has an `active`/`end` flag | It does not. The model is `{id, child, name, start, duration, user}` — a timer exists iff it is running, so **stopping means DELETE**. |
+| Timers carry a type | They don't. `name` is the only discriminator, so we write `Feeding` / `Sleep` / `Tummy Time` — readable in the Baby Buddy web UI *and* parseable on the way back. |
+| Posting an entry with `timer: id` lets the server compute the window | It does, and it consumes (deletes) the timer — **but it ignores an explicit `end`**, forcing end = now. |
+| One timer per child | The server allows several. The one-per-(type, child) rule is ours to enforce. |
+
+**Consequence for saving:** entries are *not* created via the `timer:` reference. The user can edit
+the end time in the form, and the timer path would silently discard that edit. So saving keeps the
+Phase 5 explicit `start`/`end` path (already live-verified, `resolveWindow` + `serverNow`) and simply
+deletes the server timer afterwards. Server timers are the durable record of a *running* timer, not
+the entry-creation mechanism — a much smaller blast radius on proven code.
+
+**Degradation is the design.** The local store drives the UI; the server makes timers durable and
+shared. Start and stop write the store first and call the API after, so a timer never waits on the
+network. A failed create leaves a local-only timer that still runs, still shows, and still produces
+an entry — it just isn't visible in the web UI. `reconcileTimers` (pure, in `src/lib/timers.ts`)
+encodes the whole merge in one rule: **a local timer is discarded only when it claims a server id the
+server no longer lists.** That drops timers stopped elsewhere while preserving offline ones.
+
+Two details worth keeping:
+- A stop that is slower than the next 60s poll would re-adopt the timer the caregiver just stopped,
+  making it pop back onto the dashboard. `timerStore.stopping` holds those ids until the delete
+  settles; reconciliation skips them. It is deliberately not persisted — an in-flight request doesn't
+  survive an app kill, and the server is then the honest answer.
+- Timers whose name we don't recognise, or that have no child, are **ignored, not adopted**. The live
+  server already has one (`Feeding-BBapp:1`, from another client), and attaching a stranger's timer
+  to our entry would be worse than not seeing it.
+
+**Verified live** (`npm run test:live`, 11/11): start → list → stop round-trip, reconciliation of a
+server timer into an empty store, reconciliation dropping a locally-claimed timer after it was
+stopped server-side, and an unclassifiable timer being skipped.
 
 ### Phase 7 — Polish & release
 - Empty states, keyboard handling pass, hardware-back audit, a11y pass, performance check on the 1s tick (only timer-visible components re-render).

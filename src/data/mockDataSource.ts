@@ -5,12 +5,17 @@
  */
 import type { DataSource } from '../api/babybuddy';
 import type { Entry } from '../api/types';
+import type { RunningTimer } from '../lib/timers';
 import { mockChildren, mockEntries } from './mockData';
 
 export function createMockDataSource(): DataSource {
   const children = [...mockChildren];
   let entries = [...mockEntries];
   let nextId = 1000;
+  // Stands in for the server's timer table so reconciliation has something real
+  // to reconcile against in mock mode.
+  let timers: RunningTimer[] = [];
+  let nextTimerId = 1;
 
   return {
     async getChildren() {
@@ -31,6 +36,18 @@ export function createMockDataSource(): DataSource {
     },
     async deleteEntry(id) {
       entries = entries.filter((e) => e.id !== id);
+    },
+    async getTimers() {
+      return [...timers];
+    },
+    async startTimer(type, childId, startedAt) {
+      const timer: RunningTimer = { type, childId, startedAt, serverTimerId: nextTimerId++ };
+      // One per (type, child), same rule the app enforces locally.
+      timers = [...timers.filter((t) => !(t.type === type && t.childId === childId)), timer];
+      return timer;
+    },
+    async stopTimer(serverTimerId) {
+      timers = timers.filter((t) => t.serverTimerId !== serverTimerId);
     },
   };
 }
