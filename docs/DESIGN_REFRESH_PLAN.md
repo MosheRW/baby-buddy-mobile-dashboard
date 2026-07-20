@@ -12,25 +12,28 @@ no screen is restructured and no navigation changes.
 
 ---
 
-## 0. Refresh the committed handoff first (blocking)
+## 0. Refresh the committed handoff — done
 
 The committed `design_handoff_react_native_app/Baby Buddy Dashboard App.dc.html`
-is the **pre-refactor snapshot** — verified: it contains zero occurrences of
-`__unit`, `__foodtype`, `__defaultqty`, `__defaulttime`, `dismissWelcome`,
-`hasTagFilter`, or `medLimit`. CLAUDE.md points at it as "the behavioral
-reference", so it is actively misleading right now.
+was the **pre-refactor snapshot** — it contained zero occurrences of `__unit`,
+`__foodtype`, `__defaultqty`, `__defaulttime`, `dismissWelcome`, `hasTagFilter`,
+`medLimit`, or `maxDose24h`, while CLAUDE.md points at it as "the behavioral
+reference".
 
-Pull from the design project and commit:
+Replaced with the current version from the design project
+(+1075 / −179 lines; 1948 lines, 170 KB). Post-install check: all eight markers
+present.
 
-| File | Why |
+Checked and deliberately **not** changed:
+
+| File | Finding |
 | --- | --- |
-| `Baby Buddy Dashboard App.dc.html` | the design being implemented |
-| `Entry Icon Options.dc.html` | **new** — the icon sign-off sheet the Refactor Plan flagged as an open item before Batch 3 |
-| `support.js`, `android-frame.jsx` | runtime for opening the prototype in a browser |
-| `README.md` | check whether the base handoff was also refreshed |
+| `README.md` | byte-identical to the design project's copy — the base handoff was never refreshed, exactly as `CHANGES_SINCE_LAST_HANDOFF.md` says ("out of date in the specific spots listed below"). Read the two together. |
+| `support.js` | byte-identical (64 206 bytes). The prototype renders against the committed runtime. |
+| `android-frame.jsx` | not re-fetched — a static bezel, and the prototype passes it the same `title` / `hint-size` props as before. `support.js` being unchanged makes a runtime drift implausible. |
+| `Entry Icon Options.dc.html` | left in the design project, not committed — see §3.1 for why, and for the decisions extracted from it. |
 
-Then update CLAUDE.md's Status section to say Phase 7 is superseded/reordered by
-this work.
+Remaining: update CLAUDE.md's Status section to reorder Phase 7 after this work.
 
 ---
 
@@ -209,10 +212,29 @@ Type chip without losing other types' fields) — just wider.
 
 ## 3. Resolved decisions
 
-1. **Icon sign-off — approved.** Build Batch C against
-   `Entry Icon Options.dc.html`. Fetch it from the design project in step 0 and
-   treat it, not the dashboard prototype's inline shapes, as the glyph source of
-   truth where the two disagree.
+1. **Icon sign-off — approved, and the specific picks are resolved.**
+   `Entry Icon Options.dc.html` turned out to be a *menu* of labelled
+   alternatives ("Reference an id, e.g. use 3c/3d"), not a decision. But the
+   updated prototype's inline shapes match four of them byte-for-byte —
+   identical dimensions, radii, and offsets — so the picks are unambiguous:
+
+   | Family | Chosen | Shape | Rejected |
+   | --- | --- | --- | --- |
+   | Tummy time | **1a** | 22×15, 9px head circle + 14×7 curved body | 1b (top-down) |
+   | Note | **2a** | 14×18 document, 0.18-opacity fill + 3 lines | 2b (pencil) |
+   | Sleep — nap | **3c** | 18×12 plain pillow/cloud | 3a/3b (crescents), 3e/3f (sleepy eye) |
+   | Sleep — night | **3d** | 19×14 pillow + 6px inset-shadow moon | as above |
+
+   Also note the sheet's *generic* sleep glyph (1c "Z" / 1d moon+sparkles) is
+   dead — the nap/night pair supersedes it, and the prototype uses neither.
+   Since every chosen shape is already in the refreshed prototype at final
+   size, **the prototype is the glyph source of truth for Batch C**; the options
+   sheet is only the sign-off record and stays in the design project.
+
+   The sheet covers just these 4 families. The other ~21 glyphs (diaper
+   pee/poo/both, feeding bottle/breast/solid, the 5 medication units,
+   temperature, pencil, trash) were never optioned — take them from the
+   prototype directly.
 
 2. **`maxDose24h` is scoped to the (medication name, child) pair.** It is not a
    global setting and not a property of one individual dose. It rides on the
