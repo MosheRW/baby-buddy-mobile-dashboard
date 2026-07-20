@@ -193,6 +193,14 @@ describe('medLimitSummaries', () => {
     expect(s.atLimit).toBe(false);
   });
 
+  it('reports the most recent dose time, not the oldest in the window', () => {
+    const entries: Entry[] = [
+      med({ name: 'Tylenol', time: iso(NOW - 9 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+      med({ name: 'Tylenol', time: iso(NOW - 2 * HOUR), dose: 5, maxDose24h: 20, schedule: 'asNeeded' }),
+    ];
+    expect(medLimitSummaries(entries, NOW)[0].lastTakenAt).toBe(NOW - 2 * HOUR);
+  });
+
   it('never lets one child limit bleed onto another', () => {
     // The bug this scoping exists to prevent: same medicine, two children.
     const entries: Entry[] = [

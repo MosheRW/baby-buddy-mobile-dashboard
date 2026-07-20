@@ -348,7 +348,45 @@ Type chip without losing other types' fields) — just wider.
 - **Tags**: up to 5 recently-used chips above the free-text input, deduped
   against the current draft.
 
-### Batch E — Dashboard, feed, settings
+### Batch E — Dashboard, feed, settings ✅ done
+
+`npm test` 221 passing (+1), typecheck and lint clean. Verified in the web mock
+preview: the personalized greeting and its dismissal surviving a navigation
+round-trip, the med-limit tile (`2.5ml / 10.0ml`, 25% bar) opening the
+breakdown sheet, the sheet's per-medicine rows including the no-limit case, the
+trend line (`220 ml today vs 47 ml daily average`), tag tap → `Tag: swaddled ×`
+narrowing the feed, the `3/10` and `8/10` diaper badges, and all eight progress
+bars measured in the DOM (limit 25%, trend clamped 100%, feed gauges
+120/120, 100/120, 12/15 breast, 110/120 ×3). Settings verified in both
+variants by swapping the stored session.
+
+Decisions made while implementing, worth review:
+
+- **No cross-medication total on the breakdown sheet.** The prototype prints
+  one, but only because its demo data is all ml. Real rows carry their own
+  units and "7 mg + 2 ml = 9" is meaningless, so the sheet shows per-medicine
+  rows only.
+- **The welcome dismissal hangs off the dashboard's own handlers**, not a
+  global touch hook. `onStartShouldSetResponderCapture` on the ScrollView was
+  the first attempt and could not be shown to fire on web, so it was replaced
+  with an explicit `dismiss()` in each navigation/selection handler plus
+  `onScrollBeginDrag`. Less clever, verifiable.
+- **It lives in a new non-persisted `uiStore`.** Screen-local state resurrects
+  the greeting every time the dashboard remounts (which is every return from
+  the form); persisted state would hide it forever after one tap.
+- **`MedLimitSummary` gained `lastTakenAt`** for the tile's "last 3h ago" line.
+- **`medGlyphKind(unit)` is exported from `entryDisplay`** so the limit tile and
+  the sheet can draw a unit's glyph with no entry to read it from.
+- **Quick actions now draw the filled entry glyphs**, picking the sub-type the
+  form itself opens on (pee diaper, bottle feed, ml medication, night sleep) —
+  the dashboard and the feed are finally in one style.
+- Fixtures gained a limited as-needed medicine, diaper amounts, captured
+  feeding baselines, a direct-breast feed and three older feeds. Without them
+  half of this batch renders nothing in the mock preview.
+
+Not re-run: `npm run test:live`. Batch E changed no API code.
+
+#### Original scope
 
 - **Feed** (`ActivityFeed.tsx`): colored left-border accent + tinted icon
   swatch per type/sub-type; one line max of real tags; **tap a tag → filter**,

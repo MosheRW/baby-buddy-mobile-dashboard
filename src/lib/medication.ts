@@ -207,6 +207,8 @@ export interface MedLimitSummary {
    */
   percent: number;
   atLimit: boolean;
+  /** When the most recent dose of this pair was given, for a "last …" label. */
+  lastTakenAt: number;
   /** Next-dose math, same as eligibleMeds. */
   dueAt: number;
   dueInMs: number;
@@ -256,6 +258,7 @@ export function medLimitSummaries(
         remaining: round1(Math.max(0, limit - taken)),
         percent: Math.max(4, Math.min(100, raw)),
         atLimit: taken >= limit,
+        lastTakenAt: timeOf(m),
         dueAt: status.dueAt,
         dueInMs: status.dueInMs,
         isDue: status.isDue,

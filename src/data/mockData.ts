@@ -37,6 +37,7 @@ export const mockEntries: Entry[] = [
     creator: CURRENT_USER,
     pee: true,
     poo: false,
+    amount: 3,
   },
   {
     id: 'e2',
@@ -48,6 +49,7 @@ export const mockEntries: Entry[] = [
     pee: true,
     poo: true,
     pooColor: 'brown',
+    amount: 8,
   },
   {
     id: 'e3',
@@ -59,6 +61,7 @@ export const mockEntries: Entry[] = [
     kind: 'formula',
     method: 'bottle',
     amount: 120,
+    defaultQtyAtEntry: 120,
   },
   {
     id: 'e4',
@@ -70,6 +73,7 @@ export const mockEntries: Entry[] = [
     kind: 'formula',
     method: 'bottle',
     amount: 100,
+    defaultQtyAtEntry: 120,
   },
   {
     id: 'e5',
@@ -120,6 +124,51 @@ export const mockEntries: Entry[] = [
     value: 37.2,
     method: 'ear',
   },
+  {
+    // An as-needed medicine carrying a 24h ceiling, so the dashboard's limit
+    // tile and the breakdown sheet have something to show.
+    id: 'e12',
+    childId: 'c1',
+    type: 'medication',
+    time: ago(3 * HOUR),
+    tags: [authorTag()],
+    creator: CURRENT_USER,
+    name: 'Tylenol',
+    dose: 2.5,
+    doseUnit: 'ml',
+    schedule: 'asNeeded',
+    repeatHours: 6,
+    maxDose24h: 10,
+  },
+  // Older feeds, outside the 24h window: they're the baseline the "Food total"
+  // trend bar compares today against, so without them there's no trend to draw.
+  ...[2, 3, 4].map(
+    (days): Entry => ({
+      id: `e-hist-${days}`,
+      childId: 'c1',
+      type: 'feeding',
+      time: ago(days * DAY),
+      tags: [authorTag()],
+      creator: CURRENT_USER,
+      kind: 'formula',
+      method: 'bottle',
+      amount: 110,
+      defaultQtyAtEntry: 120,
+    }),
+  ),
+  {
+    // A direct-breast feed with its captured baseline, for the duration gauge.
+    id: 'e13',
+    childId: 'c1',
+    type: 'feeding',
+    time: ago(7 * HOUR),
+    tags: [authorTag()],
+    creator: CURRENT_USER,
+    kind: 'breastMilk',
+    method: 'leftBreast',
+    durationMinutes: 12,
+    defaultTimeAtEntry: 15,
+  },
   // --- Noah ---
   {
     id: 'e9',
@@ -140,6 +189,7 @@ export const mockEntries: Entry[] = [
     creator: CURRENT_USER,
     kind: 'solidFood',
     method: 'selfFed',
+    solidFoodType: 'grains',
     amount: 80,
   },
   {

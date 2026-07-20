@@ -10,6 +10,7 @@ import { DashboardScreen } from '../features/dashboard/DashboardScreen';
 import { LogEntryScreen } from '../features/logEntry/LogEntryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { DeleteConfirmSheet } from '../features/deleteSheet/DeleteConfirmSheet';
+import { MedBreakdownSheet } from '../features/medBreakdown/MedBreakdownSheet';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -45,6 +46,15 @@ export function RootNavigator() {
             <Stack.Screen
               name="DeleteConfirm"
               component={DeleteConfirmSheet}
+              options={{
+                presentation: 'transparentModal',
+                animation: 'fade',
+                contentStyle: { backgroundColor: 'transparent' },
+              }}
+            />
+            <Stack.Screen
+              name="MedBreakdown"
+              component={MedBreakdownSheet}
               options={{
                 presentation: 'transparentModal',
                 animation: 'fade',

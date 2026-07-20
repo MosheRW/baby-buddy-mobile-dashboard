@@ -1,32 +1,29 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../components';
-import {
-  BottleGlyph,
-  CapsuleGlyph,
-  DiaperGlyph,
-  MoonGlyph,
-  ThermometerGlyph,
-  TummyGlyph,
-} from '../../components/glyphs';
+import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { EntryType } from '../../api/types';
+import type { GlyphKind } from '../../lib/entryDisplay';
 
 interface QuickAction {
   type: EntryType;
   label: string;
-  glyph: React.ReactNode;
+  /**
+   * The sub-type these buttons stand for. A quick action opens a blank form,
+   * so it has no entry to derive a glyph from — it picks the default the form
+   * itself opens on (pee diaper, bottle feed, ml medication, night sleep).
+   */
+  glyph: GlyphKind;
 }
 
-const GLYPH_COLOR = colors.onAccent;
-
 const ACTIONS: QuickAction[] = [
-  { type: 'diaper', label: 'Diaper', glyph: <DiaperGlyph size={22} color={GLYPH_COLOR} /> },
-  { type: 'feeding', label: 'Food', glyph: <BottleGlyph size={22} color={GLYPH_COLOR} /> },
-  { type: 'medication', label: 'Medication', glyph: <CapsuleGlyph size={22} color={GLYPH_COLOR} /> },
-  { type: 'temperature', label: 'Temp', glyph: <ThermometerGlyph size={22} color={GLYPH_COLOR} /> },
-  { type: 'sleep', label: 'Sleep', glyph: <MoonGlyph size={22} color={GLYPH_COLOR} /> },
-  { type: 'tummyTime', label: 'Tummy', glyph: <TummyGlyph size={22} color={GLYPH_COLOR} /> },
+  { type: 'diaper', label: 'Diaper', glyph: 'diaperPee' },
+  { type: 'feeding', label: 'Food', glyph: 'feedingBottle' },
+  { type: 'medication', label: 'Medication', glyph: 'medMl' },
+  { type: 'temperature', label: 'Temp', glyph: 'temperature' },
+  { type: 'sleep', label: 'Sleep', glyph: 'night' },
+  { type: 'tummyTime', label: 'Tummy', glyph: 'tummyTime' },
 ];
 
 interface QuickActionsProps {
@@ -55,7 +52,13 @@ export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps
               pressed && !disabled && styles.pressed,
             ]}
           >
-            <View style={styles.glyph}>{action.glyph}</View>
+            <View style={styles.glyph}>
+              <EntryGlyph
+                kind={action.glyph}
+                size={22}
+                color={disabled ? colors.textMuted : colors.onAccent}
+              />
+            </View>
             <AppText
               size={fontSize.micro}
               weight="800"

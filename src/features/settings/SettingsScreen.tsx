@@ -94,11 +94,22 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
-            Baby Buddy server
+            {session?.mode === 'homeassistant' ? 'Home Assistant server' : 'Baby Buddy server'}
           </AppText>
           <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
             {session?.baseUrl ?? '—'}
           </AppText>
+          {/* The HA path authenticates with a pasted token and never learns a
+              username, so it shows the (masked) token instead. */}
+          {session?.userName ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              Logged in as {session.userName}
+            </AppText>
+          ) : session?.token ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              Access token {maskToken(session.token)}
+            </AppText>
+          ) : null}
         </Card>
 
         <ActionButton
@@ -112,6 +123,11 @@ export function SettingsScreen({ navigation }: Props) {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/** Last four characters only — enough to tell two tokens apart, and no more. */
+function maskToken(token: string): string {
+  return `••••${token.slice(-4)}`;
 }
 
 const styles = StyleSheet.create({

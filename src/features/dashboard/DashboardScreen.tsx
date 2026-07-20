@@ -17,7 +17,7 @@ import type { Child, Entry, EntryType } from '../../api/types';
 import type { TimerType } from '../../lib/timers';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
-import { useSettingsStore } from '../../stores';
+import { useAuthStore, useSettingsStore, useUiStore } from '../../stores';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { entryTitle } from '../../lib/entryDisplay';
 import { ChildNav } from './ChildNav';
@@ -32,6 +32,9 @@ export function DashboardScreen({ navigation }: Props) {
   const { children, entries, isLoading, isRefreshing, error, refetch } = useDashboardData();
   const [activeIndex, setActiveIndex] = useState(0);
   const foodWindowHours = useSettingsStore((s) => s.foodWindowHours);
+  const userName = useAuthStore((s) => s.session?.userName);
+  const welcomeDismissed = useUiStore((s) => s.welcomeDismissed);
+  const dismissWelcome = useUiStore((s) => s.dismissWelcome);
 
   const now = useMinuteTick();
   const timerNow = useTimerTick();
@@ -44,34 +47,64 @@ export function DashboardScreen({ navigation }: Props) {
   const activeChild = children[activeIndex] ?? children[0];
   const feedEntries = activeChild ? entriesForChild(entries, activeChild.id) : [];
 
-  const openCreate = (childId: string, type: EntryType) =>
+  /**
+   * The greeting is a welcome, not a fixture: once the user does anything on
+   * the dashboard they're here to work, so it gets out of the way for the rest
+   * of the session. Every interactive path on this screen runs through one of
+   * the handlers below, so they're where the dismissal hangs — a global touch
+   * hook would be less code and less certain.
+   */
+  const dismiss = () => {
+    if (!welcomeDismissed) dismissWelcome();
+  };
+
+  const openCreate = (childId: string, type: EntryType) => {
+    dismiss();
     navigation.navigate('LogEntry', { mode: 'create', childId, type });
+  };
 
   const openTimer = (childId: string, type: TimerType) => {
+    dismiss();
     const idx = children.findIndex((c) => c.id === childId);
     if (idx >= 0) setActiveIndex(idx);
     navigation.navigate('LogEntry', { mode: 'create', childId, type });
   };
 
-  const openEdit = (entry: Entry) =>
+  const openEdit = (entry: Entry) => {
+    dismiss();
     navigation.navigate('LogEntry', {
       mode: 'edit',
       childId: entry.childId,
       type: entry.type,
       entryId: entry.id,
     });
+  };
 
-  const confirmDelete = (entry: Entry) =>
+  const confirmDelete = (entry: Entry) => {
+    dismiss();
     navigation.navigate('DeleteConfirm', {
       entryId: entry.id,
       entryLabel: entryTitle(entry),
     });
+  };
+
+  const openMedBreakdown = (child: Child) => {
+    dismiss();
+    navigation.navigate('MedBreakdown', { childId: child.id, childName: child.name });
+  };
+
+  const changeChild = (index: number) => {
+    dismiss();
+    setActiveIndex(index);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        // Scrolling counts as interaction, same as tapping anything below.
+        onScrollBeginDrag={dismiss}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing && !isLoading}
@@ -82,17 +115,24 @@ export function DashboardScreen({ navigation }: Props) {
       >
         <View style={styles.header}>
           <View>
-            <AppText size={fontSize.screenTitle} weight="800">
-              {greeting(now)}
-            </AppText>
-            <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
-              {longDate(now)}
-            </AppText>
+            {welcomeDismissed ? null : (
+              <>
+                <AppText size={fontSize.screenTitle} weight="800">
+                  {userName ? `${greeting(now)}, ${userName}` : greeting(now)}
+                </AppText>
+                <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
+                  {longDate(now)}
+                </AppText>
+              </>
+            )}
           </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Settings"
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => {
+              dismiss();
+              navigation.navigate('Settings');
+            }}
             style={styles.gear}
           >
             <GearGlyph size={20} />
@@ -125,11 +165,12 @@ export function DashboardScreen({ navigation }: Props) {
             childList={children}
             entries={entries}
             activeIndex={activeIndex}
-            onActiveChange={setActiveIndex}
+            onActiveChange={changeChild}
             foodWindowHours={foodWindowHours}
             now={now}
             timerNow={timerNow}
             onQuickAction={openCreate}
+            onOpenMedBreakdown={openMedBreakdown}
           />
         ) : null}
 

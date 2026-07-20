@@ -16,6 +16,12 @@ export interface DeleteConfirmParams {
   entryLabel: string;
 }
 
+export interface MedBreakdownParams {
+  childId: string;
+  /** Shown as the sheet's subtitle, so the sheet needs no child lookup. */
+  childName: string;
+}
+
 /** All stack screens. `Login` shows only while unauthenticated; the rest only
  * while authenticated (React Navigation's conditional-screens pattern). */
 export type MainStackParamList = {
@@ -24,4 +30,5 @@ export type MainStackParamList = {
   LogEntry: LogEntryParams;
   Settings: undefined;
   DeleteConfirm: DeleteConfirmParams;
+  MedBreakdown: MedBreakdownParams;
 };

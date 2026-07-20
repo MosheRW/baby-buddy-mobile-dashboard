@@ -18,6 +18,7 @@ interface ChildNavProps {
   now: number;
   timerNow: number;
   onQuickAction: (childId: string, type: EntryType) => void;
+  onOpenMedBreakdown: (child: Child) => void;
 }
 
 /**
@@ -37,6 +38,7 @@ function CarouselNav({
   now,
   timerNow,
   onQuickAction,
+  onOpenMedBreakdown,
 }: ChildNavProps) {
   const step = CARD_W + spacing.lg;
   return (
@@ -61,6 +63,7 @@ function CarouselNav({
               now={now}
               timerNow={timerNow}
               onQuickAction={(type) => onQuickAction(child.id, type)}
+              onOpenMedBreakdown={() => onOpenMedBreakdown(child)}
             />
           </View>
         ))}
@@ -90,6 +93,7 @@ function TabsNav({
   now,
   timerNow,
   onQuickAction,
+  onOpenMedBreakdown,
 }: ChildNavProps) {
   const active = childList[activeIndex] ?? childList[0];
   return (
@@ -126,6 +130,7 @@ function TabsNav({
           now={now}
           timerNow={timerNow}
           onQuickAction={(type) => onQuickAction(active.id, type)}
+          onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
         />
       </View>
     </View>

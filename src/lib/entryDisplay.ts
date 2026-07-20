@@ -146,6 +146,11 @@ export function entryGlyphKind(entry: Entry): GlyphKind {
   }
 }
 
+/** The glyph for a dosage unit on its own, with no entry to read it from. */
+export function medGlyphKind(unit: DosageUnit): GlyphKind {
+  return MED_GLYPH_BY_UNIT[unit];
+}
+
 const MED_GLYPH_BY_UNIT: Record<DosageUnit, GlyphKind> = {
   mg: 'medMg',
   ml: 'medMl',
