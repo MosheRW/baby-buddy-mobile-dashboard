@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, FieldLabel, SegmentedToggle, ToggleSwitch } from '../../../components';
 import type { SegmentOption } from '../../../components';
+import { NapGlyph, NightGlyph } from '../../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing } from '../../../theme';
 import type { SleepType } from '../../../api/types';
 import type { FormDraft } from '../../../lib/formDraft';
@@ -18,8 +19,8 @@ interface SleepFieldsProps {
 }
 
 const TYPE_OPTIONS: SegmentOption<SleepType>[] = [
-  { value: 'nap', label: 'Nap' },
-  { value: 'night', label: 'Night' },
+  { value: 'nap', label: 'Nap', glyph: (c) => <NapGlyph size={17} color={c} /> },
+  { value: 'night', label: 'Night', glyph: (c) => <NightGlyph size={16} color={c} /> },
 ];
 
 /**

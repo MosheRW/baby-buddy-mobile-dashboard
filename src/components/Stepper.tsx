@@ -12,8 +12,14 @@ interface StepperProps {
   max?: number;
   /** Digits after the decimal point when displaying (0 for integers). */
   decimals?: number;
-  /** Suffix appended to the value, e.g. " ml", "°", " min". */
+  /** Suffix appended to the value, e.g. " ml", "°C", " min". */
   suffix?: string;
+  /**
+   * Drop trailing fractional zeros from the display, so a 0.1-step temperature
+   * reads "37°C" at a whole degree and "37.4°C" between. The stored value keeps
+   * full precision — only the label is trimmed.
+   */
+  trimZeros?: boolean;
   disabled?: boolean;
 }
 
@@ -30,6 +36,7 @@ export function Stepper({
   max = Infinity,
   decimals = 0,
   suffix = '',
+  trimZeros = false,
   disabled = false,
 }: StepperProps) {
   const round = (n: number) => {
@@ -38,13 +45,16 @@ export function Stepper({
   };
   const dec = () => !disabled && onChange(round(Math.max(min, value - step)));
   const inc = () => !disabled && onChange(round(Math.min(max, value + step)));
+  // Fixed precision keeps float drift out; `trimZeros` then drops "37.0" → "37".
+  const fixed = value.toFixed(decimals);
+  const display = trimZeros ? String(Number(fixed)) : fixed;
 
   return (
     <View style={[styles.row, disabled && styles.disabled]}>
       <StepButton onPress={dec} disabled={disabled || value <= min} kind="minus" />
       <View style={styles.valueBox}>
         <AppText size={fontSize.cardTitle} weight="800">
-          {value.toFixed(decimals)}
+          {display}
           {suffix}
         </AppText>
       </View>

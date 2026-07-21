@@ -306,6 +306,31 @@ export function TemperatureGlyph({ size, color = colors.textPrimary }: EntryGlyp
   );
 }
 
+// Temperature-method sub-glyphs (oral reuses the thermometer above). Transcribed
+// from the prototype's method row: an outlined egg for the ear probe, an
+// open-bottomed dome for the forehead scanner.
+export function TempEarGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={11} h={13}>
+      <Ellipse cx={5.5} cy={6.5} rx={4.75} ry={5.75} fill="none" stroke={color} strokeWidth={1.5} />
+    </GlyphFrame>
+  );
+}
+
+export function TempForeheadGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  return (
+    <GlyphFrame size={size} w={14} h={7}>
+      <Path
+        d="M0.75,7 L0.75,3.5 A6.25,6.25 0 0 1 13.25,3.5 L13.25,7"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </GlyphFrame>
+  );
+}
+
 // --- Tummy time (option 1a) -------------------------------------------------
 
 export function TummyTimeGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {

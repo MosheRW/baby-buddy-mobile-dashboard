@@ -1,6 +1,12 @@
 import React from 'react';
 import { View } from 'react-native';
 import { FieldLabel, SegmentedToggle, Stepper } from '../../../components';
+import type { SegmentOption } from '../../../components';
+import {
+  TemperatureGlyph,
+  TempEarGlyph,
+  TempForeheadGlyph,
+} from '../../../components/glyphs/entryGlyphs';
 import type { TemperatureMethod } from '../../../api/types';
 import { temperatureMethodLabel } from '../../../lib/entryDisplay';
 import type { FormDraft } from '../../../lib/formDraft';
@@ -10,15 +16,29 @@ interface FieldProps {
   patch: (patch: Partial<FormDraft>) => void;
 }
 
-const METHOD_OPTIONS: { value: TemperatureMethod; label: string }[] = (
-  ['oral', 'ear', 'forehead'] as TemperatureMethod[]
-).map((m) => ({ value: m, label: temperatureMethodLabel[m] }));
+const METHOD_OPTIONS: SegmentOption<TemperatureMethod>[] = [
+  {
+    value: 'oral',
+    label: temperatureMethodLabel.oral,
+    glyph: (c) => <TemperatureGlyph size={14} color={c} />,
+  },
+  {
+    value: 'ear',
+    label: temperatureMethodLabel.ear,
+    glyph: (c) => <TempEarGlyph size={15} color={c} />,
+  },
+  {
+    value: 'forehead',
+    label: temperatureMethodLabel.forehead,
+    glyph: (c) => <TempForeheadGlyph size={16} color={c} />,
+  },
+];
 
 export function TemperatureFields({ draft, patch }: FieldProps) {
   return (
     <>
       <View>
-        <FieldLabel>Temperature</FieldLabel>
+        <FieldLabel>Temperature (°C)</FieldLabel>
         <Stepper
           value={draft.temperature}
           onChange={(temperature) => patch({ temperature })}
@@ -26,7 +46,8 @@ export function TemperatureFields({ draft, patch }: FieldProps) {
           min={30}
           max={45}
           decimals={1}
-          suffix="°"
+          suffix="°C"
+          trimZeros
         />
       </View>
 
