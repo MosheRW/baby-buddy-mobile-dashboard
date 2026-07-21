@@ -66,7 +66,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
   const setType = useFormStore((s) => s.setType);
   const patch = useFormStore((s) => s.patchDraft);
 
-  const { stop: stopTimer } = useTimerActions();
+  const { stop: stopTimer, updateStart: updateTimerStart } = useTimerActions();
   const timerNow = useTimerTick();
 
   const userName = useAuthStore((s) => s.session?.userName) ?? 'you';
@@ -124,9 +124,21 @@ export function LogEntryScreen({ route, navigation }: Props) {
     if (readyKey === formKey) return;
     if (isEdit && !editingEntry) return; // entries still loading
     if (prefillMedEntryId && !prefillMed) return; // ditto for the source dose
+
+    const seedType = editingEntry?.type ?? initialType ?? 'diaper';
+    // Reopening a create form for a type/child that already has a running
+    // timer (e.g. after backgrounding the app) must seed from the timer's
+    // real start, not the moment the form happens to reopen — otherwise the
+    // Time field silently shows "now" while the timer strip shows the true
+    // elapsed span, and the two only reconcile again at save time.
+    const runningStart =
+      !isEdit && isTimerType(seedType)
+        ? useTimerStore.getState().getTimer(seedType, childId)?.startedAt
+        : undefined;
+
     openForm({
       mode,
-      type: editingEntry?.type ?? initialType ?? 'diaper',
+      type: seedType,
       childId,
       editingEntryId: entryId ?? null,
       draft: editingEntry
@@ -134,7 +146,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
         : {
             // serverNow, not Date.now: the server rejects times in its own
             // future, so a phone running slightly fast can't log a "now" entry.
-            ...emptyDraft(serverNow(), defaultFoodMl),
+            ...emptyDraft(runningStart ?? serverNow(), defaultFoodMl),
             ...(prefillMed ? medSuggestionPatch(prefillMed) : {}),
           },
     });
@@ -230,12 +242,24 @@ export function LogEntryScreen({ route, navigation }: Props) {
               <RunningTimerStrip
                 type={timerType}
                 childId={childId}
-                now={timerNow}
+                asOf={Date.parse(endTimeIso)}
                 onStop={stopTimerAndFill}
               />
             ) : null}
 
-            <DateTimeField label="Time" value={draft.time} onChange={(time) => patch({ time })} />
+            <DateTimeField
+              label="Time"
+              value={draft.time}
+              onChange={(time) => {
+                patch({ time });
+                // A running timer's elapsed display and eventual entry both
+                // read from the timer's own startedAt, not the draft — keep
+                // them in sync or this edit gets silently overwritten on stop.
+                if (timerType && runningTimer) {
+                  updateTimerStart(timerType, childId, new Date(time).getTime());
+                }
+              }}
+            />
 
             {timerRunning ? (
               <DateTimeField

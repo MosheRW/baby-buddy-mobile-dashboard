@@ -55,6 +55,8 @@ export interface DataSource {
   startTimer(type: TimerType, childId: string, startedAt: number): Promise<RunningTimer>;
   /** Stopping a Baby Buddy timer means deleting it — the model has no end. */
   stopTimer(serverTimerId: number): Promise<void>;
+  /** Adjusts a running timer's start after a manual edit in the log-entry form. */
+  updateTimerStart(serverTimerId: number, startedAt: number): Promise<RunningTimer>;
 }
 
 /**
@@ -204,6 +206,19 @@ export function createBabyBuddyDataSource(
         path: `api/timers/${serverTimerId}/`,
         method: 'DELETE',
       });
+    },
+
+    async updateTimerStart(serverTimerId, startedAt) {
+      const updated = await request(timerSchema, {
+        ...auth(),
+        path: `api/timers/${serverTimerId}/`,
+        method: 'PATCH',
+        body: { start: new Date(startedAt).toISOString() },
+      });
+      const timer = normalizeTimer(updated);
+      // Only unclassifiable if the server rewrote the name we originally sent.
+      if (!timer) throw new ParseError('timer', []);
+      return timer;
     },
   };
 }

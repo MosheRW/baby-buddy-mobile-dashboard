@@ -372,6 +372,20 @@ describeLive('live Baby Buddy server', () => {
       expect(after.some((t) => t.serverTimerId === started.serverTimerId)).toBe(false);
     });
 
+    it('updates a running timer\'s start time via PATCH', async () => {
+      const started = await dataSource.startTimer('feeding', childId, serverNow());
+      timers.add(started.serverTimerId!);
+
+      const earlier = started.startedAt - 5 * 60_000;
+      const updated = await dataSource.updateTimerStart(started.serverTimerId!, earlier);
+      expect(updated).toMatchObject({ type: 'feeding', childId, serverTimerId: started.serverTimerId });
+      expect(Math.abs(updated.startedAt - earlier)).toBeLessThan(1000);
+
+      const listed = await dataSource.getTimers();
+      const found = listed.find((t) => t.serverTimerId === started.serverTimerId);
+      expect(Math.abs(found!.startedAt - earlier)).toBeLessThan(1000);
+    });
+
     it('reconciles a server timer into an empty local store', async () => {
       const started = await dataSource.startTimer('tummyTime', childId, serverNow());
       timers.add(started.serverTimerId!);

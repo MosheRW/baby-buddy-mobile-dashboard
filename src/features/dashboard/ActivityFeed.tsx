@@ -6,7 +6,7 @@ import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import { timeAgo } from '../../lib/dates';
 import { feedingGaugePercent, filterAndGroup, type FeedFilter } from '../../lib/feed';
 import { filterByTag, selectableTagLabels } from '../../lib/tags';
-import { entryTitle, entryVisual, type EntryVisual } from '../../lib/entryDisplay';
+import { entryDurationLabel, entryTitle, entryVisual, type EntryVisual } from '../../lib/entryDisplay';
 import type { Entry } from '../../api/types';
 
 const FILTERS: { value: FeedFilter; label: string }[] = [
@@ -110,6 +110,7 @@ function FeedRow({
   const visual = entryVisual(entry);
   const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry) : null;
   const tags = selectableTagLabels(entry);
+  const duration = entryDurationLabel(entry);
 
   return (
     <Card
@@ -136,6 +137,7 @@ function FeedRow({
 
         <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
           {timeAgo(entry.time, now)}
+          {duration ? ` · ${duration}` : ''}
         </AppText>
 
         {entry.note ? (

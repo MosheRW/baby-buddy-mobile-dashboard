@@ -181,13 +181,22 @@ function describeError(status: number, detail: string): string {
     if (parsed && typeof parsed === 'object') {
       for (const value of Object.values(parsed as Record<string, unknown>)) {
         const msg = Array.isArray(value) ? value[0] : value;
-        if (typeof msg === 'string') return msg;
+        if (typeof msg === 'string') return stripHtml(msg);
       }
     }
   } catch {
     // Not JSON — fall through.
   }
   return `Request failed (${status}).`;
+}
+
+/**
+ * Some Django validation messages (e.g. the "conflicting entry" overlap
+ * error) embed an `<a href="...">` link meant for the web UI. This app has no
+ * HTML renderer for error text, so strip the markup rather than show it raw.
+ */
+function stripHtml(text: string): string {
+  return text.replace(/<[^>]+>/g, '').trim();
 }
 
 /** Perform a request and validate the response against `schema`. */

@@ -158,3 +158,23 @@ export function useStopTimer(): UseMutationResult<void, unknown, number> {
     },
   });
 }
+
+export interface UpdateTimerStartVars {
+  serverTimerId: number;
+  startedAt: number;
+}
+
+export function useUpdateTimerStart(): UseMutationResult<
+  RunningTimer,
+  unknown,
+  UpdateTimerStartVars
+> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ serverTimerId, startedAt }: UpdateTimerStartVars) =>
+      dataSource.updateTimerStart(serverTimerId, startedAt),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: queryKeys.timers });
+    },
+  });
+}
