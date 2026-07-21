@@ -1,14 +1,13 @@
 import React from 'react';
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { colors, fontSize, radii, shadows, spacing, tints } from '../../theme';
 import type { Child, Entry, EntryType } from '../../api/types';
 import type { MedStatus } from '../../lib/medication';
 import { ChildCard } from './ChildCard';
 import { SettingsButton } from './SettingsButton';
 
-const SCREEN_W = Dimensions.get('window').width;
-const CARD_W = Math.min(320, SCREEN_W - spacing['2xl'] * 2 - 40);
+// Width of the vertical "peek" strip that stands in for the inactive child.
 const PEEK = 40;
 
 interface ChildNavProps {
@@ -26,13 +25,19 @@ interface ChildNavProps {
 }
 
 /**
- * Adaptive child navigation: swipe carousel for ≤2 children, a scrollable pill
- * tab row for ≥3. Both wrap the same ChildCard.
+ * Adaptive child navigation: an exchange carousel for ≤2 children, a scrollable
+ * pill tab row for ≥3. Both wrap the same ChildCard.
  */
 export function ChildNav(props: ChildNavProps) {
   return props.childList.length >= 3 ? <TabsNav {...props} /> : <CarouselNav {...props} />;
 }
 
+/**
+ * ≤2 children: one active card at full width, with a slim vertical "peek" strip
+ * on its right edge carrying the *other* child's name. There is no swiping —
+ * tapping the strip (or a dot) exchanges which child is active in place, exactly
+ * as the prototype does. A single child gets neither strip nor dots.
+ */
 function CarouselNav({
   childList,
   entries,
@@ -46,47 +51,65 @@ function CarouselNav({
   onLogDose,
   onOpenSettings,
 }: ChildNavProps) {
-  const step = CARD_W + spacing.lg;
+  const active = childList[activeIndex] ?? childList[0];
+  const hasPeek = childList.length > 1;
+  const nextIndex = (activeIndex + 1) % childList.length;
+  const peekChild = childList[nextIndex];
+
   return (
     <View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={step}
-        decelerationRate="fast"
-        contentContainerStyle={styles.carousel}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / step);
-          onActiveChange(Math.max(0, Math.min(childList.length - 1, idx)));
-        }}
-      >
-        {childList.map((child) => (
-          <View key={child.id} style={{ width: CARD_W }}>
-            <ChildCard
-              child={child}
-              entries={entries}
-              foodWindowHours={foodWindowHours}
-              now={now}
-              timerNow={timerNow}
-              onQuickAction={(type) => onQuickAction(child.id, type)}
-              onOpenMedBreakdown={() => onOpenMedBreakdown(child)}
-              onLogDose={(status) => onLogDose(child.id, status)}
-              // ≤2 children: the cog floats inline with the name in the card
-              // header. (≥3 renders it in the tab row instead — see TabsNav.)
-              onOpenSettings={onOpenSettings}
-            />
-          </View>
-        ))}
-        {/* Peek sliver of the next card is implied by the snap step < screen width. */}
-      </ScrollView>
+      <View style={styles.exchangeRow}>
+        <View style={styles.activeCard}>
+          <ChildCard
+            child={active}
+            entries={entries}
+            foodWindowHours={foodWindowHours}
+            now={now}
+            timerNow={timerNow}
+            onQuickAction={(type) => onQuickAction(active.id, type)}
+            onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
+            onLogDose={(status) => onLogDose(active.id, status)}
+            // ≤2 children: the cog floats inline with the name in the card
+            // header. (≥3 renders it in the tab row instead — see TabsNav.)
+            onOpenSettings={onOpenSettings}
+          />
+        </View>
 
-      {childList.length > 1 ? (
+        {hasPeek && peekChild ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${peekChild.name}`}
+            onPress={() => onActiveChange(nextIndex)}
+            style={styles.peek}
+          >
+            {/* Rotated so the name reads top-to-bottom. numberOfLines + a fixed
+                width keep it from wrapping inside the narrow strip; the rotation
+                is visual only, so the box re-centers within the strip. */}
+            <AppText
+              numberOfLines={1}
+              size={fontSize.meta}
+              weight="800"
+              color={tints.feeding.fg}
+              style={styles.peekLabel}
+            >
+              {peekChild.name}
+            </AppText>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {hasPeek ? (
         <View style={styles.dots}>
           {childList.map((child, i) => (
-            <View
+            <Pressable
               key={child.id}
-              style={[styles.dot, i === activeIndex && styles.dotActive]}
-            />
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${child.name}`}
+              onPress={() => onActiveChange(i)}
+              hitSlop={spacing.md}
+            >
+              <View style={[styles.dot, i === activeIndex && styles.dotActive]} />
+            </Pressable>
           ))}
         </View>
       ) : null}
@@ -157,9 +180,32 @@ function TabsNav({
 }
 
 const styles = StyleSheet.create({
-  carousel: {
+  exchangeRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
     gap: spacing.lg,
-    paddingRight: PEEK,
+  },
+  activeCard: {
+    flex: 1,
+  },
+  peek: {
+    width: PEEK,
+    borderTopLeftRadius: radii.card,
+    borderBottomLeftRadius: radii.card,
+    borderTopRightRadius: radii.iconButton,
+    borderBottomRightRadius: radii.iconButton,
+    backgroundColor: colors.card,
+    opacity: 0.55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.card,
+  },
+  peekLabel: {
+    // Overshoot the strip width so a longer name doesn't truncate; the rotation
+    // re-centers the box, so the extra width is never visible.
+    width: 160,
+    textAlign: 'center',
+    transform: [{ rotate: '90deg' }],
   },
   dots: {
     flexDirection: 'row',
