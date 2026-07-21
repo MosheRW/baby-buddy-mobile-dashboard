@@ -498,9 +498,14 @@ describe('round-trip', () => {
 });
 
 describe('timers', () => {
-  it('classifies a server timer by its name', () => {
+  it('classifies a server timer by its app-namespaced name', () => {
     expect(
-      normalizeTimer({ id: 12, child: 3, name: 'Tummy Time', start: '2026-07-20T10:00:00Z' }),
+      normalizeTimer({
+        id: 12,
+        child: 3,
+        name: 'Tummy time-BBapp:3',
+        start: '2026-07-20T10:00:00Z',
+      }),
     ).toEqual({
       type: 'tummyTime',
       childId: '3',
@@ -513,15 +518,21 @@ describe('timers', () => {
     const start = '2026-07-20T10:00:00Z';
     // Someone else's timer in the Baby Buddy web UI.
     expect(normalizeTimer({ id: 1, child: 3, name: 'Quick Timer', start })).toBeNull();
+    // The old, pre-namespaced name is no longer recognised as ours.
+    expect(normalizeTimer({ id: 4, child: 3, name: 'Sleep', start })).toBeNull();
     // Baby Buddy allows a timer with no child; we have nowhere to file it.
-    expect(normalizeTimer({ id: 2, child: null, name: 'Sleep', start })).toBeNull();
-    expect(normalizeTimer({ id: 3, child: 3, name: 'Sleep', start: 'not a date' })).toBeNull();
+    expect(normalizeTimer({ id: 2, child: null, name: 'Sleep-BBapp:2', start })).toBeNull();
+    expect(normalizeTimer({ id: 3, child: 3, name: 'Sleep-BBapp:2', start: 'not a date' })).toBeNull();
   });
 
   it('round-trips through the wire shape', () => {
     const startedAt = Date.parse('2026-07-20T10:00:00Z');
     const wire = denormalizeTimer('feeding', '3', startedAt);
-    expect(wire).toEqual({ child: 3, name: 'Feeding', start: '2026-07-20T10:00:00.000Z' });
+    expect(wire).toEqual({
+      child: 3,
+      name: 'Feeding-BBapp:1',
+      start: '2026-07-20T10:00:00.000Z',
+    });
 
     const back = normalizeTimer({
       id: 9,
