@@ -29,7 +29,15 @@ function med(partial: Partial<MedicationEntry> & { name: string; time: string })
 }
 
 function child(id: string, name: string): Child {
-  return { id, name, initial: name[0], hue: 30, age: '7 months old', defaultFoodMl: 120 };
+  return {
+    id,
+    name,
+    initial: name[0],
+    hue: 30,
+    birthDate: '2025-12-19',
+    age: '7 months old',
+    defaultFoodMl: 120,
+  };
 }
 
 const CHILDREN: Child[] = [child('c1', 'Emma')];
