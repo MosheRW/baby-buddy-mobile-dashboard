@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Baby Buddy Dashboard",
+    "name": "Baby Buddy",
     "slug": "baby-buddy-native",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/play_store_icon_512.png",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
@@ -13,9 +13,11 @@
       "package": "com.babybuddy.dashboard",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EF",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/ic_launcher_foreground_432.png",
+        "backgroundImage": "./assets/ic_launcher_background_432.png"
+      },
+      "splash": {
+        "image": "./assets/splash_1080x2340.png"
       },
       "predictiveBackGestureEnabled": false
     },
