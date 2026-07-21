@@ -4,11 +4,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../theme';
 import { useAuthStore } from '../stores';
 import { useTimerSync } from '../hooks/useTimers';
+import { useNotificationSync } from '../hooks/useNotifications';
 import type { MainStackParamList } from './types';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { DashboardScreen } from '../features/dashboard/DashboardScreen';
 import { LogEntryScreen } from '../features/logEntry/LogEntryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
+import { NotificationSettingsScreen } from '../features/settings/NotificationSettingsScreen';
 import { DeleteConfirmSheet } from '../features/deleteSheet/DeleteConfirmSheet';
 import { MedBreakdownSheet } from '../features/medBreakdown/MedBreakdownSheet';
 
@@ -30,6 +32,8 @@ export function RootNavigator() {
   // Above every screen, so a timer started elsewhere is already reconciled by
   // the time the dashboard or the form reads the store.
   useTimerSync();
+  // Keeps the OS's scheduled reminders in step with data + settings.
+  useNotificationSync();
 
   return (
     <NavigationContainer theme={navTheme}>
@@ -43,6 +47,7 @@ export function RootNavigator() {
               options={{ presentation: 'modal' }}
             />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Notifications" component={NotificationSettingsScreen} />
             <Stack.Screen
               name="DeleteConfirm"
               component={DeleteConfirmSheet}
