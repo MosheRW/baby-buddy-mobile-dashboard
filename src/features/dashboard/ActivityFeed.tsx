@@ -110,6 +110,11 @@ function FeedRow({
   const visual = entryVisual(entry);
   const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry) : null;
   const tags = selectableTagLabels(entry);
+  // The non-removable "by {creator}" author tag rides at the front of every
+  // entry. It shows as its own chip so each row records who logged it, but it
+  // stays non-tappable: `filterByTag` never matches the author, so a tap would
+  // be a dead filter.
+  const author = entry.tags.find((t) => t.author);
   const duration = entryDurationLabel(entry);
 
   return (
@@ -164,8 +169,15 @@ function FeedRow({
         </RowButton>
       </View>
 
-      {tags.length > 0 ? (
+      {author || tags.length > 0 ? (
         <View style={styles.tagRow}>
+          {author ? (
+            <View style={[styles.tagChip, styles.authorChip]}>
+              <AppText size={fontSize.micro} weight="700" color={colors.textMuted}>
+                {author.label}
+              </AppText>
+            </View>
+          ) : null}
           {tags.map((tag) => (
             <Pressable
               key={tag}
@@ -340,5 +352,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.chipSmall,
     paddingVertical: 2,
     paddingHorizontal: spacing.sm,
+  },
+  authorChip: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.neutral,
   },
 });
