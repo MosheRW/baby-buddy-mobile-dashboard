@@ -131,6 +131,21 @@ export const timerSchema = z.object({
 });
 
 /** `/api/profile` — shape is undocumented; only these keys are relied upon. */
+export const profileResponseSchema = z.object({
+  api_key: z.string().optional(),
+  language: z.string().optional(),
+  timezone: z.string().optional(),
+  user: z.object({
+    email: z.email().optional(),
+    first_name: z.string().optional(),
+    id: z.number().optional(),
+    is_staff: z.boolean().optional(),
+    last_name: z.string().optional(),
+    username: z.string().optional(),
+  }).optional(),
+});
+
+/** `/api/profile` — shape is undocumented; only these keys are relied upon. */
 export const profileSchema = z.object({
   username: z.string().optional(),
   first_name: z.string().optional(),
