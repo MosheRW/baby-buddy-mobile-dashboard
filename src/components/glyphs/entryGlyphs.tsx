@@ -17,6 +17,7 @@
 import React from 'react';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { colors } from '../../theme';
+import type { EntryType } from '../../api/types';
 import type { GlyphKind } from '../../lib/entryDisplay';
 import { circlePath, dropPath, fitToGrid, roundedRect as rr } from '../../lib/glyphPaths';
 
@@ -371,3 +372,19 @@ export function ActionGlyph({
   const Component = kind in ACTION_GLYPHS ? ACTION_GLYPHS[kind as ActionGlyphKind] : GLYPHS[kind as GlyphKind];
   return <Component size={size} color={color} />;
 }
+
+/**
+ * The leading glyph for each entry type's selector chip. Like the quick actions,
+ * a type chip stands for a whole category, so it uses the category glyphs (nappy,
+ * capsule, pillow) rather than the sub-type glyph the form defaults to. Values
+ * are transcribed from the prototype's type-chip row. Exhaustive by construction.
+ */
+export const ENTRY_TYPE_CHIP_GLYPH: Record<EntryType, ActionGlyphKind | GlyphKind> = {
+  diaper: 'nappy',
+  feeding: 'feedingBottle',
+  medication: 'pill',
+  temperature: 'temperature',
+  tummyTime: 'tummyTime',
+  sleep: 'nap',
+  note: 'note',
+};

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
+import { ActionGlyph, ENTRY_TYPE_CHIP_GLYPH } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import type { EntryType, MedicationEntry } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
@@ -25,9 +26,13 @@ import { TemperatureFields } from './fields/TemperatureFields';
 import { TummyTimeFields } from './fields/TummyTimeFields';
 import { SleepFields } from './fields/SleepFields';
 
-const TYPE_OPTIONS: { value: EntryType; label: string }[] = (
+const TYPE_OPTIONS = (
   ['diaper', 'feeding', 'medication', 'temperature', 'tummyTime', 'sleep', 'note'] as EntryType[]
-).map((t) => ({ value: t, label: entryTypeLabel[t] }));
+).map((t) => ({
+  value: t,
+  label: entryTypeLabel[t],
+  glyph: (color: string) => <ActionGlyph kind={ENTRY_TYPE_CHIP_GLYPH[t]} size={15} color={color} />,
+}));
 
 type Props = NativeStackScreenProps<MainStackParamList, 'LogEntry'>;
 

@@ -9,6 +9,8 @@ export interface ChipOption<T extends string = string> {
   activeBg?: string;
   activeFg?: string;
   disabled?: boolean;
+  /** Optional leading glyph, drawn in the chip's current text colour. */
+  glyph?: (color: string) => React.ReactNode;
 }
 
 interface ChipRowProps<T extends string> {
@@ -37,6 +39,7 @@ export function ChipRow<T extends string>({
       disabled={opt.disabled}
       activeBg={opt.activeBg}
       activeFg={opt.activeFg}
+      glyph={opt.glyph}
       onPress={() => onChange(opt.value)}
     />
   ));

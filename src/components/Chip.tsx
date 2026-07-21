@@ -11,6 +11,12 @@ interface ChipProps {
   /** Override active-state colors (e.g. tinted per entry type). */
   activeBg?: string;
   activeFg?: string;
+  /**
+   * Optional leading glyph. A render-prop rather than a node because RN-SVG has
+   * no `currentColor` cascade — the glyph is drawn in the chip's current text
+   * colour, which the chip passes in.
+   */
+  glyph?: (color: string) => React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -25,8 +31,10 @@ export function Chip({
   disabled = false,
   activeBg = colors.accent,
   activeFg = colors.onAccent,
+  glyph,
   style,
 }: ChipProps) {
+  const fg = active ? activeFg : colors.textPrimary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -41,7 +49,8 @@ export function Chip({
         style,
       ]}
     >
-      <AppText size={fontSize.body} weight="700" color={active ? activeFg : colors.textPrimary}>
+      {glyph ? glyph(fg) : null}
+      <AppText size={fontSize.body} weight="700" color={fg}>
         {label}
       </AppText>
     </Pressable>
@@ -50,6 +59,8 @@ export function Chip({
 
 const styles = StyleSheet.create({
   chip: {
+    flexDirection: 'row',
+    gap: spacing.xs,
     borderRadius: radii.pill,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing['2xl'],

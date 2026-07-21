@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, FieldLabel, Stepper } from '../../../components';
+import { EntryGlyph } from '../../../components/glyphs/entryGlyphs';
+import type { GlyphKind } from '../../../lib/entryDisplay';
 import { colors, fontSize, pooSwatch, radii, spacing, tints } from '../../../theme';
 import type { PooColor } from '../../../api/types';
 import { diaperAmountLabel, type FormDraft } from '../../../lib/formDraft';
@@ -25,12 +27,14 @@ export function DiaperFields({ draft, patch }: FieldProps) {
         <View style={styles.toggles}>
           <TogglePill
             label="Pee"
+            glyph="diaperPee"
             active={draft.pee}
             tint={tints.pee}
             onPress={() => patch({ pee: !draft.pee })}
           />
           <TogglePill
             label="Poo"
+            glyph="diaperPoo"
             active={draft.poo}
             tint={tints.poo}
             onPress={() => patch({ poo: !draft.poo })}
@@ -73,15 +77,18 @@ export function DiaperFields({ draft, patch }: FieldProps) {
 
 function TogglePill({
   label,
+  glyph,
   active,
   tint,
   onPress,
 }: {
   label: string;
+  glyph: GlyphKind;
   active: boolean;
   tint: { bg: string; fg: string };
   onPress: () => void;
 }) {
+  const fg = active ? tint.fg : colors.textMuted;
   return (
     <Pressable
       accessibilityRole="button"
@@ -89,11 +96,8 @@ function TogglePill({
       onPress={onPress}
       style={[styles.pill, { backgroundColor: active ? tint.bg : colors.card }]}
     >
-      <AppText
-        size={fontSize.body}
-        weight="800"
-        color={active ? tint.fg : colors.textMuted}
-      >
+      <EntryGlyph kind={glyph} size={22} color={fg} />
+      <AppText size={fontSize.body} weight="800" color={fg}>
         {label}
       </AppText>
     </Pressable>
@@ -108,6 +112,7 @@ const styles = StyleSheet.create({
   pill: {
     flex: 1,
     alignItems: 'center',
+    gap: spacing.sm,
     paddingVertical: spacing['3xl'],
     borderRadius: radii.control,
   },
