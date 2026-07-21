@@ -11,6 +11,12 @@
 /* eslint-disable import/no-named-as-default-member -- i18next's default export
    intentionally carries these methods (use/changeLanguage/dir); that is the
    documented API, not an accidental named-export mix-up. */
+// Hermes (the RN engine) ships no `Intl.PluralRules`, so without this polyfill
+// i18next silently falls back to its v3 plural format and our CLDR v4 plural
+// keys (`_one`/`_two`/`_many`/`_other`) stop resolving — Hebrew ages/doses break
+// on-device even though Node/Jest (which has Intl) looks fine. Must be imported
+// before i18n.init below.
+import 'intl-pluralrules';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { en } from './locales/en';
