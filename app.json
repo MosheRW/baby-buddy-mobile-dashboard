@@ -2,12 +2,13 @@
   "expo": {
     "name": "Baby Buddy Dashboard",
     "slug": "baby-buddy-native",
-    "version": "1.0.0",
+    "version": "1.0.0-1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mosherw.babybuddy"
     },
     "android": {
       "package": "com.babybuddy.dashboard",
