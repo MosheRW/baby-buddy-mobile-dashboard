@@ -8,8 +8,18 @@ import {
   Stepper,
   TextField,
 } from '../../../components';
-import type { ChipOption } from '../../../components';
-import { colors, fontSize, radii, spacing } from '../../../theme';
+import type { ChipOption, SegmentOption } from '../../../components';
+import {
+  AsNeededGlyph,
+  MedDropsGlyph,
+  MedMgGlyph,
+  MedMlGlyph,
+  MedPasteGlyph,
+  MedTabletsGlyph,
+  ScheduledGlyph,
+  type EntryGlyphProps,
+} from '../../../components/glyphs/entryGlyphs';
+import { colors, fontSize, radii, spacing, tints } from '../../../theme';
 import type { DosageUnit, Entry, MedicationRoute, MedicationSchedule } from '../../../api/types';
 import {
   DOSE_UNITS,
@@ -41,14 +51,32 @@ type RepeatChoice = string;
 
 const CUSTOM = 'custom';
 
-const SCHEDULE_OPTIONS: { value: MedicationSchedule; label: string }[] = [
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'asNeeded', label: 'As-needed' },
+const SCHEDULE_OPTIONS: SegmentOption<MedicationSchedule>[] = [
+  { value: 'scheduled', label: 'Scheduled', glyph: (c) => <ScheduledGlyph size={15} color={c} /> },
+  { value: 'asNeeded', label: 'As-needed', glyph: (c) => <AsNeededGlyph size={13} color={c} /> },
 ];
+
+// RN-SVG has no `currentColor`, so the chip passes its text colour into the
+// render-prop — the unit glyph resolves to a named component drawn in that hue.
+const UNIT_GLYPH: Record<DosageUnit, React.ComponentType<EntryGlyphProps>> = {
+  mg: MedMgGlyph,
+  ml: MedMlGlyph,
+  tablets: MedTabletsGlyph,
+  drops: MedDropsGlyph,
+  paste: MedPasteGlyph,
+};
+
+// Fixed component behind a dynamic key, so both the unit chip's inline glyph and
+// the suggestion-row swatch resolve to a named component.
+function UnitGlyph({ unit, size, color }: EntryGlyphProps & { unit: DosageUnit }) {
+  const Glyph = UNIT_GLYPH[unit];
+  return <Glyph size={size} color={color} />;
+}
 
 const UNIT_OPTIONS: ChipOption<DosageUnit>[] = DOSE_UNIT_ORDER.map((u) => ({
   value: u,
   label: DOSE_UNITS[u].label,
+  glyph: (color: string) => <UnitGlyph unit={u} size={15} color={color} />,
 }));
 
 const ROUTE_OPTIONS: { value: MedicationRoute; label: string }[] = [
@@ -107,12 +135,17 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
                 onPress={() => patch(medSuggestionPatch(m))}
                 style={styles.suggestion}
               >
-                <AppText size={fontSize.bodySm} weight="700">
-                  {m.name}
-                </AppText>
-                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                  {formatDose(m.dose, m.doseUnit)} · every {m.repeatHours}h
-                </AppText>
+                <View style={styles.suggestionIcon}>
+                  <UnitGlyph unit={m.doseUnit} size={13} color={tints.eligible.fg} />
+                </View>
+                <View style={styles.suggestionText}>
+                  <AppText size={fontSize.bodySm} weight="700">
+                    {m.name}
+                  </AppText>
+                  <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                    {formatDose(m.dose, m.doseUnit)} · every {m.repeatHours}h
+                  </AppText>
+                </View>
               </Pressable>
             ))}
           </ScrollView>
@@ -272,11 +305,25 @@ const styles = StyleSheet.create({
     maxHeight: 140,
   },
   suggestion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colors.card,
     borderRadius: radii.tile,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing['2xl'],
     marginBottom: spacing.sm,
+  },
+  suggestionIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: radii.iconButton,
+    backgroundColor: tints.eligible.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionText: {
+    flex: 1,
     gap: spacing.xs,
   },
   customField: {

@@ -6,6 +6,12 @@ import { colors, fontSize, radii, shadows, spacing } from '../theme';
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
+  /**
+   * Optional glyph stacked above the label. A render-prop rather than a node
+   * because RN-SVG has no `currentColor` cascade — the segment draws it in its
+   * own text colour, which it passes in.
+   */
+  glyph?: (color: string) => React.ReactNode;
 }
 
 interface SegmentedToggleProps<T extends string> {
@@ -28,6 +34,7 @@ export function SegmentedToggle<T extends string>({
     <View style={styles.container}>
       {options.map((opt) => {
         const active = opt.value === value;
+        const fg = active ? colors.textPrimary : colors.textMuted;
         return (
           <Pressable
             key={opt.value}
@@ -36,11 +43,8 @@ export function SegmentedToggle<T extends string>({
             onPress={() => onChange(opt.value)}
             style={[styles.segment, active && styles.segmentActive]}
           >
-            <AppText
-              size={fontSize.body}
-              weight={active ? '800' : '700'}
-              color={active ? colors.textPrimary : colors.textMuted}
-            >
+            {opt.glyph ? opt.glyph(fg) : null}
+            <AppText size={fontSize.body} weight={active ? '800' : '700'} color={fg}>
               {opt.label}
             </AppText>
           </Pressable>
@@ -60,8 +64,10 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
     paddingVertical: spacing.md,
     borderRadius: radii.chipSmall,
   },

@@ -273,6 +273,28 @@ export function MedPasteGlyph({ size, color = colors.textPrimary }: EntryGlyphPr
   );
 }
 
+// --- Medication schedule (the Scheduled / As-needed toggle) -----------------
+
+export function ScheduledGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Clock face: outline circle with an hour and minute hand.
+  return (
+    <GlyphFrame size={size} w={13} h={13}>
+      <Circle cx={6.5} cy={6.5} r={5.75} fill="none" stroke={color} strokeWidth={1.5} />
+      <Rect x={5.9} y={3} width={1.3} height={4} rx={0.6} fill={color} />
+      <Rect x={6.5} y={5.9} width={3.5} height={1.3} rx={0.6} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function AsNeededGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Solid upward triangle — the prototype's "as-needed" mark.
+  return (
+    <GlyphFrame size={size} w={13} h={11}>
+      <Path d="M6.5,0 L13,11 L0,11 Z" fill={color} />
+    </GlyphFrame>
+  );
+}
+
 // --- Temperature ------------------------------------------------------------
 
 export function TemperatureGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
