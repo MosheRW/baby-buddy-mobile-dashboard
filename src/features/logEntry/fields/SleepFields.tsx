@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppText, FieldLabel, SegmentedToggle, ToggleSwitch } from '../../../components';
 import type { SegmentOption } from '../../../components';
 import { NapGlyph, NightGlyph } from '../../../components/glyphs/entryGlyphs';
@@ -18,11 +19,6 @@ interface SleepFieldsProps {
   now: number;
 }
 
-const TYPE_OPTIONS: SegmentOption<SleepType>[] = [
-  { value: 'nap', label: 'Nap', glyph: (c) => <NapGlyph size={17} color={c} /> },
-  { value: 'night', label: 'Night', glyph: (c) => <NightGlyph size={16} color={c} /> },
-];
-
 /**
  * Sleep. Create mode is timer-driven (start → live elapsed + "Woke up at" →
  * stop). Edit mode instead exposes a "Still sleeping" switch; turning it off
@@ -32,15 +28,21 @@ const TYPE_OPTIONS: SegmentOption<SleepType>[] = [
  * clock-based guess in `defaultSleepType` is only a guess.
  */
 export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsProps) {
+  const { t } = useTranslation();
   const timerRunning = useTimerStore((s) =>
-    s.timers.some((t) => t.type === 'sleep' && t.childId === childId),
+    s.timers.some((timer) => timer.type === 'sleep' && timer.childId === childId),
   );
+
+  const typeOptions: SegmentOption<SleepType>[] = [
+    { value: 'nap', label: t('sleep.nap'), glyph: (c) => <NapGlyph size={17} color={c} /> },
+    { value: 'night', label: t('sleep.night'), glyph: (c) => <NightGlyph size={16} color={c} /> },
+  ];
 
   const typeField = (
     <View>
-      <FieldLabel>Type</FieldLabel>
+      <FieldLabel>{t('sleep.typeLabel')}</FieldLabel>
       <SegmentedToggle
-        options={TYPE_OPTIONS}
+        options={typeOptions}
         value={draft.sleepType}
         onChange={(sleepType) => patch({ sleepType })}
       />
@@ -64,7 +66,7 @@ export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsPro
 
       <View style={styles.switchRow}>
         <AppText size={fontSize.body} weight="700">
-          Still sleeping
+          {t('sleep.stillSleeping')}
         </AppText>
         <ToggleSwitch
           value={draft.stillSleeping}
@@ -80,12 +82,12 @@ export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsPro
 
       {!draft.stillSleeping ? (
         <DateTimeField
-          label="Woke up at"
+          label={t('sleep.wokeUpAt')}
           value={draft.endTime ?? new Date(now).toISOString()}
           onChange={(endTime) => patch({ endTime })}
         />
       ) : (
-        <FieldLabel>Turn off to record a wake time</FieldLabel>
+        <FieldLabel>{t('sleep.turnOffHint')}</FieldLabel>
       )}
     </>
   );

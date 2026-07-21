@@ -22,6 +22,7 @@ import type {
   Tag,
   TemperatureMethod,
 } from '../api/types';
+import i18n from '../i18n';
 
 export interface FormDraft {
   /** ISO start time. */
@@ -171,13 +172,9 @@ export const SOLID_FOOD_TYPES: SolidFoodType[] = [
   'dairy',
 ];
 
-export const solidFoodTypeLabel: Record<SolidFoodType, string> = {
-  fruits: 'Fruits',
-  vegetables: 'Vegetables',
-  grains: 'Grains',
-  protein: 'Protein',
-  dairy: 'Dairy',
-};
+export function solidFoodTypeLabel(type: SolidFoodType): string {
+  return i18n.t(`feeding.solid.${type}`);
+}
 
 /** Solids whose portion nobody weighs — the amount field is noise for them. */
 const UNWEIGHED_SOLIDS: SolidFoodType[] = ['fruits', 'vegetables'];
@@ -205,7 +202,9 @@ export function showsDuration(method: FeedingMethod, timerRunning: boolean): boo
 
 /** Unit suffix for the feeding amount. */
 export function amountUnit(kind: FeedingKind): string {
-  return kind === 'solidFood' ? ' g' : ' ml';
+  return kind === 'solidFood'
+    ? i18n.t('feeding.amountUnitSolid')
+    : i18n.t('feeding.amountUnitLiquid');
 }
 
 /**
@@ -228,8 +227,8 @@ export function baselinePatch(
 
 /** The diaper amount's label names whichever contents are actually present. */
 export function diaperAmountLabel(pee: boolean, poo: boolean): string {
-  if (pee && poo) return 'Amount';
-  return poo ? 'Poo amount' : 'Pee amount';
+  if (pee && poo) return i18n.t('diaper.amountLabel.both');
+  return poo ? i18n.t('diaper.amountLabel.poo') : i18n.t('diaper.amountLabel.pee');
 }
 
 /** Paste is measured by where it went, not how much — there's no dose to enter. */
@@ -281,7 +280,9 @@ export function isCustomRepeat(hours: number): boolean {
 
 /** The repeat-interval label depends on the schedule type. */
 export function repeatLabel(schedule: MedicationSchedule): string {
-  return schedule === 'scheduled' ? 'Repeat next dose in' : 'Eligible again after';
+  return schedule === 'scheduled'
+    ? i18n.t('med.repeatLabel.scheduled')
+    : i18n.t('med.repeatLabel.asNeeded');
 }
 
 // --- Draft ⇄ Entry ----------------------------------------------------------

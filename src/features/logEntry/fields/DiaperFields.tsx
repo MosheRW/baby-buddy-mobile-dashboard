@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppText, FieldLabel, Stepper } from '../../../components';
 import { EntryGlyph } from '../../../components/glyphs/entryGlyphs';
 import type { GlyphKind } from '../../../lib/entryDisplay';
@@ -20,20 +21,21 @@ const POO_COLORS = Object.keys(pooSwatch) as PooColor[];
  * is always visible but only meaningful (and only saved) when Poo is on.
  */
 export function DiaperFields({ draft, patch }: FieldProps) {
+  const { t } = useTranslation();
   return (
     <>
       <View>
-        <FieldLabel>Contents</FieldLabel>
+        <FieldLabel>{t('diaper.contents')}</FieldLabel>
         <View style={styles.toggles}>
           <TogglePill
-            label="Pee"
+            label={t('diaper.pee')}
             glyph="diaperPee"
             active={draft.pee}
             tint={tints.pee}
             onPress={() => patch({ pee: !draft.pee })}
           />
           <TogglePill
-            label="Poo"
+            label={t('diaper.poo')}
             glyph="diaperPoo"
             active={draft.poo}
             tint={tints.poo}
@@ -43,13 +45,13 @@ export function DiaperFields({ draft, patch }: FieldProps) {
       </View>
 
       <View>
-        <FieldLabel>Poo color</FieldLabel>
+        <FieldLabel>{t('diaper.pooColor')}</FieldLabel>
         <View style={styles.swatches}>
           {POO_COLORS.map((color) => (
             <Pressable
               key={color}
               accessibilityRole="button"
-              accessibilityLabel={`${color} poo color`}
+              accessibilityLabel={t('diaper.pooColorAria', { color })}
               accessibilityState={{ selected: draft.pooColor === color }}
               onPress={() => patch({ pooColor: color })}
               style={[styles.swatchRing, draft.pooColor === color && styles.swatchRingActive]}
@@ -68,7 +70,7 @@ export function DiaperFields({ draft, patch }: FieldProps) {
           step={1}
           min={1}
           max={10}
-          suffix=" / 10"
+          suffix={t('diaper.amountSuffix')}
         />
       </View>
     </>

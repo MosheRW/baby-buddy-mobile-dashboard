@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppText, Card, ChipRow } from '../../components';
 import { EntryGlyph, PencilGlyph, TrashGlyph } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
@@ -9,13 +10,7 @@ import { filterByTag, selectableTagLabels } from '../../lib/tags';
 import { entryDurationLabel, entryTitle, entryVisual, type EntryVisual } from '../../lib/entryDisplay';
 import type { Entry } from '../../api/types';
 
-const FILTERS: { value: FeedFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'diaper', label: 'Diaper' },
-  { value: 'feeding', label: 'Feeding' },
-  { value: 'medication', label: 'Medication' },
-  { value: 'sleep', label: 'Sleep' },
-];
+const FILTER_VALUES: FeedFilter[] = ['all', 'diaper', 'feeding', 'medication', 'sleep'];
 
 interface ActivityFeedProps {
   entries: Entry[];
@@ -26,6 +21,7 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: ActivityFeedProps) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<FeedFilter>('all');
   // The two filters stack: a type chip narrows the list, a tag narrows it
   // further. Tapping a tag on any row sets it; the chip below clears it.
@@ -34,29 +30,34 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
   const scoped = tagFilter ? filterByTag(entries, tagFilter) : entries;
   const groups = filterAndGroup(scoped, filter, now);
 
+  const filterOptions = FILTER_VALUES.map((value) => ({
+    value,
+    label: value === 'all' ? t('filter.all') : t(`entryType.${value}`),
+  }));
+
   return (
     <View style={styles.container}>
       <AppText size={fontSize.bodySm} weight="800" color={colors.textSecondary} style={styles.title}>
-        RECENT ACTIVITY
+        {t('dashboard.recentActivity')}
       </AppText>
 
       <ChipRow
         layout="scroll"
         value={filter}
         onChange={(v) => setFilter(v as FeedFilter)}
-        options={FILTERS}
+        options={filterOptions}
       />
 
       {tagFilter ? (
         <View style={styles.tagFilterRow}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Clear tag filter ${tagFilter}`}
+            accessibilityLabel={t('dashboard.clearTagFilter', { tag: tagFilter })}
             onPress={() => setTagFilter(null)}
             style={styles.tagFilter}
           >
             <AppText size={fontSize.metaSm} weight="800" color={tints.suggestion.fg}>
-              Tag: {tagFilter} ×
+              {t('dashboard.tagFilter', { tag: tagFilter })}
             </AppText>
           </Pressable>
         </View>
@@ -64,7 +65,7 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
 
       {groups.length === 0 ? (
         <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted} style={styles.empty}>
-          No entries for this filter yet.
+          {t('dashboard.noEntries')}
         </AppText>
       ) : (
         groups.map((group) => (
@@ -107,6 +108,7 @@ function FeedRow({
   onDelete: () => void;
   onTagPress: (tag: string) => void;
 }) {
+  const { t } = useTranslation();
   const visual = entryVisual(entry);
   const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry) : null;
   const tags = selectableTagLabels(entry);
@@ -156,10 +158,10 @@ function FeedRow({
       </Pressable>
 
       <View style={styles.actions}>
-        <RowButton label="Edit entry" onPress={onEdit} bg={colors.neutral}>
+        <RowButton label={t('dashboard.editEntry')} onPress={onEdit} bg={colors.neutral}>
           <PencilGlyph size={14} color={colors.textSecondary} />
         </RowButton>
-        <RowButton label="Delete entry" onPress={onDelete} bg={tints.overdue.bg}>
+        <RowButton label={t('dashboard.deleteEntry')} onPress={onDelete} bg={tints.overdue.bg}>
           <TrashGlyph size={14} color={tints.overdue.fg} />
         </RowButton>
       </View>
@@ -170,7 +172,7 @@ function FeedRow({
             <Pressable
               key={tag}
               accessibilityRole="button"
-              accessibilityLabel={`Filter by tag ${tag}`}
+              accessibilityLabel={t('dashboard.filterByTag', { tag })}
               onPress={() => onTagPress(tag)}
               style={styles.tagChip}
             >

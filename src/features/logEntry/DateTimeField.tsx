@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { AppText, FieldLabel, TextField } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 
@@ -54,12 +55,13 @@ function parseLocal(text: string): string | null {
  * implementation.
  */
 export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
+  const { t } = useTranslation();
   if (Platform.OS !== 'android') {
     return (
       <TextField
         label={label}
         defaultValue={formatLocal(value)}
-        placeholder="YYYY-MM-DD HH:mm"
+        placeholder={t('dateTime.placeholder')}
         onEndEditing={(e) => {
           const iso = parseLocal(e.nativeEvent.text);
           if (iso) onChange(iso);
@@ -103,7 +105,7 @@ export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${label} date`}
+          accessibilityLabel={t('dateTime.dateAria', { label })}
           onPress={openDate}
           style={[styles.field, styles.dateField]}
         >
@@ -113,7 +115,7 @@ export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${label} time`}
+          accessibilityLabel={t('dateTime.timeAria', { label })}
           onPress={openTime}
           style={[styles.field, styles.timeField]}
         >

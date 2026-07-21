@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppText } from '../../components';
 import { ActionGlyph, type ActionGlyphKind } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
@@ -8,7 +9,8 @@ import type { GlyphKind } from '../../lib/entryDisplay';
 
 interface QuickAction {
   type: EntryType;
-  label: string;
+  /** i18n key under `quickAction.*`. */
+  labelKey: string;
   /**
    * A quick action opens a blank form, so it stands for a whole category rather
    * than for any one entry's sub-type — hence the category glyphs (nappy,
@@ -26,12 +28,12 @@ interface QuickAction {
  * dedicated field group, and notes stay reachable from the form's type chips.
  */
 const ACTIONS: QuickAction[] = [
-  { type: 'diaper', label: 'Diaper', glyph: 'nappy' },
-  { type: 'feeding', label: 'Food', glyph: 'feedingBottle' },
-  { type: 'sleep', label: 'Sleep', glyph: 'nap' },
-  { type: 'tummyTime', label: 'Tummy', glyph: 'tummyTime' },
-  { type: 'medication', label: 'Medication', glyph: 'pill' },
-  { type: 'temperature', label: 'More', glyph: 'more', muted: true },
+  { type: 'diaper', labelKey: 'quickAction.diaper', glyph: 'nappy' },
+  { type: 'feeding', labelKey: 'quickAction.food', glyph: 'feedingBottle' },
+  { type: 'sleep', labelKey: 'quickAction.sleep', glyph: 'nap' },
+  { type: 'tummyTime', labelKey: 'quickAction.tummy', glyph: 'tummyTime' },
+  { type: 'medication', labelKey: 'quickAction.medication', glyph: 'pill' },
+  { type: 'temperature', labelKey: 'quickAction.more', glyph: 'more', muted: true },
 ];
 
 interface QuickActionsProps {
@@ -42,6 +44,7 @@ interface QuickActionsProps {
 
 /** 3-column quick-log button grid. */
 export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.grid}>
       {ACTIONS.map((action) => {
@@ -67,7 +70,7 @@ export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps
               <ActionGlyph kind={action.glyph} size={22} color={fg} />
             </View>
             <AppText size={fontSize.micro} weight="700" color={fg}>
-              {running ?? action.label}
+              {running ?? t(action.labelKey)}
             </AppText>
           </Pressable>
         );

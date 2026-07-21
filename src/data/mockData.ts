@@ -22,8 +22,24 @@ function ago(ms: number): string {
 }
 
 export const mockChildren: Child[] = [
-  { id: 'c1', name: 'Emma', initial: 'E', hue: 30, age: '7 months old', defaultFoodMl: 120 },
-  { id: 'c2', name: 'Noah', initial: 'N', hue: 200, age: '2 years old', defaultFoodMl: 150 },
+  {
+    id: 'c1',
+    name: 'Emma',
+    initial: 'E',
+    hue: 30,
+    birthDate: ago(215 * DAY),
+    age: '7 months old',
+    defaultFoodMl: 120,
+  },
+  {
+    id: 'c2',
+    name: 'Noah',
+    initial: 'N',
+    hue: 200,
+    birthDate: ago(760 * DAY),
+    age: '2 years old',
+    defaultFoodMl: 150,
+  },
 ];
 
 export const mockEntries: Entry[] = [

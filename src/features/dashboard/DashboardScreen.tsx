@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { AppText } from '../../components';
 import { SettingsButton } from './SettingsButton';
 import { colors, fontSize, radii, spacing } from '../../theme';
@@ -31,6 +32,7 @@ import { errorMessage } from '../../api/client';
 type Props = NativeStackScreenProps<MainStackParamList, 'Dashboard'>;
 
 export function DashboardScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { children, entries, isLoading, isRefreshing, error, refetch } = useDashboardData();
   const [activeIndex, setActiveIndex] = useState(0);
   const foodWindowHours = useSettingsStore((s) => s.foodWindowHours);
@@ -140,7 +142,9 @@ export function DashboardScreen({ navigation }: Props) {
         {welcomeDismissed ? null : (
           <View>
             <AppText size={fontSize.screenTitle} weight="800">
-              {userName ? `${greeting(now)}, ${userName}` : greeting(now)}
+              {userName
+                ? t('dashboard.greetingWithName', { greeting: greeting(now), name: userName })
+                : greeting(now)}
             </AppText>
             <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
               {longDate(now)}
@@ -155,7 +159,7 @@ export function DashboardScreen({ navigation }: Props) {
             </AppText>
             <Pressable accessibilityRole="button" onPress={refetch} style={styles.retry}>
               <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
-                Retry
+                {t('common.retry')}
               </AppText>
             </Pressable>
           </View>

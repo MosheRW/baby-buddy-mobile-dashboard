@@ -1,0 +1,327 @@
+/**
+ * Hebrew translations. Mirrors the key shape of `en.ts`. Hebrew is right-to-
+ * left; the app flips text alignment (not full layout mirroring) when this
+ * language is active — see `AppText`.
+ *
+ * Interpolation placeholders ({{...}}) must match `en.ts` exactly. Pluralized
+ * keys carry the Hebrew CLDR forms (one/two/many/other).
+ */
+export const he = {
+  common: {
+    save: 'שמירה',
+    saving: 'שומר…',
+    cancel: 'ביטול',
+    delete: 'מחיקה',
+    deleting: 'מוחק…',
+    close: 'סגירה',
+    back: 'חזרה',
+    dismiss: 'סגירה',
+    retry: 'ניסיון חוזר',
+  },
+
+  login: {
+    title: 'לוח בקרה Baby Buddy',
+    subtitle: 'התחברות לשרת שלך',
+    modeBabyBuddy: 'שרת Baby Buddy',
+    modeHomeAssistant: 'Home Assistant',
+    serverUrl: 'כתובת השרת',
+    addOnUrl: 'כתובת התוסף',
+    serverUrlPlaceholder: 'https://babybuddy.example.com',
+    addOnUrlPlaceholder: 'http://homeassistant.local:8123/addon-slug',
+    apiKey: 'מפתח API',
+    apiKeyPlaceholder: 'הדביקו מ-Baby Buddy ← הגדרות משתמש',
+    username: 'שם משתמש',
+    usernamePlaceholder: 'sarah',
+    password: 'סיסמה',
+    passwordPlaceholder: '••••••••',
+    haHint:
+      'כללו את נתיב ה-ingress של התוסף בכתובת. המפתח הוא מפתח ה-API של Baby Buddy מהגדרות המשתמש שלו, ולא אסימון של Home Assistant.',
+    enterServerUrl: 'הזינו את כתובת השרת.',
+    passwordFallback: '{{message}} הדביקו במקום זאת את מפתח ה-API מהגדרות המשתמש ב-Baby Buddy.',
+    connecting: 'מתחבר…',
+    connect: 'התחברות',
+    logIn: 'כניסה',
+    useUsernamePassword: 'שימוש בשם משתמש וסיסמה',
+    useApiKey: 'שימוש במפתח API במקום',
+  },
+
+  dashboard: {
+    greetingWithName: '{{greeting}}, {{name}}',
+    recentActivity: 'פעילות אחרונה',
+    noEntries: 'אין עדיין רשומות לסינון הזה.',
+    tagFilter: 'תגית: {{tag}} ×',
+    clearTagFilter: 'ניקוי סינון תגית {{tag}}',
+    editEntry: 'עריכת רשומה',
+    deleteEntry: 'מחיקת רשומה',
+    filterByTag: 'סינון לפי תגית {{tag}}',
+    addTag: 'הוספת תגית {{tag}}',
+  },
+
+  filter: {
+    all: 'הכול',
+  },
+
+  quickAction: {
+    diaper: 'חיתול',
+    food: 'אוכל',
+    sleep: 'שינה',
+    tummy: 'זמן בטן',
+    medication: 'תרופה',
+    more: 'עוד',
+  },
+
+  childCard: {
+    lastPee: 'השתנה אחרונה',
+    lastPoo: 'יציאה אחרונה',
+    lastFeeding: 'האכלה אחרונה',
+    lastFeedingValue: '{{title}} · {{ago}}',
+    foodWindow: 'אוכל, {{hours}} ש׳',
+    foodValue: '{{amount}} מ״ל',
+    logDose: 'רישום מנה של {{name}}',
+    lastAt: 'לאחרונה {{time}}',
+    limitAria: '{{name}} סך 24 שעות, {{taken}} מתוך {{limit}}',
+  },
+
+  med: {
+    unitLabel: {
+      mg: 'מ״ג',
+      ml: 'מ״ל',
+      tablets: 'טבליות',
+      drops: 'טיפות',
+      paste: 'משחה',
+    },
+    unitSuffix: {
+      mg: ' מ״ג',
+      ml: ' מ״ל',
+      tablets: ' טבליות',
+      drops: ' טיפות',
+      paste: ' משחה',
+    },
+    doseFieldLabel: 'מינון ({{unit}})',
+    status: {
+      sinceLastDose: '{{duration}} מאז המנה האחרונה',
+      overdueBy: 'באיחור של {{duration}}',
+      dueIn: 'עוד {{duration}}',
+      eligibleNow: 'זמין עכשיו',
+      eligibleIn: 'זמין בעוד {{duration}}',
+    },
+    eligibleNowShort: 'עכשיו',
+    eligibleInShort: 'בעוד {{duration}}',
+    repeatLabel: {
+      scheduled: 'חזרה על המנה הבאה בעוד',
+      asNeeded: 'זמין שוב לאחר',
+    },
+    breakdownTitle: 'תרופות · 24 השעות האחרונות',
+    breakdownEmpty: 'לא ניתן דבר ב-24 השעות האחרונות.',
+    doses_one: 'מנה אחת',
+    doses_two: 'שתי מנות',
+    doses_many: '{{count}} מנות',
+    doses_other: '{{count}} מנות',
+    maxReached: ' · הגעת למינון המרבי',
+    stillAvailable: ' · נותרו {{amount}}',
+    noLimit: ' · לא הוגדרה מגבלת 24 שעות',
+  },
+
+  entryType: {
+    diaper: 'חיתול',
+    feeding: 'האכלה',
+    medication: 'תרופה',
+    temperature: 'חום',
+    tummyTime: 'זמן בטן',
+    sleep: 'שינה',
+    note: 'הערה',
+  },
+
+  entryTitle: {
+    diaperBoth: 'חיתול רטוב + מלוכלך',
+    diaperDirty: 'חיתול מלוכלך',
+    diaperWet: 'חיתול רטוב',
+    sleeping: 'ישן/ה',
+    sleep: 'שינה',
+    tummyTime: 'זמן בטן',
+    note: 'הערה',
+  },
+
+  feeding: {
+    kind: {
+      breastMilk: 'חלב אם',
+      formula: 'תרכובת מזון',
+      fortifiedBreastMilk: 'חלב אם מועשר',
+      solidFood: 'מזון מוצק',
+    },
+    method: {
+      bottle: 'בקבוק',
+      leftBreast: 'שד שמאל',
+      rightBreast: 'שד ימין',
+      bothBreasts: 'שני השדיים',
+      selfFed: 'אכילה עצמית',
+      parentFed: 'האכלה על ידי הורה',
+    },
+    solid: {
+      fruits: 'פירות',
+      vegetables: 'ירקות',
+      grains: 'דגנים',
+      protein: 'חלבון',
+      dairy: 'מוצרי חלב',
+    },
+    amountUnitSolid: ' גרם',
+    amountUnitLiquid: ' מ״ל',
+    trendLabel: '{{last24}} מ״ל היום מול {{avg}} מ״ל ליום (ממוצע 7 ימים)',
+    typeLabel: 'סוג',
+    methodLabel: 'שיטה',
+    foodTypeLabel: 'סוג מזון',
+    amountLabel: 'כמות',
+    durationLabel: 'משך',
+    durationSuffix: ' דק׳',
+  },
+
+  temperature: {
+    method: {
+      oral: 'פה',
+      ear: 'אוזן',
+      forehead: 'מצח',
+    },
+    valueLabel: 'טמפרטורה (°C)',
+    valueSuffix: '°C',
+    methodLabel: 'שיטה',
+  },
+
+  diaper: {
+    contents: 'תכולה',
+    pee: 'השתנה',
+    poo: 'יציאה',
+    pooColor: 'צבע יציאה',
+    pooColorAria: 'צבע יציאה {{color}}',
+    amountSuffix: ' / 10',
+    amountLabel: {
+      both: 'כמות',
+      poo: 'כמות יציאה',
+      pee: 'כמות השתנה',
+    },
+  },
+
+  medForm: {
+    recent: 'תרופות אחרונות',
+    recentMeta: '{{dose}} · כל {{hours}} ש׳',
+    name: 'שם התרופה',
+    namePlaceholder: 'לדוגמה: אקמול',
+    schedule: 'תזמון',
+    scheduled: 'מתוזמן',
+    asNeeded: 'לפי הצורך',
+    unit: 'יחידה',
+    route: 'דרך מתן',
+    routeOrally: 'דרך הפה',
+    routeAnal: 'דרך פי הטבעת',
+    bodyArea: 'אזור בגוף',
+    bodyAreaPlaceholder: 'לדוגמה: חזה, גב',
+    custom: 'מותאם',
+    customSuffix: ' ש׳',
+    maxDose: 'מינון מרבי ל-24 שעות (רשות)',
+    maxDoseHint:
+      'השאירו ריק כדי לשמור על המגבלה הקיימת של תרופה זו. נזהיר לפני שמנה תחרוג ממנה בחלון מתגלגל של 24 שעות.',
+    noLimitPlaceholder: 'ללא מגבלה ({{unit}})',
+  },
+
+  sleep: {
+    typeLabel: 'סוג',
+    nap: 'תנומה',
+    night: 'לילה',
+    stillSleeping: 'עדיין ישן/ה',
+    wokeUpAt: 'התעורר/ה בשעה',
+    turnOffHint: 'כבו כדי לרשום שעת התעוררות',
+  },
+
+  timer: {
+    start: 'הפעלת טיימר',
+    running: 'הטיימר פועל',
+    stop: 'עצירה',
+    startAria: 'הפעלת טיימר',
+    stopAria: 'עצירת טיימר',
+    typeLabel: {
+      feeding: 'האכלה',
+      sleep: 'שינה',
+      tummyTime: 'זמן בטן',
+    },
+  },
+
+  logEntry: {
+    editTitle: 'עריכת רשומה',
+    newTitle: 'רשומה חדשה',
+    close: 'סגירה',
+    time: 'שעה',
+    endTime: 'שעת סיום',
+    note: 'הערה',
+    notePlaceholder: 'הערה (רשות)',
+    tags: 'תגיות',
+    addTagOffer: '+ {{tag}}',
+    saveAndEnd: 'שמירה וסיום {{activity}}',
+    activity: {
+      feeding: 'האכלה',
+      sleep: 'שינה',
+      tummyTime: 'זמן בטן',
+    },
+  },
+
+  dateTime: {
+    placeholder: 'YYYY-MM-DD HH:mm',
+    dateAria: 'תאריך {{label}}',
+    timeAria: 'שעת {{label}}',
+  },
+
+  deleteSheet: {
+    title: 'למחוק את הרשומה?',
+    body: '{{label}}. לא ניתן לבטל פעולה זו.',
+  },
+
+  settings: {
+    title: 'הגדרות',
+    feedingWindow: 'חלון האכלה',
+    feedingWindowHint: 'קובע את חלון סכום האוכל בלוח הבקרה.',
+    windowChip: '{{hours}} ש׳',
+    children: 'ילדים וכמות אוכל ברירת מחדל',
+    mlSuffix: ' מ״ל',
+    serverHomeAssistant: 'שרת Home Assistant',
+    serverBabyBuddy: 'שרת Baby Buddy',
+    loggedInAs: 'מחובר/ת בתור {{name}}',
+    accessToken: 'אסימון גישה {{token}}',
+    logOut: 'התנתקות',
+    language: 'שפה',
+    languageEnglish: 'English',
+    languageHebrew: 'עברית',
+  },
+
+  dates: {
+    now: 'עכשיו',
+    minutesAgo: 'לפני {{m}} דק׳',
+    hoursAgo: 'לפני {{h}} ש׳',
+    hoursMinutesAgo: 'לפני {{h}} ש׳ {{m}} דק׳',
+    daysAgo: 'לפני {{d}} ימים',
+    today: 'היום',
+    yesterday: 'אתמול',
+    greeting: {
+      morning: 'בוקר טוב',
+      afternoon: 'צהריים טובים',
+      evening: 'ערב טוב',
+    },
+  },
+
+  duration: {
+    hoursMinutes: '{{h}} ש׳ {{m}} דק׳',
+    minutes: '{{m}} דק׳',
+  },
+
+  age: {
+    days_one: 'בן יום',
+    days_two: 'בן יומיים',
+    days_many: 'בן {{count}} ימים',
+    days_other: 'בן {{count}} ימים',
+    months_one: 'בן חודש',
+    months_two: 'בן חודשיים',
+    months_many: 'בן {{count}} חודשים',
+    months_other: 'בן {{count}} חודשים',
+    years_one: 'בן שנה',
+    years_two: 'בן שנתיים',
+    years_many: 'בן {{count}} שנים',
+    years_other: 'בן {{count}} שנים',
+  },
+} as const;

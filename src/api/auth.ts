@@ -46,7 +46,7 @@ export async function signInWithToken(
     last_name: profile_.user?.last_name,
     api_key: profile_.api_key,
   };
-  return { mode, baseUrl, token, userName: displayName(profile) };
+  return { mode, baseUrl, token, userName: displayName(profile), language: profile_.language };
 }
 
 /** Pull Django's CSRF token out of the login page's hidden input. */
@@ -139,7 +139,13 @@ export async function signInWithPassword(
     );
   }
 
-  return { mode, baseUrl, token: profile.api_key, userName: displayName(profile) };
+  return {
+    mode,
+    baseUrl,
+    token: profile.api_key,
+    userName: displayName(profile),
+    language: profile.language,
+  };
 }
 
 /** Cheap liveness/permission probe used after rehydrating a stored session. */
