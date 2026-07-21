@@ -9,6 +9,8 @@ import { useAppFonts } from './src/theme';
 import { useAuthStore } from './src/stores';
 import { queryClient } from './src/data/queryClient';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { useSyncAppLanguage } from './src/hooks/useAppLanguage';
+import './src/i18n';
 
 // Keep the splash visible until fonts + persisted state are ready so nothing
 // flashes (fallback font, or Login before the stored session rehydrates).
@@ -25,6 +27,7 @@ export default function App() {
   const fontsLoaded = useAppFonts();
   const hydrated = useAuthStore((s) => s.hydrated);
   const [timedOut, setTimedOut] = useState(false);
+  useSyncAppLanguage();
 
   useEffect(() => {
     const id = setTimeout(() => setTimedOut(true), BOOT_TIMEOUT_MS);

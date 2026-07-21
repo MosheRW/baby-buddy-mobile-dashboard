@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppText } from '../../components';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import { elapsedClock, type TimerType } from '../../lib/timers';
@@ -25,17 +26,18 @@ interface StartTimerButtonProps {
 
 /** Soft peach pill with a play triangle — starts the (type, child) timer. */
 export function StartTimerButton({ type, childId }: StartTimerButtonProps) {
+  const { t } = useTranslation();
   const { start } = useTimerActions();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Start timer"
+      accessibilityLabel={t('timer.startAria')}
       onPress={() => start(type, childId)}
       style={({ pressed }) => [styles.startButton, pressed && styles.pressed]}
     >
       <View style={[styles.playTriangle, { borderLeftColor: tints.suggestion.fg }]} />
       <AppText size={fontSize.metaSm} weight="800" color={tints.suggestion.fg}>
-        Start timer
+        {t('timer.start')}
       </AppText>
     </Pressable>
   );
@@ -56,26 +58,29 @@ interface RunningTimerStripProps {
 
 /** Compact "● Timer running m:ss [Stop]" pill shown at the top of the form. */
 export function RunningTimerStrip({ type, childId, asOf, onStop }: RunningTimerStripProps) {
-  const timer = useTimerStore((s) => s.timers.find((t) => t.type === type && t.childId === childId));
+  const { t } = useTranslation();
+  const timer = useTimerStore((s) =>
+    s.timers.find((timer_) => timer_.type === type && timer_.childId === childId),
+  );
   if (!timer) return null;
 
   return (
     <View style={styles.strip}>
       <View style={styles.dot} />
       <AppText size={fontSize.metaSm} weight="700" color={colors.textPrimary}>
-        Timer running
+        {t('timer.running')}
       </AppText>
       <AppText size={fontSize.body} weight="800" color={colors.accent}>
         {elapsedClock(timer.startedAt, asOf)}
       </AppText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Stop timer"
+        accessibilityLabel={t('timer.stopAria')}
         onPress={onStop}
         style={({ pressed }) => [styles.stopButton, pressed && styles.pressed]}
       >
         <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
-          Stop
+          {t('timer.stop')}
         </AppText>
       </Pressable>
     </View>

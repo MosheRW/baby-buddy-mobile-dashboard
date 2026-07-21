@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import {
   AppText,
   ChipRow,
@@ -25,6 +26,7 @@ import {
   DOSE_UNITS,
   DOSE_UNIT_ORDER,
   doseFieldLabel,
+  doseUnitLabel,
   formatDose,
   medicationSuggestions,
 } from '../../../lib/medication';
@@ -51,11 +53,6 @@ type RepeatChoice = string;
 
 const CUSTOM = 'custom';
 
-const SCHEDULE_OPTIONS: SegmentOption<MedicationSchedule>[] = [
-  { value: 'scheduled', label: 'Scheduled', glyph: (c) => <ScheduledGlyph size={15} color={c} /> },
-  { value: 'asNeeded', label: 'As-needed', glyph: (c) => <AsNeededGlyph size={13} color={c} /> },
-];
-
 // RN-SVG has no `currentColor`, so the chip passes its text colour into the
 // render-prop — the unit glyph resolves to a named component drawn in that hue.
 const UNIT_GLYPH: Record<DosageUnit, React.ComponentType<EntryGlyphProps>> = {
@@ -73,21 +70,6 @@ function UnitGlyph({ unit, size, color }: EntryGlyphProps & { unit: DosageUnit }
   return <Glyph size={size} color={color} />;
 }
 
-const UNIT_OPTIONS: ChipOption<DosageUnit>[] = DOSE_UNIT_ORDER.map((u) => ({
-  value: u,
-  label: DOSE_UNITS[u].label,
-  glyph: (color: string) => <UnitGlyph unit={u} size={15} color={color} />,
-}));
-
-const ROUTE_OPTIONS: { value: MedicationRoute; label: string }[] = [
-  { value: 'orally', label: 'Orally' },
-  { value: 'anal', label: 'Anal' },
-];
-
-const REPEAT_OPTIONS: ChipOption<RepeatChoice>[] = [
-  ...REPEAT_HOURS.map((h) => ({ value: String(h), label: `${h}h` })),
-  { value: CUSTOM, label: 'Custom' },
-];
 
 /**
  * Medication fields. The unit drives most of the group: it sets the dose
@@ -99,9 +81,31 @@ const REPEAT_OPTIONS: ChipOption<RepeatChoice>[] = [
  * case is re-logging a dose of something already given.
  */
 export function MedicationFields({ draft, patch, entries }: MedicationFieldsProps) {
+  const { t } = useTranslation();
   const suggestions = medicationSuggestions(entries);
   const custom = isCustomRepeat(draft.repeatHours);
   const spec = DOSE_UNITS[draft.doseUnit];
+
+  const scheduleOptions: SegmentOption<MedicationSchedule>[] = [
+    { value: 'scheduled', label: t('medForm.scheduled'), glyph: (c) => <ScheduledGlyph size={15} color={c} /> },
+    { value: 'asNeeded', label: t('medForm.asNeeded'), glyph: (c) => <AsNeededGlyph size={13} color={c} /> },
+  ];
+
+  const unitOptions: ChipOption<DosageUnit>[] = DOSE_UNIT_ORDER.map((u) => ({
+    value: u,
+    label: doseUnitLabel(u),
+    glyph: (color: string) => <UnitGlyph unit={u} size={15} color={color} />,
+  }));
+
+  const routeOptions: SegmentOption<MedicationRoute>[] = [
+    { value: 'orally', label: t('medForm.routeOrally') },
+    { value: 'anal', label: t('medForm.routeAnal') },
+  ];
+
+  const repeatOptions: ChipOption<RepeatChoice>[] = [
+    ...REPEAT_HOURS.map((h) => ({ value: String(h), label: `${h}h` })),
+    { value: CUSTOM, label: t('medForm.custom') },
+  ];
 
   const chooseRepeat = (choice: RepeatChoice) => {
     if (choice === CUSTOM) {
@@ -126,7 +130,7 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
     <>
       {suggestions.length > 0 ? (
         <View>
-          <FieldLabel>Recent medications</FieldLabel>
+          <FieldLabel>{t('medForm.recent')}</FieldLabel>
           <ScrollView style={styles.suggestions} nestedScrollEnabled>
             {suggestions.map((m) => (
               <Pressable
@@ -143,7 +147,10 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
                     {m.name}
                   </AppText>
                   <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                    {formatDose(m.dose, m.doseUnit)} · every {m.repeatHours}h
+                    {t('medForm.recentMeta', {
+                      dose: formatDose(m.dose, m.doseUnit),
+                      hours: m.repeatHours,
+                    })}
                   </AppText>
                 </View>
               </Pressable>
@@ -153,26 +160,26 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
       ) : null}
 
       <TextField
-        label="Medicine name"
-        placeholder="e.g. Tylenol"
+        label={t('medForm.name')}
+        placeholder={t('medForm.namePlaceholder')}
         value={draft.medName}
         onChangeText={(medName) => patch({ medName })}
       />
 
       <View>
-        <FieldLabel>Schedule</FieldLabel>
+        <FieldLabel>{t('medForm.schedule')}</FieldLabel>
         <SegmentedToggle
-          options={SCHEDULE_OPTIONS}
+          options={scheduleOptions}
           value={draft.schedule}
           onChange={(schedule) => patch({ schedule })}
         />
       </View>
 
       <View>
-        <FieldLabel>Unit</FieldLabel>
+        <FieldLabel>{t('medForm.unit')}</FieldLabel>
         <ChipRow
           layout="wrap"
-          options={UNIT_OPTIONS}
+          options={unitOptions}
           value={draft.doseUnit}
           onChange={(doseUnit) => patch({ doseUnit })}
         />
@@ -193,9 +200,9 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
 
       {showsRoute(draft.doseUnit) ? (
         <View>
-          <FieldLabel>Route</FieldLabel>
+          <FieldLabel>{t('medForm.route')}</FieldLabel>
           <SegmentedToggle
-            options={ROUTE_OPTIONS}
+            options={routeOptions}
             value={draft.route}
             onChange={(route) => patch({ route })}
           />
@@ -204,8 +211,8 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
 
       {showsBodyArea(draft.doseUnit) ? (
         <TextField
-          label="Body area"
-          placeholder="e.g. chest, back"
+          label={t('medForm.bodyArea')}
+          placeholder={t('medForm.bodyAreaPlaceholder')}
           value={draft.bodyArea}
           onChangeText={(bodyArea) => patch({ bodyArea })}
         />
@@ -215,7 +222,7 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
         <FieldLabel>{repeatLabel(draft.schedule)}</FieldLabel>
         <ChipRow
           layout="wrap"
-          options={REPEAT_OPTIONS}
+          options={repeatOptions}
           value={custom ? CUSTOM : String(draft.repeatHours)}
           onChange={chooseRepeat}
         />
@@ -227,7 +234,7 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
               step={0.5}
               min={0.5}
               decimals={1}
-              suffix=" h"
+              suffix={t('medForm.customSuffix')}
             />
           </View>
         ) : null}
@@ -235,10 +242,10 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
 
       {showsMaxDose(draft.schedule) ? (
         <View>
-          <FieldLabel>Max dose per 24h (optional)</FieldLabel>
+          <FieldLabel>{t('medForm.maxDose')}</FieldLabel>
           <MaxDoseField
             value={draft.maxDose24h}
-            unitLabel={spec.label}
+            unitLabel={doseUnitLabel(draft.doseUnit)}
             onChange={changeMaxDose}
           />
           <AppText
@@ -247,8 +254,7 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
             color={colors.textMuted}
             style={styles.hint}
           >
-            Leave blank to keep whatever limit this medicine already has. We&apos;ll warn before a
-            dose would exceed it in a rolling 24h window.
+            {t('medForm.maxDoseHint')}
           </AppText>
         </View>
       ) : null}
@@ -272,6 +278,7 @@ function MaxDoseField({
   unitLabel: string;
   onChange: (text: string) => void;
 }) {
+  const { t } = useTranslation();
   const asText = (n: number | null) => (n == null ? '' : String(n));
   const [raw, setRaw] = useState(() => asText(value));
   // React's documented "adjust state when a prop changes" pattern — state, not
@@ -289,7 +296,7 @@ function MaxDoseField({
   return (
     <TextField
       keyboardType="decimal-pad"
-      placeholder={`No limit (${unitLabel})`}
+      placeholder={t('medForm.noLimitPlaceholder', { unit: unitLabel })}
       value={raw}
       onChangeText={(text) => {
         setRaw(text);

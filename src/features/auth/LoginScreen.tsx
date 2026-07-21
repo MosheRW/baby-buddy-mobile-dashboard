@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, SegmentedToggle, TextField } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { LoginMode } from '../../api/types';
@@ -17,6 +18,7 @@ import { USE_MOCK_DATA } from '../../data/dataSource';
  * cross-origin — the screen falls back to asking for the key directly.
  */
 export function LoginScreen() {
+  const { t } = useTranslation();
   const signIn = useAuthStore((s) => s.signIn);
   const [mode, setMode] = useState<LoginMode>('babybuddy');
 
@@ -34,7 +36,7 @@ export function LoginScreen() {
   const submit = async () => {
     const baseUrl = normalizeBaseUrl(serverUrl);
     if (!baseUrl) {
-      setError('Enter your server URL.');
+      setError(t('login.enterServerUrl'));
       return;
     }
 
@@ -56,7 +58,7 @@ export function LoginScreen() {
       if (err instanceof PasswordLoginUnavailable) {
         // Offer the supported path instead of leaving the user stuck.
         setUseApiKey(true);
-        setError(`${err.message} Paste your API key from Baby Buddy's user settings instead.`);
+        setError(t('login.passwordFallback', { message: err.message }));
       } else {
         setError(errorMessage(err));
       }
@@ -76,7 +78,7 @@ export function LoginScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.logo} />
           <AppText size={fontSize.screenTitle} weight="800" style={styles.title}>
-            Baby Buddy Dashboard
+            {t('login.title')}
           </AppText>
           <AppText
             size={fontSize.bodySm}
@@ -84,7 +86,7 @@ export function LoginScreen() {
             color={colors.textMuted}
             style={styles.subtitle}
           >
-            Connect to your server
+            {t('login.subtitle')}
           </AppText>
 
           <View style={styles.toggle}>
@@ -95,17 +97,17 @@ export function LoginScreen() {
                 setError(null);
               }}
               options={[
-                { value: 'babybuddy', label: 'Baby Buddy server' },
-                { value: 'homeassistant', label: 'Home Assistant' },
+                { value: 'babybuddy', label: t('login.modeBabyBuddy') },
+                { value: 'homeassistant', label: t('login.modeHomeAssistant') },
               ]}
             />
           </View>
 
           <View style={styles.fields}>
             <TextField
-              label={isHa ? 'Add-on URL' : 'Server URL'}
+              label={isHa ? t('login.addOnUrl') : t('login.serverUrl')}
               placeholder={
-                isHa ? 'http://homeassistant.local:8123/addon-slug' : 'https://babybuddy.example.com'
+                isHa ? t('login.addOnUrlPlaceholder') : t('login.serverUrlPlaceholder')
               }
               autoCapitalize="none"
               autoCorrect={false}
@@ -116,8 +118,8 @@ export function LoginScreen() {
 
             {showKeyField ? (
               <TextField
-                label="API key"
-                placeholder="Paste from Baby Buddy → user settings"
+                label={t('login.apiKey')}
+                placeholder={t('login.apiKeyPlaceholder')}
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
@@ -127,16 +129,16 @@ export function LoginScreen() {
             ) : (
               <>
                 <TextField
-                  label="Username"
-                  placeholder="sarah"
+                  label={t('login.username')}
+                  placeholder={t('login.usernamePlaceholder')}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={username}
                   onChangeText={setUsername}
                 />
                 <TextField
-                  label="Password"
-                  placeholder="••••••••"
+                  label={t('login.password')}
+                  placeholder={t('login.passwordPlaceholder')}
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
@@ -146,8 +148,7 @@ export function LoginScreen() {
 
             {isHa ? (
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                Include the add-on&apos;s ingress path in the URL. The key is the Baby Buddy API key
-                from its user settings, not a Home Assistant token.
+                {t('login.haHint')}
               </AppText>
             ) : null}
           </View>
@@ -162,7 +163,7 @@ export function LoginScreen() {
 
           <View style={styles.cta}>
             <ActionButton
-              label={busy ? 'Connecting…' : isHa ? 'Connect' : 'Log in'}
+              label={busy ? t('login.connecting') : isHa ? t('login.connect') : t('login.logIn')}
               fullWidth
               disabled={busy}
               onPress={() => void submit()}
@@ -172,7 +173,7 @@ export function LoginScreen() {
           {!isHa ? (
             <View style={styles.switcher}>
               <ActionButton
-                label={showKeyField ? 'Use username and password' : 'Use an API key instead'}
+                label={showKeyField ? t('login.useUsernamePassword') : t('login.useApiKey')}
                 variant="neutral"
                 fullWidth
                 disabled={busy}

@@ -41,6 +41,7 @@ import {
   type RunningTimer,
   type TimerType,
 } from '../lib/timers';
+import i18n from '../i18n';
 
 // --- Entry ids --------------------------------------------------------------
 // Server ids are per-endpoint integers, so change #1 and feeding #1 both exist.
@@ -216,23 +217,23 @@ export function hueForChild(id: number): number {
   return Math.round((id * 137.508) % 360);
 }
 
-/** "7 months old" / "2 years old" / "12 days old". */
+/** "7 months old" / "2 years old" / "12 days old" (localized + pluralized). */
 export function ageLabel(birthDate: string, now: number = Date.now()): string {
   const birth = new Date(birthDate);
   const ms = now - birth.getTime();
   if (!Number.isFinite(ms) || ms < 0) return '';
 
   const days = Math.floor(ms / 86_400_000);
-  if (days < 31) return `${days} ${days === 1 ? 'day' : 'days'} old`;
+  if (days < 31) return i18n.t('age.days', { count: days });
 
   const months =
     (new Date(now).getFullYear() - birth.getFullYear()) * 12 +
     (new Date(now).getMonth() - birth.getMonth()) -
     (new Date(now).getDate() < birth.getDate() ? 1 : 0);
 
-  if (months < 24) return `${months} ${months === 1 ? 'month' : 'months'} old`;
+  if (months < 24) return i18n.t('age.months', { count: months });
   const years = Math.floor(months / 12);
-  return `${years} ${years === 1 ? 'year' : 'years'} old`;
+  return i18n.t('age.years', { count: years });
 }
 
 export function normalizeChild(dto: ChildDto, defaultFoodMl = 120, now?: number): Child {
@@ -242,6 +243,7 @@ export function normalizeChild(dto: ChildDto, defaultFoodMl = 120, now?: number)
     name,
     initial: (name[0] ?? '?').toUpperCase(),
     hue: hueForChild(dto.id),
+    birthDate: dto.birth_date,
     age: ageLabel(dto.birth_date, now),
     defaultFoodMl,
   };

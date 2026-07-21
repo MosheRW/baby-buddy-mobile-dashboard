@@ -1,6 +1,8 @@
 /**
  * Date/time helpers for display. Kept pure so they can be unit-tested in Phase 3.
+ * Display copy is looked up from i18n; the numeric math stays here.
  */
+import i18n from '../i18n';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -9,14 +11,14 @@ const DAY = 24 * HOUR;
 /** Compact "time since" label, e.g. "45m ago", "3h ago", "2d ago", "now". */
 export function timeAgo(iso: string, now: number = Date.now()): string {
   const diff = Math.max(0, now - new Date(iso).getTime());
-  if (diff < MIN) return 'now';
-  if (diff < HOUR) return `${Math.floor(diff / MIN)}m ago`;
+  if (diff < MIN) return i18n.t('dates.now');
+  if (diff < HOUR) return i18n.t('dates.minutesAgo', { m: Math.floor(diff / MIN) });
   if (diff < DAY) {
     const h = Math.floor(diff / HOUR);
     const m = Math.floor((diff % HOUR) / MIN);
-    return m > 0 ? `${h}h ${m}m ago` : `${h}h ago`;
+    return m > 0 ? i18n.t('dates.hoursMinutesAgo', { h, m }) : i18n.t('dates.hoursAgo', { h });
   }
-  return `${Math.floor(diff / DAY)}d ago`;
+  return i18n.t('dates.daysAgo', { d: Math.floor(diff / DAY) });
 }
 
 /** "Xh Ym" duration between two ISO times (or from a start to now). */
@@ -26,8 +28,8 @@ export function durationLabel(startIso: string, endIso?: string, now: number = D
   const diff = Math.max(0, end - start);
   const h = Math.floor(diff / HOUR);
   const m = Math.floor((diff % HOUR) / MIN);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  if (h > 0) return i18n.t('duration.hoursMinutes', { h, m });
+  return i18n.t('duration.minutes', { m });
 }
 
 /** mm:ss elapsed since a start time — for live timer displays. */
@@ -42,14 +44,14 @@ export function elapsedClock(startIso: string, now: number = Date.now()): string
 /** Greeting based on the hour of day. */
 export function greeting(now: number = Date.now()): string {
   const h = new Date(now).getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return i18n.t('dates.greeting.morning');
+  if (h < 18) return i18n.t('dates.greeting.afternoon');
+  return i18n.t('dates.greeting.evening');
 }
 
-/** "Sunday, July 19" style long date. */
+/** "Sunday, July 19" style long date, in the active language's locale. */
 export function longDate(now: number = Date.now()): string {
-  return new Date(now).toLocaleDateString(undefined, {
+  return new Date(now).toLocaleDateString(i18n.language || undefined, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -65,7 +67,7 @@ export function dayHeader(iso: string, now: number = Date.now()): string {
   const today = new Date(now);
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const t = d.getTime();
-  if (t >= startOfToday) return 'Today';
-  if (t >= startOfToday - DAY) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (t >= startOfToday) return i18n.t('dates.today');
+  if (t >= startOfToday - DAY) return i18n.t('dates.yesterday');
+  return d.toLocaleDateString(i18n.language || undefined, { month: 'short', day: 'numeric' });
 }

@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText } from '../../components';
 import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'MedBreakdown'>;
  * units, and "7 mg + 2 ml = 9" is a number that means nothing.
  */
 export function MedBreakdownSheet({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { childId, childName } = route.params;
   const { entries } = useDashboardData();
   const rows = medBreakdown24h(entriesForChild(entries, childId));
@@ -36,7 +38,7 @@ export function MedBreakdownSheet({ route, navigation }: Props) {
         <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Dismiss"
+          accessibilityLabel={t('common.dismiss')}
           style={[StyleSheet.absoluteFill, styles.scrim]}
           onPress={close}
         />
@@ -47,7 +49,7 @@ export function MedBreakdownSheet({ route, navigation }: Props) {
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <AppText size={fontSize.cardTitle} weight="800">
-              Medication · last 24h
+              {t('med.breakdownTitle')}
             </AppText>
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
               {childName}
@@ -60,7 +62,7 @@ export function MedBreakdownSheet({ route, navigation }: Props) {
                 color={colors.textMuted}
                 style={styles.empty}
               >
-                Nothing given in the last 24 hours.
+                {t('med.breakdownEmpty')}
               </AppText>
             ) : (
               <ScrollView style={styles.rows} contentContainerStyle={styles.rowsContent}>
@@ -70,7 +72,7 @@ export function MedBreakdownSheet({ route, navigation }: Props) {
               </ScrollView>
             )}
 
-            <ActionButton label="Close" variant="neutral" onPress={close} />
+            <ActionButton label={t('common.close')} variant="neutral" onPress={close} />
           </View>
         </SafeAreaView>
       </Animated.View>
@@ -79,8 +81,15 @@ export function MedBreakdownSheet({ route, navigation }: Props) {
 }
 
 function BreakdownRow({ row }: { row: MedBreakdownRow }) {
+  const { t } = useTranslation();
   const limited = row.limit != null;
   const fg = row.atLimit ? colors.danger : colors.textPrimary;
+
+  const detail = limited
+    ? row.atLimit
+      ? t('med.maxReached')
+      : t('med.stillAvailable', { amount: formatDose(row.remaining as number, row.unit) })
+    : t('med.noLimit');
 
   return (
     <View style={styles.row}>
@@ -92,12 +101,8 @@ function BreakdownRow({ row }: { row: MedBreakdownRow }) {
           {row.name}
         </AppText>
         <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-          {row.doses} {row.doses === 1 ? 'dose' : 'doses'}
-          {limited
-            ? row.atLimit
-              ? ' · max dose reached'
-              : ` · ${formatDose(row.remaining as number, row.unit)} still available`
-            : ' · no 24h limit set'}
+          {t('med.doses', { count: row.doses })}
+          {detail}
         </AppText>
       </View>
       <AppText size={fontSize.bodySm} weight="800" color={fg}>

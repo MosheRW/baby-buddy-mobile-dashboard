@@ -1,9 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppText, Card, StatTile } from '../../components';
 import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
 import { avatarTint, colors, fontSize, radii, spacing, tints } from '../../theme';
 import { timeAgo } from '../../lib/dates';
+import { ageLabel } from '../../api/normalize';
 import type { Child, Entry, EntryType } from '../../api/types';
 import { QuickActions } from './QuickActions';
 import { SettingsButton } from './SettingsButton';
@@ -59,6 +61,7 @@ export function ChildCard({
   onOpenSettings,
   width,
 }: ChildCardProps) {
+  const { t } = useTranslation();
   const childEntries = entriesForChild(entries, child.id);
   const pee = lastDiaper(childEntries, 'pee');
   const poo = lastDiaper(childEntries, 'poo');
@@ -92,7 +95,7 @@ export function ChildCard({
               {child.name}
             </AppText>
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {child.age}
+              {ageLabel(child.birthDate, now)}
             </AppText>
           </View>
         </View>
@@ -101,14 +104,14 @@ export function ChildCard({
 
       <View style={styles.statRow}>
         <StatTile
-          label="Last pee"
+          label={t('childCard.lastPee')}
           value={pee ? timeAgo(pee.time, now) : '—'}
           tint={tints.pee}
           glyph="diaperPee"
           style={styles.stat}
         />
         <StatTile
-          label="Last poo"
+          label={t('childCard.lastPoo')}
           value={poo ? timeAgo(poo.time, now) : '—'}
           tint={tints.poo}
           glyph="diaperPoo"
@@ -119,8 +122,15 @@ export function ChildCard({
       {/* The 24h intake summary belongs to this tile, not to the food total
           below it — it's context for the feed that just happened. */}
       <StatTile
-        label="Last feeding"
-        value={feeding ? `${entryTitle(feeding)} · ${timeAgo(feeding.time, now)}` : '—'}
+        label={t('childCard.lastFeeding')}
+        value={
+          feeding
+            ? t('childCard.lastFeedingValue', {
+                title: entryTitle(feeding),
+                ago: timeAgo(feeding.time, now),
+              })
+            : '—'
+        }
         tint={tints.feeding}
         glyph="feedingBottle"
       >
@@ -128,8 +138,8 @@ export function ChildCard({
       </StatTile>
 
       <StatTile
-        label={`Food, ${foodWindowHours}h`}
-        value={`${total} ml`}
+        label={t('childCard.foodWindow', { hours: foodWindowHours })}
+        value={t('childCard.foodValue', { amount: total })}
         tint={{ bg: colors.tileNeutral }}
       />
 
@@ -169,6 +179,7 @@ function MedRow({
   now: number;
   onPress?: (status: MedStatus) => void;
 }) {
+  const { t } = useTranslation();
   // Scheduled meds warn a few minutes ahead; an as-needed med has nothing to be
   // late for, so it only lights up once it's actually available again.
   const urgent = kind === 'needed' ? status.urgent : status.isDue;
@@ -179,7 +190,7 @@ function MedRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Log a dose of ${status.name}`}
+      accessibilityLabel={t('childCard.logDose', { name: status.name })}
       disabled={onPress == null}
       onPress={() => onPress?.(status)}
       style={[styles.medRow, { backgroundColor: bg }]}
@@ -192,7 +203,7 @@ function MedRow({
           {status.name}
         </AppText>
         <AppText size={fontSize.micro} weight="600" color={fg} style={styles.faded}>
-          last {timeAgo(new Date(status.lastTakenAt).toISOString(), now)}
+          {t('childCard.lastAt', { time: timeAgo(new Date(status.lastTakenAt).toISOString(), now) })}
         </AppText>
       </View>
       <AppText size={fontSize.metaSm} weight="800" color={fg} style={styles.medStatus}>
@@ -215,16 +226,23 @@ function MedLimitTile({
   now: number;
   onPress?: () => void;
 }) {
+  const { t } = useTranslation();
   const fg = tints.eligible.fg;
   // At the ceiling the bar turns red — this is the one number here that means
   // "stop", so it shouldn't read the same as a half-full bar.
   const barColor = summary.atLimit ? colors.danger : fg;
-  const eligible = summary.isDue ? 'now' : `in ${countdownLabel(summary.dueInMs)}`;
+  const eligible = summary.isDue
+    ? t('med.eligibleNowShort')
+    : t('med.eligibleInShort', { duration: countdownLabel(summary.dueInMs) });
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${summary.name} 24-hour total, ${summary.taken} of ${summary.limit}`}
+      accessibilityLabel={t('childCard.limitAria', {
+        name: summary.name,
+        taken: summary.taken,
+        limit: summary.limit,
+      })}
       disabled={onPress == null}
       onPress={onPress}
       style={styles.limitTile}
@@ -238,7 +256,9 @@ function MedLimitTile({
             {summary.name}
           </AppText>
           <AppText size={fontSize.micro} weight="600" color={fg} style={styles.faded}>
-            last {timeAgo(new Date(summary.lastTakenAt).toISOString(), now)}
+            {t('childCard.lastAt', {
+              time: timeAgo(new Date(summary.lastTakenAt).toISOString(), now),
+            })}
           </AppText>
         </View>
         <AppText size={fontSize.metaSm} weight="800" color={fg}>
