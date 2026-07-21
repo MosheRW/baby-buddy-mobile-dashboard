@@ -29,7 +29,10 @@
       "Bash(curl -s -D - -o /dev/null --max-time 12 \"https://winbergs-babies.duckdns.org/login/\")",
       "Bash(node -e \"console.log\\('local UTC now :', new Date\\(\\).toUTCString\\(\\)\\)\")",
       "Bash(sed -i 's/        body: denormalize\\(entry\\),/        body: denormalize\\(entry, serverNow\\(\\)\\),/g' src/api/babybuddy.ts)",
-      "Bash(sed -i \"s/import { ParseError, rawRequest, request } from '.\\\\/client';/import { ParseError, rawRequest, request, serverNow } from '.\\\\/client';/\" src/api/babybuddy.ts)"
+      "Bash(sed -i \"s/import { ParseError, rawRequest, request } from '.\\\\/client';/import { ParseError, rawRequest, request, serverNow } from '.\\\\/client';/\" src/api/babybuddy.ts)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Dell\\\\Prog\\\\baby-buddy-native\\\\package.json' | Select-String datetimepicker\")"
     ]
   }
 }

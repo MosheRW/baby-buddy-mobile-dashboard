@@ -24,20 +24,22 @@ export interface RunningTimer {
 
 /**
  * Baby Buddy's Timer model has no type field — a timer is just {child, name,
- * start}. The name is how we recognise our own timers on the way back, so it
- * doubles as a human-readable label in the Baby Buddy web UI.
+ * start}. The name is how we recognise our own timers on the way back, so a
+ * fixed, app-namespaced name keeps us from adopting a generically-named timer
+ * started by another tool (the Baby Buddy web UI, the HA add-on, another
+ * instance of this app).
  */
 export const TIMER_NAMES: Record<TimerType, string> = {
-  feeding: 'Feeding',
-  sleep: 'Sleep',
-  tummyTime: 'Tummy Time',
+  feeding: 'Feeding-BBapp:1',
+  sleep: 'Sleep-BBapp:2',
+  tummyTime: 'Tummy time-BBapp:3',
 };
 
 /** Match loosely: a name edited in the web UI shouldn't orphan the timer. */
 export function timerTypeFromName(name: string | null | undefined): TimerType | undefined {
   if (!name) return undefined;
-  const normalized = name.trim().toLowerCase().replace(/\s+/g, '');
-  return TIMER_TYPES.find((t) => TIMER_NAMES[t].toLowerCase().replace(/\s+/g, '') === normalized);
+  const normalized = name.trim().toLowerCase();
+  return TIMER_TYPES.find((t) => TIMER_NAMES[t].toLowerCase() === normalized);
 }
 
 export function isTimerType(type: EntryType): type is TimerType {

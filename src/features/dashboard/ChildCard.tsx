@@ -6,6 +6,7 @@ import { avatarTint, colors, fontSize, radii, spacing, tints } from '../../theme
 import { timeAgo } from '../../lib/dates';
 import type { Child, Entry, EntryType } from '../../api/types';
 import { QuickActions } from './QuickActions';
+import { SettingsButton } from './SettingsButton';
 import {
   entriesForChild,
   lastDiaper,
@@ -41,6 +42,8 @@ interface ChildCardProps {
   onOpenMedBreakdown?: () => void;
   /** Opens the medication form prefilled from an existing dose of that med. */
   onLogDose?: (status: MedStatus) => void;
+  /** When set, a settings cog floats inline with the name in the header. */
+  onOpenSettings?: () => void;
   width?: number;
 }
 
@@ -53,6 +56,7 @@ export function ChildCard({
   onQuickAction,
   onOpenMedBreakdown,
   onLogDose,
+  onOpenSettings,
   width,
 }: ChildCardProps) {
   const childEntries = entriesForChild(entries, child.id);
@@ -77,19 +81,22 @@ export function ChildCard({
   return (
     <Card style={[styles.card, width != null && { width }]}>
       <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-          <AppText size={fontSize.cardTitleLg} weight="800" color={tint.fg}>
-            {child.initial}
-          </AppText>
+        <View style={styles.headerMain}>
+          <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+            <AppText size={fontSize.cardTitleLg} weight="800" color={tint.fg}>
+              {child.initial}
+            </AppText>
+          </View>
+          <View>
+            <AppText size={fontSize.cardTitle} weight="800">
+              {child.name}
+            </AppText>
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {child.age}
+            </AppText>
+          </View>
         </View>
-        <View>
-          <AppText size={fontSize.cardTitle} weight="800">
-            {child.name}
-          </AppText>
-          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-            {child.age}
-          </AppText>
-        </View>
+        {onOpenSettings ? <SettingsButton onPress={onOpenSettings} /> : null}
       </View>
 
       <View style={styles.statRow}>
@@ -286,7 +293,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.lg,
+  },
+  headerMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    flexShrink: 1,
   },
   avatar: {
     width: 44,

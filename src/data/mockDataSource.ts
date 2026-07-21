@@ -49,5 +49,11 @@ export function createMockDataSource(): DataSource {
     async stopTimer(serverTimerId) {
       timers = timers.filter((t) => t.serverTimerId !== serverTimerId);
     },
+    async updateTimerStart(serverTimerId, startedAt) {
+      timers = timers.map((t) => (t.serverTimerId === serverTimerId ? { ...t, startedAt } : t));
+      const updated = timers.find((t) => t.serverTimerId === serverTimerId);
+      if (!updated) throw new Error(`No mock timer with id ${serverTimerId}.`);
+      return updated;
+    },
   };
 }

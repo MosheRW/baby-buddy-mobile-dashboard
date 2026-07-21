@@ -7,6 +7,7 @@
 // and can't load under the plain-node test environment. `src/lib` is pure, so
 // it should never reach for the font loader anyway.
 import { tints, colors, pooSwatch } from '../theme/tokens';
+import { durationLabel } from './dates';
 import type {
   DosageUnit,
   Entry,
@@ -95,6 +96,24 @@ export function entryTitle(entry: Entry): string {
     case 'note':
       return 'Note';
   }
+}
+
+/**
+ * "Xh Ym" duration for a feeding/sleep/tummy-time entry, when one is
+ * available. Absent for entries with no end (an ongoing sleep) and for a
+ * zero-length span (e.g. a bottle feed logged with no timer, where the server
+ * fills in `end = start`) — nothing meaningful to show in either case.
+ */
+export function entryDurationLabel(entry: Entry): string | undefined {
+  if (entry.type !== 'feeding' && entry.type !== 'sleep' && entry.type !== 'tummyTime') {
+    return undefined;
+  }
+  if (!entry.endTime) return undefined;
+  const minutes = Math.round(
+    (new Date(entry.endTime).getTime() - new Date(entry.time).getTime()) / 60_000,
+  );
+  if (minutes < 1) return undefined;
+  return durationLabel(entry.time, entry.endTime);
 }
 
 // --- Glyph + swatch selection (Phase 8, Batch C) ----------------------------

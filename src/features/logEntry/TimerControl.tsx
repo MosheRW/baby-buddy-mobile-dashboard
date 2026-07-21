@@ -44,14 +44,18 @@ export function StartTimerButton({ type, childId }: StartTimerButtonProps) {
 interface RunningTimerStripProps {
   type: TimerType;
   childId: string;
-  /** 1-second tick value driving the live elapsed display. */
-  now: number;
+  /**
+   * Point in time to measure elapsed against — the live 1-second tick while
+   * the entry's end time is untouched, or the manually-edited end time once
+   * the caregiver sets one, so the display freezes instead of ticking past it.
+   */
+  asOf: number;
   /** Stops the timer and fills the draft with the measured span. */
   onStop: () => void;
 }
 
 /** Compact "● Timer running m:ss [Stop]" pill shown at the top of the form. */
-export function RunningTimerStrip({ type, childId, now, onStop }: RunningTimerStripProps) {
+export function RunningTimerStrip({ type, childId, asOf, onStop }: RunningTimerStripProps) {
   const timer = useTimerStore((s) => s.timers.find((t) => t.type === type && t.childId === childId));
   if (!timer) return null;
 
@@ -62,7 +66,7 @@ export function RunningTimerStrip({ type, childId, now, onStop }: RunningTimerSt
         Timer running
       </AppText>
       <AppText size={fontSize.body} weight="800" color={colors.accent}>
-        {elapsedClock(timer.startedAt, now)}
+        {elapsedClock(timer.startedAt, asOf)}
       </AppText>
       <Pressable
         accessibilityRole="button"

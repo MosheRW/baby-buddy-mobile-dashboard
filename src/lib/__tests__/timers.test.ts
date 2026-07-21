@@ -49,18 +49,19 @@ describe('timer helpers', () => {
 
 describe('timerTypeFromName', () => {
   it('recognises the names we write', () => {
-    expect(timerTypeFromName('Feeding')).toBe('feeding');
-    expect(timerTypeFromName('Sleep')).toBe('sleep');
-    expect(timerTypeFromName('Tummy Time')).toBe('tummyTime');
+    expect(timerTypeFromName('Feeding-BBapp:1')).toBe('feeding');
+    expect(timerTypeFromName('Sleep-BBapp:2')).toBe('sleep');
+    expect(timerTypeFromName('Tummy time-BBapp:3')).toBe('tummyTime');
   });
 
   it('tolerates casing and spacing drift from the web UI', () => {
-    expect(timerTypeFromName('  tummytime ')).toBe('tummyTime');
-    expect(timerTypeFromName('TUMMY  TIME')).toBe('tummyTime');
+    expect(timerTypeFromName('  tummy time-bbapp:3 ')).toBe('tummyTime');
+    expect(timerTypeFromName('SLEEP-BBAPP:2')).toBe('sleep');
   });
 
   it('leaves unrelated timers unclassified rather than guessing', () => {
     expect(timerTypeFromName('Quick Timer')).toBeUndefined();
+    expect(timerTypeFromName('Feeding')).toBeUndefined();
     expect(timerTypeFromName('')).toBeUndefined();
     expect(timerTypeFromName(null)).toBeUndefined();
   });

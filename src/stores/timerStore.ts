@@ -28,6 +28,8 @@ interface TimerState {
   startTimer: (type: TimerType, childId: string, startedAt?: number) => RunningTimer;
   /** Removes the timer and returns it — its `serverTimerId` is what gets deleted. */
   stopTimer: (type: TimerType, childId: string) => RunningTimer | undefined;
+  /** Adjusts a running timer's start, e.g. after the caregiver edits it by hand. */
+  updateStart: (type: TimerType, childId: string, startedAt: number) => void;
   attachServerId: (type: TimerType, childId: string, serverTimerId: number) => void;
   /** Replace the whole list (reconciliation result). */
   setTimers: (timers: RunningTimer[]) => void;
@@ -67,6 +69,11 @@ export const useTimerStore = create<TimerState>()(
         set((state) => ({ timers: state.timers.filter((t) => !isPair(t, type, childId)) }));
         return stopped;
       },
+
+      updateStart: (type, childId, startedAt) =>
+        set((state) => ({
+          timers: state.timers.map((t) => (isPair(t, type, childId) ? { ...t, startedAt } : t)),
+        })),
 
       attachServerId: (type, childId, serverTimerId) =>
         set((state) => ({

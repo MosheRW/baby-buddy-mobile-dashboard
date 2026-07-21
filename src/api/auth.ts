@@ -15,7 +15,7 @@
  * After either flow the app holds a token and never uses the cookie session.
  */
 import type { LoginMode, Session } from './types';
-import { profileSchema } from './schemas';
+import { profileResponseSchema, profileSchema } from './schemas';
 import { ApiError, AuthError, NetworkError, joinUrl, rawRequest, request } from './client';
 
 /** Raised when the password flow can't complete and the user should paste a key. */
@@ -39,7 +39,13 @@ export async function signInWithToken(
   baseUrl: string,
   token: string,
 ): Promise<Session> {
-  const profile = await request(profileSchema, { baseUrl, path: 'api/profile', token });
+  const profile_ = await request(profileResponseSchema, { baseUrl, path: 'api/profile', token });
+  const profile = {
+    username: profile_.user?.username,
+    first_name: profile_.user?.first_name,
+    last_name: profile_.user?.last_name,
+    api_key: profile_.api_key,
+  };
   return { mode, baseUrl, token, userName: displayName(profile) };
 }
 

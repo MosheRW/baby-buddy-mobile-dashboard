@@ -5,6 +5,7 @@ import { colors, fontSize, radii, spacing } from '../../theme';
 import type { Child, Entry, EntryType } from '../../api/types';
 import type { MedStatus } from '../../lib/medication';
 import { ChildCard } from './ChildCard';
+import { SettingsButton } from './SettingsButton';
 
 const SCREEN_W = Dimensions.get('window').width;
 const CARD_W = Math.min(320, SCREEN_W - spacing['2xl'] * 2 - 40);
@@ -21,6 +22,7 @@ interface ChildNavProps {
   onQuickAction: (childId: string, type: EntryType) => void;
   onOpenMedBreakdown: (child: Child) => void;
   onLogDose: (childId: string, status: MedStatus) => void;
+  onOpenSettings: () => void;
 }
 
 /**
@@ -42,6 +44,7 @@ function CarouselNav({
   onQuickAction,
   onOpenMedBreakdown,
   onLogDose,
+  onOpenSettings,
 }: ChildNavProps) {
   const step = CARD_W + spacing.lg;
   return (
@@ -68,6 +71,9 @@ function CarouselNav({
               onQuickAction={(type) => onQuickAction(child.id, type)}
               onOpenMedBreakdown={() => onOpenMedBreakdown(child)}
               onLogDose={(status) => onLogDose(child.id, status)}
+              // ≤2 children: the cog floats inline with the name in the card
+              // header. (≥3 renders it in the tab row instead — see TabsNav.)
+              onOpenSettings={onOpenSettings}
             />
           </View>
         ))}
@@ -99,34 +105,41 @@ function TabsNav({
   onQuickAction,
   onOpenMedBreakdown,
   onLogDose,
+  onOpenSettings,
 }: ChildNavProps) {
   const active = childList[activeIndex] ?? childList[0];
   return (
     <View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabs}
-      >
-        {childList.map((child, i) => {
-          const isActive = i === activeIndex;
-          return (
-            <View
-              key={child.id}
-              style={[styles.tab, isActive && styles.tabActive]}
-              onTouchEnd={() => onActiveChange(i)}
-            >
-              <AppText
-                size={fontSize.bodySm}
-                weight="700"
-                color={isActive ? colors.onAccent : colors.textPrimary}
+      {/* ≥3 children: names live on their own pill row, so the cog sits on that
+          same line, pinned to the right while the pills scroll under it. */}
+      <View style={styles.tabsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabs}
+          style={styles.tabsScroll}
+        >
+          {childList.map((child, i) => {
+            const isActive = i === activeIndex;
+            return (
+              <View
+                key={child.id}
+                style={[styles.tab, isActive && styles.tabActive]}
+                onTouchEnd={() => onActiveChange(i)}
               >
-                {child.name}
-              </AppText>
-            </View>
-          );
-        })}
-      </ScrollView>
+                <AppText
+                  size={fontSize.bodySm}
+                  weight="700"
+                  color={isActive ? colors.onAccent : colors.textPrimary}
+                >
+                  {child.name}
+                </AppText>
+              </View>
+            );
+          })}
+        </ScrollView>
+        <SettingsButton onPress={onOpenSettings} />
+      </View>
       <View style={styles.tabCard}>
         <ChildCard
           child={active}
@@ -163,10 +176,19 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: colors.accent,
   },
+  tabsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  tabsScroll: {
+    flex: 1,
+  },
   tabs: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
-    paddingBottom: spacing.xl,
   },
   tab: {
     borderRadius: radii.pill,

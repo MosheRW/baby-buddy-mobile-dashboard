@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo } from 'react';
 import { serverNow } from '../api/client';
-import { useServerTimers, useStartTimer, useStopTimer } from '../data/queries';
+import { useServerTimers, useStartTimer, useStopTimer, useUpdateTimerStart } from '../data/queries';
 import { reconcileTimers, type RunningTimer, type TimerType } from '../lib/timers';
 import { useTimerStore } from '../stores';
 
@@ -45,12 +45,18 @@ export interface TimerActions {
   start: (type: TimerType, childId: string) => void;
   /** Returns the stopped timer's span, or undefined if nothing was running. */
   stop: (type: TimerType, childId: string) => { startedAt: number; endedAt: number } | undefined;
+  /**
+   * Adjusts a running timer's start after the caregiver edits it by hand in the
+   * log-entry form. No-ops if no such timer is running.
+   */
+  updateStart: (type: TimerType, childId: string, startedAt: number) => void;
 }
 
 export function useTimerActions(): TimerActions {
   // `mutate` is stable across renders, so these actions are too.
   const startTimer = useStartTimer().mutate;
   const stopServerTimer = useStopTimer().mutate;
+  const updateTimerStart = useUpdateTimerStart().mutate;
 
   return useMemo(
     () => ({
@@ -95,7 +101,26 @@ export function useTimerActions(): TimerActions {
 
         return { startedAt: stopped.startedAt, endedAt: serverNow() };
       },
+
+      updateStart: (type, childId, startedAt) => {
+        const timer = useTimerStore.getState().getTimer(type, childId);
+        if (!timer) return;
+        useTimerStore.getState().updateStart(type, childId, startedAt);
+
+        if (timer.serverTimerId !== undefined) {
+          updateTimerStart(
+            { serverTimerId: timer.serverTimerId, startedAt },
+            {
+              onError: (error) => {
+                // Left local-only: the next 60s poll will pull the server's
+                // stale start back in unless a later edit or a retry succeeds.
+                console.warn('[timers] could not update the server timer start:', error);
+              },
+            },
+          );
+        }
+      },
     }),
-    [startTimer, stopServerTimer],
+    [startTimer, stopServerTimer, updateTimerStart],
   );
 }

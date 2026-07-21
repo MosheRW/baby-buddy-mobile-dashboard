@@ -1,4 +1,4 @@
-import { entryGlyphKind, entryVisual, isFever } from '../entryDisplay';
+import { entryDurationLabel, entryGlyphKind, entryVisual, isFever } from '../entryDisplay';
 import { pooSwatch, tints } from '../../theme/tokens';
 import type { DiaperEntry, Entry, FeedingEntry, MedicationEntry } from '../../api/types';
 
@@ -140,5 +140,32 @@ describe('entryVisual', () => {
       expect(v.accent).toMatch(/^#/);
       expect(v.iconBg).toMatch(/^#/);
     }
+  });
+});
+
+describe('entryDurationLabel', () => {
+  it('formats the span for a timed feeding, sleep, or tummy-time entry', () => {
+    const end = '2026-07-19T10:35:00Z';
+    expect(entryDurationLabel(feeding({ endTime: end }))).toBe('35m');
+    expect(entryDurationLabel({ ...base, type: 'sleep', sleepType: 'night', endTime: end })).toBe(
+      '35m',
+    );
+    expect(entryDurationLabel({ ...base, type: 'tummyTime', endTime: end })).toBe('35m');
+  });
+
+  it('is absent for entry types with no notion of duration', () => {
+    expect(entryDurationLabel(diaper({ pee: true }))).toBeUndefined();
+    expect(entryDurationLabel(med({}))).toBeUndefined();
+  });
+
+  it('is absent for an ongoing entry with no end yet', () => {
+    expect(entryDurationLabel(feeding({}))).toBeUndefined();
+    expect(
+      entryDurationLabel({ ...base, type: 'sleep', sleepType: 'night', ongoing: true }),
+    ).toBeUndefined();
+  });
+
+  it('is absent for a zero-length span, e.g. a bottle logged with no timer', () => {
+    expect(entryDurationLabel(feeding({ endTime: base.time }))).toBeUndefined();
   });
 });
