@@ -18,14 +18,21 @@ function formatLocal(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** Display string for the tappable field on Android. */
-function displayLocal(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+/** Date half of the tappable field on Android. */
+function displayDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+  });
+}
+
+/** Time half of the tappable field on Android. */
+function displayTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   });
 }
 
@@ -38,10 +45,13 @@ function parseLocal(text: string): string | null {
 }
 
 /**
- * Date + time field. On Android it opens the platform picker (date, then time,
- * chained) — the only shipping target. On web (the emulator-free QA preview) it
- * degrades to a plain "YYYY-MM-DD HH:mm" text field, since the community picker
- * has no web implementation.
+ * Date + time field. On Android it shows two independent tap targets — tapping
+ * the time opens the time picker directly (the common case: nudging minutes or
+ * hours), tapping the date opens the date picker. Neither chains into the other,
+ * so a "change the time by 10 minutes" edit no longer forces you through a
+ * month/day dialog first. On web (the emulator-free QA preview) it degrades to a
+ * plain "YYYY-MM-DD HH:mm" text field, since the community picker has no web
+ * implementation.
  */
 export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
   if (Platform.OS !== 'android') {
@@ -58,25 +68,31 @@ export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
     );
   }
 
-  const open = () => {
-    const current = new Date(value);
+  const openDate = () => {
     DateTimePickerAndroid.open({
-      value: current,
+      value: new Date(value),
       mode: 'date',
-      onChange: (_event, date) => {
-        if (!date) return;
-        // Chain into the time picker so one tap edits the whole timestamp.
-        DateTimePickerAndroid.open({
-          value: date,
-          mode: 'time',
-          is24Hour: true,
-          onChange: (_e, time) => {
-            if (!time) return;
-            const merged = new Date(date);
-            merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
-            onChange(merged.toISOString());
-          },
-        });
+      // Keep the existing time; only the Y/M/D changes.
+      onValueChange: (_event, picked) => {
+        if (!picked) return;
+        const merged = new Date(value);
+        merged.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
+        onChange(merged.toISOString());
+      },
+    });
+  };
+
+  const openTime = () => {
+    DateTimePickerAndroid.open({
+      value: new Date(value),
+      mode: 'time',
+      is24Hour: true,
+      // Keep the existing date; only H:mm changes.
+      onValueChange: (_event, picked) => {
+        if (!picked) return;
+        const merged = new Date(value);
+        merged.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+        onChange(merged.toISOString());
       },
     });
   };
@@ -84,21 +100,48 @@ export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
   return (
     <View>
       <FieldLabel>{label}</FieldLabel>
-      <Pressable accessibilityRole="button" onPress={open} style={styles.field}>
-        <AppText size={fontSize.body} weight="700">
-          {displayLocal(value)}
-        </AppText>
-      </Pressable>
+      <View style={styles.row}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label} date`}
+          onPress={openDate}
+          style={[styles.field, styles.dateField]}
+        >
+          <AppText size={fontSize.body} weight="700">
+            {displayDate(value)}
+          </AppText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${label} time`}
+          onPress={openTime}
+          style={[styles.field, styles.timeField]}
+        >
+          <AppText size={fontSize.body} weight="700">
+            {displayTime(value)}
+          </AppText>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
   field: {
     backgroundColor: colors.card,
     borderRadius: radii.control,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing['2xl'],
-    alignItems: 'flex-end',
+    alignItems: 'center',
+  },
+  dateField: {
+    flex: 3,
+  },
+  timeField: {
+    flex: 2,
   },
 });
