@@ -10,8 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppText } from '../../components';
-import { GearGlyph } from '../../components/glyphs';
-import { colors, fontSize, radii, shadows, spacing } from '../../theme';
+import { SettingsButton } from './SettingsButton';
+import { colors, fontSize, radii, spacing } from '../../theme';
 import { greeting, longDate } from '../../lib/dates';
 import type { Child, Entry, EntryType } from '../../api/types';
 import { isTimerType, type TimerType } from '../../lib/timers';
@@ -117,6 +117,11 @@ export function DashboardScreen({ navigation }: Props) {
     setActiveIndex(index);
   };
 
+  const openSettings = () => {
+    dismiss();
+    navigation.navigate('Settings');
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -132,31 +137,16 @@ export function DashboardScreen({ navigation }: Props) {
           />
         }
       >
-        <View style={styles.header}>
+        {welcomeDismissed ? null : (
           <View>
-            {welcomeDismissed ? null : (
-              <>
-                <AppText size={fontSize.screenTitle} weight="800">
-                  {userName ? `${greeting(now)}, ${userName}` : greeting(now)}
-                </AppText>
-                <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
-                  {longDate(now)}
-                </AppText>
-              </>
-            )}
+            <AppText size={fontSize.screenTitle} weight="800">
+              {userName ? `${greeting(now)}, ${userName}` : greeting(now)}
+            </AppText>
+            <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
+              {longDate(now)}
+            </AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            onPress={() => {
-              dismiss();
-              navigation.navigate('Settings');
-            }}
-            style={styles.gear}
-          >
-            <GearGlyph size={20} />
-          </Pressable>
-        </View>
+        )}
 
         {error ? (
           <View style={styles.banner}>
@@ -191,8 +181,15 @@ export function DashboardScreen({ navigation }: Props) {
             onQuickAction={openCreate}
             onOpenMedBreakdown={openMedBreakdown}
             onLogDose={openDose}
+            onOpenSettings={openSettings}
           />
-        ) : null}
+        ) : (
+          // No children yet, so there's no name row to attach the cog to —
+          // keep it reachable on its own right-aligned row.
+          <View style={styles.settingsFallback}>
+            <SettingsButton onPress={openSettings} />
+          </View>
+        )}
 
         <ActivityFeed
           entries={feedEntries}
@@ -214,11 +211,6 @@ const styles = StyleSheet.create({
     padding: spacing['2xl'],
     gap: spacing['5xl'],
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -237,13 +229,7 @@ const styles = StyleSheet.create({
   loading: {
     paddingVertical: spacing['7xl'],
   },
-  gear: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.tile,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(shadows.feedRow as object),
+  settingsFallback: {
+    alignItems: 'flex-end',
   },
 });

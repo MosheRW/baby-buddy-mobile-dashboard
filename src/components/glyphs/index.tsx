@@ -184,15 +184,16 @@ export function CloseGlyph({ size = 22, color = colors.textPrimary, strokeWidth 
   );
 }
 
-export function GearGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function GearGlyph({ size = 22, color = colors.textPrimary }: GlyphProps) {
+  // Toothed cog: filled gear outline with the centre hole punched out via
+  // the even-odd fill rule (the inner circle winds against the body).
   return (
     <Svg {...frame(size)}>
-      <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={strokeWidth} fill="none" />
       <Path
-        d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        fill={color}
+        d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
       />
     </Svg>
   );
