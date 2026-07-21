@@ -15,7 +15,7 @@
  * `Entry Icon Options.dc.html` picks (tummy 1a, note 2a, nap 3c, night 3d).
  */
 import React from 'react';
-import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import { colors } from '../../theme';
 import type { EntryType } from '../../api/types';
 import type { GlyphKind } from '../../lib/entryDisplay';
@@ -121,6 +121,87 @@ export function FeedingSolidGlyph({ size, color = colors.textPrimary }: EntryGly
     <GlyphFrame size={size} w={16} h={12}>
       <Path d={rr(0, 3, 16, 9, 0, 0, 8, 8)} fill={color} />
       <Rect x={7} y={0} width={2} height={7} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function FeedingFortifiedGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // The formula bottle with a small ring at the shoulder — the prototype's mark
+  // for fortified breast milk (a bottle "plus something extra").
+  return (
+    <GlyphFrame size={size} w={16} h={16}>
+      <Path d={rr(4, 2, 6, 3, 2, 2, 1, 1)} fill={color} />
+      <Rect x={4.5} y={5} width={5} height={2.5} fill={color} />
+      <Path d={rr(0, 7, 13, 9, 3, 3, 3, 3)} fill={color} />
+      <Circle cx={13.5} cy={3} r={2.7} fill="none" stroke={color} strokeWidth={1.5} />
+    </GlyphFrame>
+  );
+}
+
+/**
+ * A single breast, rounded on the feeding side with the nipple on that edge —
+ * `side` picks left- or right-facing. Corner radii mirror the prototype's CSS
+ * `border-radius` (20%/75% swapped per side). Shared by the Left/Right method
+ * chips so the pair reads as a matched set.
+ */
+function BreastGlyph({
+  size,
+  color = colors.textPrimary,
+  side,
+}: EntryGlyphProps & { side: 'left' | 'right' }) {
+  const W = 8;
+  const H = 12;
+  const big = 6;
+  const sm = 1.6;
+  const body =
+    side === 'right' ? rr(0, 0, W, H, sm, big, big, sm) : rr(0, 0, W, H, big, sm, sm, big);
+  const nx = side === 'right' ? W - 0.3 : 0.3;
+  return (
+    <GlyphFrame size={size} w={W} h={H}>
+      <Path d={body} fill={color} />
+      <Circle cx={nx} cy={6} r={1.4} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function FeedingLeftBreastGlyph(props: EntryGlyphProps) {
+  return <BreastGlyph {...props} side="left" />;
+}
+
+export function FeedingRightBreastGlyph(props: EntryGlyphProps) {
+  return <BreastGlyph {...props} side="right" />;
+}
+
+export function FeedingBothBreastsGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // Left- and right-facing breasts side by side.
+  const H = 10;
+  const big = 4.5;
+  const sm = 1.2;
+  return (
+    <GlyphFrame size={size} w={17} h={H}>
+      <Path d={rr(0, 0, 7, H, big, sm, sm, big)} fill={color} />
+      <Circle cx={0.3} cy={5} r={1.1} fill={color} />
+      <Path d={rr(10, 0, 7, H, sm, big, big, sm)} fill={color} />
+      <Circle cx={16.7} cy={5} r={1.1} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function FeedingSelfFedGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // A single dot — the prototype's mark for self-feeding.
+  return (
+    <GlyphFrame size={size} w={12} h={12}>
+      <Circle cx={6} cy={6} r={6} fill={color} />
+    </GlyphFrame>
+  );
+}
+
+export function FeedingParentFedGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+  // A spoon: oval bowl over a stem.
+  return (
+    <GlyphFrame size={size} w={13} h={14}>
+      <Ellipse cx={6.5} cy={3.5} rx={4.5} ry={3.5} fill={color} />
+      <Rect x={5.5} y={7} width={2} height={7} fill={color} />
     </GlyphFrame>
   );
 }

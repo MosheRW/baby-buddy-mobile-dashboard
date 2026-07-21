@@ -5,8 +5,9 @@ import type { SegmentOption } from '../../../components';
 import { colors, fontSize, radii, spacing } from '../../../theme';
 import type { SleepType } from '../../../api/types';
 import type { FormDraft } from '../../../lib/formDraft';
+import { useTimerStore } from '../../../stores';
 import { DateTimeField } from '../DateTimeField';
-import { TimerControl } from '../TimerControl';
+import { StartTimerButton } from '../TimerControl';
 
 interface SleepFieldsProps {
   draft: FormDraft;
@@ -30,6 +31,10 @@ const TYPE_OPTIONS: SegmentOption<SleepType>[] = [
  * clock-based guess in `defaultSleepType` is only a guess.
  */
 export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsProps) {
+  const timerRunning = useTimerStore((s) =>
+    s.timers.some((t) => t.type === 'sleep' && t.childId === childId),
+  );
+
   const typeField = (
     <View>
       <FieldLabel>Type</FieldLabel>
@@ -42,24 +47,12 @@ export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsPro
   );
 
   if (mode === 'create') {
+    // Timer-driven: the running strip and "Woke up at" field live in the shell;
+    // here we only offer to start the timer when one isn't already running.
     return (
       <>
         {typeField}
-        <TimerControl
-          type="sleep"
-          childId={childId}
-          now={now}
-          endTimeLabel="Woke up at"
-          endTime={draft.endTime}
-          onEndTimeChange={(endTime) => patch({ endTime })}
-          onStop={(startedAt, endedAt) =>
-            patch({
-              time: new Date(startedAt).toISOString(),
-              endTime: new Date(endedAt).toISOString(),
-              stillSleeping: false,
-            })
-          }
-        />
+        {!timerRunning ? <StartTimerButton type="sleep" childId={childId} /> : null}
       </>
     );
   }

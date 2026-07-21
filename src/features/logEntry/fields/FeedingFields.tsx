@@ -2,6 +2,18 @@ import React from 'react';
 import { View } from 'react-native';
 import { ChipRow, FieldLabel, Stepper } from '../../../components';
 import type { ChipOption } from '../../../components';
+import {
+  FeedingBothBreastsGlyph,
+  FeedingBottleGlyph,
+  FeedingBreastGlyph,
+  FeedingFortifiedGlyph,
+  FeedingLeftBreastGlyph,
+  FeedingParentFedGlyph,
+  FeedingRightBreastGlyph,
+  FeedingSelfFedGlyph,
+  FeedingSolidGlyph,
+  type EntryGlyphProps,
+} from '../../../components/glyphs/entryGlyphs';
 import type { Entry, FeedingKind, FeedingMethod, SolidFoodType } from '../../../api/types';
 import { feedingKindLabel, feedingMethodLabel } from '../../../lib/entryDisplay';
 import { defaultTimeForMethod } from '../../../lib/feed';
@@ -17,7 +29,7 @@ import {
   type FormDraft,
 } from '../../../lib/formDraft';
 import { useTimerStore } from '../../../stores';
-import { TimerControl } from '../TimerControl';
+import { StartTimerButton } from '../TimerControl';
 
 interface FeedingFieldsProps {
   draft: FormDraft;
@@ -31,9 +43,42 @@ interface FeedingFieldsProps {
   defaultFoodMl: number;
 }
 
+const KIND_GLYPH: Record<FeedingKind, React.ComponentType<EntryGlyphProps>> = {
+  breastMilk: FeedingBreastGlyph,
+  formula: FeedingBottleGlyph,
+  fortifiedBreastMilk: FeedingFortifiedGlyph,
+  solidFood: FeedingSolidGlyph,
+};
+
+const METHOD_GLYPH: Record<FeedingMethod, React.ComponentType<EntryGlyphProps>> = {
+  bottle: FeedingBottleGlyph,
+  leftBreast: FeedingLeftBreastGlyph,
+  rightBreast: FeedingRightBreastGlyph,
+  bothBreasts: FeedingBothBreastsGlyph,
+  selfFed: FeedingSelfFedGlyph,
+  parentFed: FeedingParentFedGlyph,
+};
+
+// Fixed components with a dynamic key, so the chip's inline `glyph` render-prop
+// resolves to a named component (RN-SVG has no `currentColor`, so the chip
+// passes its text colour in).
+function KindGlyph({ kind, size, color }: EntryGlyphProps & { kind: FeedingKind }) {
+  const Glyph = KIND_GLYPH[kind];
+  return <Glyph size={size} color={color} />;
+}
+
+function MethodGlyph({ method, size, color }: EntryGlyphProps & { method: FeedingMethod }) {
+  const Glyph = METHOD_GLYPH[method];
+  return <Glyph size={size} color={color} />;
+}
+
 const KIND_OPTIONS: ChipOption<FeedingKind>[] = (
   ['breastMilk', 'formula', 'fortifiedBreastMilk', 'solidFood'] as FeedingKind[]
-).map((k) => ({ value: k, label: feedingKindLabel[k] }));
+).map((k) => ({
+  value: k,
+  label: feedingKindLabel[k],
+  glyph: (color: string) => <KindGlyph kind={k} size={15} color={color} />,
+}));
 
 const SOLID_TYPE_OPTIONS: ChipOption<SolidFoodType>[] = SOLID_FOOD_TYPES.map((t) => ({
   value: t,
@@ -66,6 +111,7 @@ export function FeedingFields({
   const methodOptions: ChipOption<FeedingMethod>[] = methodsForKind(draft.kind).map((m) => ({
     value: m,
     label: feedingMethodLabel[m],
+    glyph: (color: string) => <MethodGlyph method={m} size={15} color={color} />,
   }));
 
   // Stamp the baseline at the moment of selection, not at save: what counted as
@@ -110,24 +156,6 @@ export function FeedingFields({
         </View>
       ) : null}
 
-      {mode === 'create' ? (
-        <TimerControl
-          type="feeding"
-          childId={childId}
-          now={now}
-          endTimeLabel="End time"
-          endTime={draft.endTime}
-          onEndTimeChange={(endTime) => patch({ endTime })}
-          onStop={(startedAt, endedAt) =>
-            patch({
-              time: new Date(startedAt).toISOString(),
-              endTime: new Date(endedAt).toISOString(),
-              durationMinutes: Math.max(1, Math.round((endedAt - startedAt) / 60_000)),
-            })
-          }
-        />
-      ) : null}
-
       {showsAmount(draft.kind, draft.method, draft.solidFoodType) ? (
         <View>
           <FieldLabel>Amount</FieldLabel>
@@ -152,6 +180,10 @@ export function FeedingFields({
             suffix=" min"
           />
         </View>
+      ) : null}
+
+      {mode === 'create' && !timerRunning ? (
+        <StartTimerButton type="feeding" childId={childId} />
       ) : null}
     </>
   );

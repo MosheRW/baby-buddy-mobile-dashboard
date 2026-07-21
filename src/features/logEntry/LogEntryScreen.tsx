@@ -9,16 +9,23 @@ import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import type { EntryType, MedicationEntry } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
-import { draftToEntry, emptyDraft, entryToDraft, medSuggestionPatch } from '../../lib/formDraft';
-import { isTimerType } from '../../lib/timers';
+import {
+  draftToEntry,
+  emptyDraft,
+  entryToDraft,
+  medSuggestionPatch,
+  type FormDraft,
+} from '../../lib/formDraft';
+import { isTimerType, type TimerType } from '../../lib/timers';
 import { recentTagSuggestions } from '../../lib/tags';
 import { errorMessage, serverNow } from '../../api/client';
 import { useDashboardData, useSaveEntry } from '../../data/queries';
-import { useAuthStore, useFormStore, useSettingsStore } from '../../stores';
+import { useAuthStore, useFormStore, useSettingsStore, useTimerStore } from '../../stores';
 import { useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entriesForChild } from '../dashboard/selectors';
 import { DateTimeField } from './DateTimeField';
+import { RunningTimerStrip } from './TimerControl';
 import { DiaperFields } from './fields/DiaperFields';
 import { FeedingFields } from './fields/FeedingFields';
 import { MedicationFields } from './fields/MedicationFields';
@@ -63,6 +70,42 @@ export function LogEntryScreen({ route, navigation }: Props) {
   const timerNow = useTimerTick();
 
   const userName = useAuthStore((s) => s.session?.userName) ?? 'you';
+
+  // Timer UI only appears while creating a timed entry. `timerType` is the
+  // narrowed type or null, so the strip, end-time field and split-save below can
+  // be gated without re-checking `isTimerType` each time.
+  const timerType: TimerType | null = mode === 'create' && isTimerType(type) ? type : null;
+  const runningTimer = useTimerStore((s) =>
+    timerType ? s.timers.find((t) => t.type === timerType && t.childId === childId) : undefined,
+  );
+  const timerRunning = !!runningTimer;
+
+  // Stopping a timer, or saving while one runs, stamps the measured span onto
+  // the draft: start = when the timer began, end = the end-time field (default
+  // now), and the type's own duration/wake field derived from the two.
+  const endTimeIso = draft.endTime ?? new Date(timerNow).toISOString();
+  const spanPatch = (): Partial<FormDraft> => {
+    if (!runningTimer) return {};
+    const startedAt = runningTimer.startedAt;
+    const endedAt = new Date(endTimeIso).getTime();
+    const minutes = Math.max(1, Math.round((endedAt - startedAt) / 60_000));
+    const base: Partial<FormDraft> = {
+      time: new Date(startedAt).toISOString(),
+      endTime: new Date(endedAt).toISOString(),
+    };
+    if (type === 'feeding') return { ...base, durationMinutes: minutes };
+    if (type === 'tummyTime') return { ...base, tummyMinutes: minutes };
+    if (type === 'sleep') return { ...base, stillSleeping: false };
+    return base;
+  };
+
+  const stopTimerAndFill = () => {
+    if (!timerType) return;
+    patch(spanPatch());
+    stopTimer(timerType, childId);
+  };
+
+  const endActivityLabel = timerType === 'tummyTime' ? 'tummy time' : (timerType ?? '');
 
   // A repeat dose started from a dashboard med row: same medicine, same dose,
   // schedule and interval, but a fresh entry at the current time.
@@ -116,9 +159,12 @@ export function LogEntryScreen({ route, navigation }: Props) {
 
   const saveEntry = useSaveEntry();
 
-  const save = () => {
+  const save = ({ keepTimer = false }: { keepTimer?: boolean } = {}) => {
+    // While a timer runs its duration isn't in the draft yet, so fold the
+    // measured span in here rather than relying on a not-yet-committed patch.
+    const spanVals = timerRunning ? spanPatch() : {};
     const entry = draftToEntry({
-      draft,
+      draft: { ...draft, ...spanVals },
       type,
       childId,
       // Empty id = create; the server assigns the real one.
@@ -130,7 +176,8 @@ export function LogEntryScreen({ route, navigation }: Props) {
       onSuccess: () => {
         // A timer that produced this entry has done its job — clear it only
         // once the entry is safely saved, so a failed save doesn't lose it.
-        if (isTimerType(type)) stopTimer(type, childId);
+        // "Save" (keepTimer) leaves it running to log another span later.
+        if (isTimerType(type) && !keepTimer) stopTimer(type, childId);
         navigation.goBack();
       },
     });
@@ -179,7 +226,24 @@ export function LogEntryScreen({ route, navigation }: Props) {
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <ChipRow layout="wrap" value={type} onChange={setType} options={TYPE_OPTIONS} />
 
+            {timerType && timerRunning ? (
+              <RunningTimerStrip
+                type={timerType}
+                childId={childId}
+                now={timerNow}
+                onStop={stopTimerAndFill}
+              />
+            ) : null}
+
             <DateTimeField label="Time" value={draft.time} onChange={(time) => patch({ time })} />
+
+            {timerRunning ? (
+              <DateTimeField
+                label={type === 'sleep' ? 'Woke up at' : 'End time'}
+                value={endTimeIso}
+                onChange={(endTime) => patch({ endTime })}
+              />
+            ) : null}
 
             {type === 'diaper' ? <DiaperFields draft={draft} patch={patch} /> : null}
             {type === 'feeding' ? (
@@ -245,13 +309,34 @@ export function LogEntryScreen({ route, navigation }: Props) {
               {isEdit ? (
                 <ActionButton label="Delete" variant="danger" flex={1} onPress={remove} />
               ) : null}
-              <ActionButton
-                label={saveEntry.isPending ? 'Saving…' : 'Save'}
-                variant="accent"
-                flex={2}
-                disabled={saveEntry.isPending}
-                onPress={save}
-              />
+              {timerRunning ? (
+                <>
+                  {/* Save keeps the timer running to log another span; "Save and
+                      end" stops it and closes out the activity. */}
+                  <ActionButton
+                    label="Save"
+                    variant="neutral"
+                    flex={1}
+                    disabled={saveEntry.isPending}
+                    onPress={() => save({ keepTimer: true })}
+                  />
+                  <ActionButton
+                    label={saveEntry.isPending ? 'Saving…' : `Save and end ${endActivityLabel}`}
+                    variant="accent"
+                    flex={1}
+                    disabled={saveEntry.isPending}
+                    onPress={() => save()}
+                  />
+                </>
+              ) : (
+                <ActionButton
+                  label={saveEntry.isPending ? 'Saving…' : 'Save'}
+                  variant="accent"
+                  flex={2}
+                  disabled={saveEntry.isPending}
+                  onPress={() => save()}
+                />
+              )}
             </View>
           </View>
         </>

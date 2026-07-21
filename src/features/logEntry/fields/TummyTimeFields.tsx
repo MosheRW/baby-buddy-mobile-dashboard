@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { FieldLabel, Stepper } from '../../../components';
 import type { FormDraft } from '../../../lib/formDraft';
 import { useTimerStore } from '../../../stores';
-import { TimerControl } from '../TimerControl';
+import { StartTimerButton } from '../TimerControl';
 
 interface TummyTimeFieldsProps {
   draft: FormDraft;
@@ -14,34 +14,17 @@ interface TummyTimeFieldsProps {
 }
 
 /**
- * Tummy time: the timer in create mode, and a duration stepper whenever no
- * timer is running (a running timer supplies the duration when it stops).
+ * Tummy time: a duration stepper whenever no timer is running (a running timer
+ * supplies the duration when it stops), plus a start-timer button in create
+ * mode. The running strip and end-time field live in the form shell.
  */
-export function TummyTimeFields({ draft, patch, childId, mode, now }: TummyTimeFieldsProps) {
+export function TummyTimeFields({ draft, patch, childId, mode }: TummyTimeFieldsProps) {
   const timerRunning = useTimerStore((s) =>
     s.timers.some((t) => t.type === 'tummyTime' && t.childId === childId),
   );
 
   return (
     <>
-      {mode === 'create' ? (
-        <TimerControl
-          type="tummyTime"
-          childId={childId}
-          now={now}
-          endTimeLabel="End time"
-          endTime={draft.endTime}
-          onEndTimeChange={(endTime) => patch({ endTime })}
-          onStop={(startedAt, endedAt) =>
-            patch({
-              time: new Date(startedAt).toISOString(),
-              endTime: new Date(endedAt).toISOString(),
-              tummyMinutes: Math.max(1, Math.round((endedAt - startedAt) / 60_000)),
-            })
-          }
-        />
-      ) : null}
-
       {!timerRunning ? (
         <View>
           <FieldLabel>Duration</FieldLabel>
@@ -53,6 +36,10 @@ export function TummyTimeFields({ draft, patch, childId, mode, now }: TummyTimeF
             suffix=" min"
           />
         </View>
+      ) : null}
+
+      {mode === 'create' && !timerRunning ? (
+        <StartTimerButton type="tummyTime" childId={childId} />
       ) : null}
     </>
   );

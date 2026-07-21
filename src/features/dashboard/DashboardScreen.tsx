@@ -14,12 +14,13 @@ import { GearGlyph } from '../../components/glyphs';
 import { colors, fontSize, radii, shadows, spacing } from '../../theme';
 import { greeting, longDate } from '../../lib/dates';
 import type { Child, Entry, EntryType } from '../../api/types';
-import type { TimerType } from '../../lib/timers';
+import { isTimerType, type TimerType } from '../../lib/timers';
 import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
 import { useAuthStore, useSettingsStore, useUiStore } from '../../stores';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
+import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
 import { ChildNav } from './ChildNav';
 import { TimerStrip } from './TimerStrip';
@@ -39,6 +40,7 @@ export function DashboardScreen({ navigation }: Props) {
 
   const now = useMinuteTick();
   const timerNow = useTimerTick();
+  const { start: startTimer } = useTimerActions();
 
   const childrenById = useMemo<Record<string, Child>>(
     () => Object.fromEntries(children.map((c) => [c.id, c])),
@@ -61,6 +63,11 @@ export function DashboardScreen({ navigation }: Props) {
 
   const openCreate = (childId: string, type: EntryType) => {
     dismiss();
+    // Quick-logging a timed activity (Food/Sleep/Tummy) starts its timer right
+    // away — tapping "Food" means a feed is starting now, matching the
+    // prototype. The button is disabled once a timer runs, so this can't
+    // double-start, and `startTimer` replaces any existing (type, child) timer.
+    if (isTimerType(type)) startTimer(type, childId);
     navigation.navigate('LogEntry', { mode: 'create', childId, type });
   };
 
