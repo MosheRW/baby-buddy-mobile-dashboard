@@ -4,3 +4,4 @@ export * from './timerStore';
 export * from './formStore';
 export * from './uiStore';
 export * from './notificationStore';
+export * from './localeStore';

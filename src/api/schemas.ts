@@ -151,6 +151,7 @@ export const profileSchema = z.object({
   first_name: z.string().optional(),
   last_name: z.string().optional(),
   api_key: z.string().optional(),
+  language: z.string().optional(),
 });
 
 export type ChildDto = z.infer<typeof childSchema>;

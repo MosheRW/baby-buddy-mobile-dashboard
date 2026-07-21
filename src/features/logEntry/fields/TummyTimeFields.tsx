@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { FieldLabel, Stepper } from '../../../components';
 import type { FormDraft } from '../../../lib/formDraft';
 import { useTimerStore } from '../../../stores';
@@ -19,21 +20,22 @@ interface TummyTimeFieldsProps {
  * mode. The running strip and end-time field live in the form shell.
  */
 export function TummyTimeFields({ draft, patch, childId, mode }: TummyTimeFieldsProps) {
+  const { t } = useTranslation();
   const timerRunning = useTimerStore((s) =>
-    s.timers.some((t) => t.type === 'tummyTime' && t.childId === childId),
+    s.timers.some((timer) => timer.type === 'tummyTime' && timer.childId === childId),
   );
 
   return (
     <>
       {!timerRunning ? (
         <View>
-          <FieldLabel>Duration</FieldLabel>
+          <FieldLabel>{t('feeding.durationLabel')}</FieldLabel>
           <Stepper
             value={draft.tummyMinutes}
             onChange={(tummyMinutes) => patch({ tummyMinutes })}
             step={5}
             min={0}
-            suffix=" min"
+            suffix={t('feeding.durationSuffix')}
           />
         </View>
       ) : null}

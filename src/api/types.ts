@@ -176,7 +176,13 @@ export interface Child {
   initial: string;
   /** Hue (0–360) used to tint the avatar and cards. */
   hue: number;
-  /** Human-readable age, e.g. "7 months old". */
+  /** ISO birth date, so the age label can be (re)computed and localized at render. */
+  birthDate: string;
+  /**
+   * Human-readable age snapshot at fetch time, e.g. "7 months old". Kept for the
+   * normalized API contract; the UI recomputes from `birthDate` so a language
+   * switch relocalizes it without a refetch.
+   */
   age: string;
   /** Default feeding amount (ml) prefilled in the log form. */
   defaultFoodMl: number;
@@ -202,4 +208,10 @@ export interface Session {
    * with username/password and reading it off `/api/profile`.
    */
   token: string;
+  /**
+   * The profile's language code (Django `LANGUAGE_CODE`, e.g. "en-us", "he"),
+   * when the server exposes it. Used as the app's default language until the
+   * user picks one explicitly in Settings.
+   */
+  language?: string;
 }

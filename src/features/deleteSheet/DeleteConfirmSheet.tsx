@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
@@ -17,6 +18,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'DeleteConfirm'>;
  * transparent modal in the stack. All entry deletions route through here.
  */
 export function DeleteConfirmSheet({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { entryId, entryLabel } = route.params;
 
   const close = () => navigation.goBack();
@@ -32,7 +34,7 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
         <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Dismiss"
+          accessibilityLabel={t('common.dismiss')}
           style={[StyleSheet.absoluteFill, styles.scrim]}
           onPress={close}
         />
@@ -43,7 +45,7 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
           <View style={styles.sheet}>
             <View style={styles.handle} />
             <AppText size={fontSize.cardTitle} weight="800" style={styles.title}>
-              Delete this entry?
+              {t('deleteSheet.title')}
             </AppText>
             <AppText
               size={fontSize.bodySm}
@@ -51,7 +53,7 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
               color={colors.textSecondary}
               style={styles.body}
             >
-              {entryLabel}. This can&apos;t be undone.
+              {t('deleteSheet.body', { label: entryLabel })}
             </AppText>
             {deleteEntry.isError ? (
               <AppText size={fontSize.metaSm} weight="700" color={colors.danger} style={styles.body}>
@@ -60,14 +62,14 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
             ) : null}
             <View style={styles.actions}>
               <ActionButton
-                label="Cancel"
+                label={t('common.cancel')}
                 variant="neutral"
                 flex={1}
                 disabled={deleteEntry.isPending}
                 onPress={close}
               />
               <ActionButton
-                label={deleteEntry.isPending ? 'Deleting…' : 'Delete'}
+                label={deleteEntry.isPending ? t('common.deleting') : t('common.delete')}
                 variant="danger"
                 flex={1}
                 disabled={deleteEntry.isPending}

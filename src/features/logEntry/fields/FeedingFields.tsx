@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChipRow, FieldLabel, Stepper } from '../../../components';
 import type { ChipOption } from '../../../components';
 import {
@@ -72,18 +73,7 @@ function MethodGlyph({ method, size, color }: EntryGlyphProps & { method: Feedin
   return <Glyph size={size} color={color} />;
 }
 
-const KIND_OPTIONS: ChipOption<FeedingKind>[] = (
-  ['breastMilk', 'formula', 'fortifiedBreastMilk', 'solidFood'] as FeedingKind[]
-).map((k) => ({
-  value: k,
-  label: feedingKindLabel[k],
-  glyph: (color: string) => <KindGlyph kind={k} size={15} color={color} />,
-}));
-
-const SOLID_TYPE_OPTIONS: ChipOption<SolidFoodType>[] = SOLID_FOOD_TYPES.map((t) => ({
-  value: t,
-  label: solidFoodTypeLabel[t],
-}));
+const KIND_VALUES: FeedingKind[] = ['breastMilk', 'formula', 'fortifiedBreastMilk', 'solidFood'];
 
 /**
  * Feeding fields. The conditional rules, all pure in `lib/formDraft`:
@@ -104,13 +94,25 @@ export function FeedingFields({
   entries,
   defaultFoodMl,
 }: FeedingFieldsProps) {
+  const { t } = useTranslation();
   const timerRunning = useTimerStore((s) =>
-    s.timers.some((t) => t.type === 'feeding' && t.childId === childId),
+    s.timers.some((timer) => timer.type === 'feeding' && timer.childId === childId),
   );
+
+  const kindOptions: ChipOption<FeedingKind>[] = KIND_VALUES.map((k) => ({
+    value: k,
+    label: feedingKindLabel(k),
+    glyph: (color: string) => <KindGlyph kind={k} size={15} color={color} />,
+  }));
+
+  const solidTypeOptions: ChipOption<SolidFoodType>[] = SOLID_FOOD_TYPES.map((type) => ({
+    value: type,
+    label: solidFoodTypeLabel(type),
+  }));
 
   const methodOptions: ChipOption<FeedingMethod>[] = methodsForKind(draft.kind).map((m) => ({
     value: m,
-    label: feedingMethodLabel[m],
+    label: feedingMethodLabel(m),
     glyph: (color: string) => <MethodGlyph method={m} size={15} color={color} />,
   }));
 
@@ -130,12 +132,12 @@ export function FeedingFields({
   return (
     <>
       <View>
-        <FieldLabel>Type</FieldLabel>
-        <ChipRow layout="wrap" options={KIND_OPTIONS} value={draft.kind} onChange={changeKind} />
+        <FieldLabel>{t('feeding.typeLabel')}</FieldLabel>
+        <ChipRow layout="wrap" options={kindOptions} value={draft.kind} onChange={changeKind} />
       </View>
 
       <View>
-        <FieldLabel>Method</FieldLabel>
+        <FieldLabel>{t('feeding.methodLabel')}</FieldLabel>
         <ChipRow
           layout="wrap"
           options={methodOptions}
@@ -146,10 +148,10 @@ export function FeedingFields({
 
       {draft.kind === 'solidFood' ? (
         <View>
-          <FieldLabel>Food type</FieldLabel>
+          <FieldLabel>{t('feeding.foodTypeLabel')}</FieldLabel>
           <ChipRow
             layout="wrap"
-            options={SOLID_TYPE_OPTIONS}
+            options={solidTypeOptions}
             value={draft.solidFoodType}
             onChange={(solidFoodType) => patch({ solidFoodType })}
           />
@@ -158,7 +160,7 @@ export function FeedingFields({
 
       {showsAmount(draft.kind, draft.method, draft.solidFoodType) ? (
         <View>
-          <FieldLabel>Amount</FieldLabel>
+          <FieldLabel>{t('feeding.amountLabel')}</FieldLabel>
           <Stepper
             value={draft.amount}
             onChange={(amount) => patch({ amount })}
@@ -171,13 +173,13 @@ export function FeedingFields({
 
       {showsDuration(draft.method, timerRunning) ? (
         <View>
-          <FieldLabel>Duration</FieldLabel>
+          <FieldLabel>{t('feeding.durationLabel')}</FieldLabel>
           <Stepper
             value={draft.durationMinutes}
             onChange={(durationMinutes) => patch({ durationMinutes })}
             step={5}
             min={0}
-            suffix=" min"
+            suffix={t('feeding.durationSuffix')}
           />
         </View>
       ) : null}

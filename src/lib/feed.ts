@@ -3,6 +3,7 @@
  * Pure and unit-tested.
  */
 import type { Entry, EntryType, FeedingEntry, FeedingMethod } from '../api/types';
+import i18n from '../i18n';
 import { dayHeader } from './dates';
 
 const HOUR = 60 * 60 * 1000;
@@ -167,7 +168,7 @@ export function foodTrend(entries: Entry[], now: number = Date.now()): FoodTrend
 
 /** "120ml today vs 95ml/day (7d avg)" — the caption under the trend bar. */
 export function foodTrendLabel(trend: FoodTrend): string {
-  return `${trend.last24}ml today vs ${trend.avgPerDay}ml/day (7d avg)`;
+  return i18n.t('feeding.trendLabel', { last24: trend.last24, avg: trend.avgPerDay });
 }
 
 // --- Feed gauge -------------------------------------------------------------

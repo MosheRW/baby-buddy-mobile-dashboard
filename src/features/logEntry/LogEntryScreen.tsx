@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
 import { ActionGlyph, ENTRY_TYPE_CHIP_GLYPH } from '../../components/glyphs/entryGlyphs';
@@ -33,13 +34,15 @@ import { TemperatureFields } from './fields/TemperatureFields';
 import { TummyTimeFields } from './fields/TummyTimeFields';
 import { SleepFields } from './fields/SleepFields';
 
-const TYPE_OPTIONS = (
-  ['diaper', 'feeding', 'medication', 'temperature', 'tummyTime', 'sleep', 'note'] as EntryType[]
-).map((t) => ({
-  value: t,
-  label: entryTypeLabel[t],
-  glyph: (color: string) => <ActionGlyph kind={ENTRY_TYPE_CHIP_GLYPH[t]} size={15} color={color} />,
-}));
+const TYPE_VALUES: EntryType[] = [
+  'diaper',
+  'feeding',
+  'medication',
+  'temperature',
+  'tummyTime',
+  'sleep',
+  'note',
+];
 
 type Props = NativeStackScreenProps<MainStackParamList, 'LogEntry'>;
 
@@ -50,8 +53,17 @@ type Props = NativeStackScreenProps<MainStackParamList, 'LogEntry'>;
  * just wiring — the field-visibility rules are pure functions in lib/formDraft.
  */
 export function LogEntryScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { mode, type: initialType, entryId, childId, prefillMedEntryId } = route.params;
   const isEdit = mode === 'edit';
+
+  const typeOptions = TYPE_VALUES.map((value) => ({
+    value,
+    label: entryTypeLabel(value),
+    glyph: (color: string) => (
+      <ActionGlyph kind={ENTRY_TYPE_CHIP_GLYPH[value]} size={15} color={color} />
+    ),
+  }));
 
   const { children, entries } = useDashboardData();
   const child = children.find((c) => c.id === childId);
@@ -105,7 +117,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
     stopTimer(timerType, childId);
   };
 
-  const endActivityLabel = timerType === 'tummyTime' ? 'tummy time' : (timerType ?? '');
+  const endActivityLabel = timerType ? t(`logEntry.activity.${timerType}`) : '';
 
   // A repeat dose started from a dashboard med row: same medicine, same dose,
   // schedule and interval, but a fresh entry at the current time.
@@ -215,7 +227,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
       <View style={styles.header}>
         <View>
           <AppText size={fontSize.cardTitle} weight="800">
-            {isEdit ? 'Edit entry' : 'New entry'}
+            {isEdit ? t('logEntry.editTitle') : t('logEntry.newTitle')}
           </AppText>
           {child ? (
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
@@ -225,7 +237,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          accessibilityLabel={t('logEntry.close')}
           onPress={() => navigation.goBack()}
           style={styles.close}
         >
@@ -236,7 +248,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
       {readyKey !== formKey ? null : (
         <>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            <ChipRow layout="wrap" value={type} onChange={setType} options={TYPE_OPTIONS} />
+            <ChipRow layout="wrap" value={type} onChange={setType} options={typeOptions} />
 
             {timerType && timerRunning ? (
               <RunningTimerStrip
@@ -248,7 +260,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
             ) : null}
 
             <DateTimeField
-              label="Time"
+              label={t('logEntry.time')}
               value={draft.time}
               onChange={(time) => {
                 patch({ time });
@@ -263,7 +275,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
 
             {timerRunning ? (
               <DateTimeField
-                label={type === 'sleep' ? 'Woke up at' : 'End time'}
+                label={type === 'sleep' ? t('sleep.wokeUpAt') : t('logEntry.endTime')}
                 value={endTimeIso}
                 onChange={(endTime) => patch({ endTime })}
               />
@@ -281,29 +293,29 @@ export function LogEntryScreen({ route, navigation }: Props) {
             {type === 'sleep' ? <SleepFields {...fieldProps} /> : null}
 
             <View>
-              <FieldLabel>Note</FieldLabel>
+              <FieldLabel>{t('logEntry.note')}</FieldLabel>
               <TextField
                 multilineFixed
-                placeholder="Optional note"
+                placeholder={t('logEntry.notePlaceholder')}
                 value={draft.note}
                 onChangeText={(note) => patch({ note })}
               />
             </View>
 
             <View>
-              <FieldLabel>Tags</FieldLabel>
+              <FieldLabel>{t('logEntry.tags')}</FieldLabel>
               {tagSuggestions.length > 0 ? (
                 <View style={styles.tagSuggestions}>
                   {tagSuggestions.map((label) => (
                     <Pressable
                       key={label}
                       accessibilityRole="button"
-                      accessibilityLabel={`Add tag ${label}`}
+                      accessibilityLabel={t('dashboard.addTag', { tag: label })}
                       onPress={() => patch({ tags: [...draft.tags, label] })}
                       style={styles.tagSuggestion}
                     >
                       <AppText size={fontSize.metaSm} weight="700" color={tints.suggestion.fg}>
-                        + {label}
+                        {t('logEntry.addTagOffer', { tag: label })}
                       </AppText>
                     </Pressable>
                   ))}
@@ -331,21 +343,30 @@ export function LogEntryScreen({ route, navigation }: Props) {
             ) : null}
             <View style={styles.footer}>
               {isEdit ? (
-                <ActionButton label="Delete" variant="danger" flex={1} onPress={remove} />
+                <ActionButton
+                  label={t('common.delete')}
+                  variant="danger"
+                  flex={1}
+                  onPress={remove}
+                />
               ) : null}
               {timerRunning ? (
                 <>
                   {/* Save keeps the timer running to log another span; "Save and
                       end" stops it and closes out the activity. */}
                   <ActionButton
-                    label="Save"
+                    label={t('common.save')}
                     variant="neutral"
                     flex={1}
                     disabled={saveEntry.isPending}
                     onPress={() => save({ keepTimer: true })}
                   />
                   <ActionButton
-                    label={saveEntry.isPending ? 'Saving…' : `Save and end ${endActivityLabel}`}
+                    label={
+                      saveEntry.isPending
+                        ? t('common.saving')
+                        : t('logEntry.saveAndEnd', { activity: endActivityLabel })
+                    }
                     variant="accent"
                     flex={1}
                     disabled={saveEntry.isPending}
@@ -354,7 +375,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
                 </>
               ) : (
                 <ActionButton
-                  label={saveEntry.isPending ? 'Saving…' : 'Save'}
+                  label={saveEntry.isPending ? t('common.saving') : t('common.save')}
                   variant="accent"
                   flex={2}
                   disabled={saveEntry.isPending}

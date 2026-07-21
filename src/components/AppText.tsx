@@ -1,6 +1,8 @@
 import React from 'react';
 import { Text, type TextProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, weightFamily, type FontWeightKey } from '../theme';
+import '../i18n';
 
 interface AppTextProps extends TextProps {
   size?: number;
@@ -12,6 +14,12 @@ interface AppTextProps extends TextProps {
  * Text wrapper that applies a Nunito family for the given weight. RN can't
  * synthesize Nunito weights from one family, so weight maps to a family here.
  * Always use this (or a token text style) instead of a bare <Text>.
+ *
+ * It also subscribes to the active language (via `useTranslation`), so a
+ * language switch re-renders every label in the tree, and defaults its text
+ * alignment to the language's direction — Hebrew reads right-to-left. A `style`
+ * with an explicit `textAlign` (e.g. centered titles) still wins, since it is
+ * spread last.
  */
 export function AppText({
   size = 14,
@@ -20,9 +28,20 @@ export function AppText({
   style,
   ...rest
 }: AppTextProps) {
+  const { i18n } = useTranslation();
+  const rtl = i18n.dir() === 'rtl';
   return (
     <Text
-      style={[{ fontFamily: weightFamily[weight], fontSize: size, color }, style]}
+      style={[
+        {
+          fontFamily: weightFamily[weight],
+          fontSize: size,
+          color,
+          textAlign: rtl ? 'right' : 'left',
+          writingDirection: rtl ? 'rtl' : 'ltr',
+        },
+        style,
+      ]}
       {...rest}
     />
   );

@@ -7,6 +7,7 @@
 // and can't load under the plain-node test environment. `src/lib` is pure, so
 // it should never reach for the font loader anyway.
 import { tints, colors, pooSwatch } from '../theme/tokens';
+import i18n from '../i18n';
 import { durationLabel } from './dates';
 import type {
   DosageUnit,
@@ -17,37 +18,22 @@ import type {
   TemperatureMethod,
 } from '../api/types';
 
-export const entryTypeLabel: Record<EntryType, string> = {
-  diaper: 'Diaper',
-  feeding: 'Feeding',
-  medication: 'Medication',
-  temperature: 'Temp',
-  tummyTime: 'Tummy time',
-  sleep: 'Sleep',
-  note: 'Note',
-};
+/** Display name for an entry type, in the active language. */
+export function entryTypeLabel(type: EntryType): string {
+  return i18n.t(`entryType.${type}`);
+}
 
-export const feedingKindLabel: Record<FeedingKind, string> = {
-  breastMilk: 'Breast Milk',
-  formula: 'Formula',
-  fortifiedBreastMilk: 'Fortified Breast Milk',
-  solidFood: 'Solid Food',
-};
+export function feedingKindLabel(kind: FeedingKind): string {
+  return i18n.t(`feeding.kind.${kind}`);
+}
 
-export const feedingMethodLabel: Record<FeedingMethod, string> = {
-  bottle: 'Bottle',
-  leftBreast: 'Left Breast',
-  rightBreast: 'Right Breast',
-  bothBreasts: 'Both Breasts',
-  selfFed: 'Self Fed',
-  parentFed: 'Parent Fed',
-};
+export function feedingMethodLabel(method: FeedingMethod): string {
+  return i18n.t(`feeding.method.${method}`);
+}
 
-export const temperatureMethodLabel: Record<TemperatureMethod, string> = {
-  oral: 'Oral',
-  ear: 'Ear',
-  forehead: 'Forehead',
-};
+export function temperatureMethodLabel(method: TemperatureMethod): string {
+  return i18n.t(`temperature.method.${method}`);
+}
 
 /** Background+foreground tint for an entry type's icon swatch / card. */
 export function entryTint(type: EntryType): { bg: string; fg: string } {
@@ -74,12 +60,12 @@ export function entryTint(type: EntryType): { bg: string; fg: string } {
 export function entryTitle(entry: Entry): string {
   switch (entry.type) {
     case 'diaper': {
-      if (entry.pee && entry.poo) return 'Wet + dirty diaper';
-      if (entry.poo) return 'Dirty diaper';
-      return 'Wet diaper';
+      if (entry.pee && entry.poo) return i18n.t('entryTitle.diaperBoth');
+      if (entry.poo) return i18n.t('entryTitle.diaperDirty');
+      return i18n.t('entryTitle.diaperWet');
     }
     case 'feeding': {
-      const parts = [feedingKindLabel[entry.kind]];
+      const parts = [feedingKindLabel(entry.kind)];
       if (entry.amount != null) {
         parts.push(`${entry.amount}${entry.kind === 'solidFood' ? 'g' : 'ml'}`);
       }
@@ -88,13 +74,13 @@ export function entryTitle(entry: Entry): string {
     case 'medication':
       return `${entry.name} · ${entry.dose}`;
     case 'temperature':
-      return `${entry.value}° · ${temperatureMethodLabel[entry.method]}`;
+      return `${entry.value}° · ${temperatureMethodLabel(entry.method)}`;
     case 'tummyTime':
-      return 'Tummy time';
+      return i18n.t('entryTitle.tummyTime');
     case 'sleep':
-      return entry.ongoing ? 'Sleeping' : 'Sleep';
+      return entry.ongoing ? i18n.t('entryTitle.sleeping') : i18n.t('entryTitle.sleep');
     case 'note':
-      return 'Note';
+      return i18n.t('entryTitle.note');
   }
 }
 

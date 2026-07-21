@@ -2,18 +2,27 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, Card, Chip, Stepper } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { avatarTint, colors, fontSize, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
-import { useAuthStore, useSettingsStore } from '../../stores';
+import { useAuthStore, useLocaleStore, useSettingsStore } from '../../stores';
+import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
+import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
 import { useDashboardData } from '../../data/queries';
 
 const FOOD_WINDOWS = [2, 4, 6, 12];
 
+const LANGUAGE_LABEL_KEY: Record<AppLanguage, string> = {
+  en: 'settings.languageEnglish',
+  he: 'settings.languageHebrew',
+};
+
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
   const { children } = useDashboardData();
@@ -21,6 +30,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setFoodWindow = useSettingsStore((s) => s.setFoodWindowHours);
   const defaults = useSettingsStore((s) => s.defaultFoodMl);
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
+  const setLanguage = useLocaleStore((s) => s.setLanguage);
+  const activeLanguage = useEffectiveLanguage();
 
   const defaultMl = (id: string, fallback: number) => defaults[id] ?? fallback;
 
@@ -29,14 +40,14 @@ export function SettingsScreen({ navigation }: Props) {
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t('common.back')}
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
           <ChevronLeftGlyph size={24} />
         </Pressable>
         <AppText size={fontSize.screenTitle} weight="800">
-          Settings
+          {t('settings.title')}
         </AppText>
       </View>
 
@@ -63,16 +74,32 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
-            Feeding window
+            {t('settings.language')}
+          </AppText>
+          <View style={styles.windowRow}>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <Chip
+                key={lang}
+                label={t(LANGUAGE_LABEL_KEY[lang])}
+                active={activeLanguage === lang}
+                onPress={() => setLanguage(lang)}
+              />
+            ))}
+          </View>
+        </Card>
+
+        <Card style={styles.section}>
+          <AppText size={fontSize.bodySm} weight="800">
+            {t('settings.feedingWindow')}
           </AppText>
           <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-            Controls the dashboard&apos;s food-total window.
+            {t('settings.feedingWindowHint')}
           </AppText>
           <View style={styles.windowRow}>
             {FOOD_WINDOWS.map((h) => (
               <Chip
                 key={h}
-                label={`${h}h`}
+                label={t('settings.windowChip', { hours: h })}
                 active={foodWindow === h}
                 onPress={() => setFoodWindow(h)}
               />
@@ -82,7 +109,7 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
-            Children &amp; default food quantity
+            {t('settings.children')}
           </AppText>
           {children.map((child) => {
             const tint = avatarTint(child.hue);
@@ -104,7 +131,7 @@ export function SettingsScreen({ navigation }: Props) {
                     onChange={(v) => setDefaultFoodMl(child.id, v)}
                     step={10}
                     min={0}
-                    suffix=" ml"
+                    suffix={t('settings.mlSuffix')}
                   />
                 </View>
               </View>
@@ -114,7 +141,9 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
-            {session?.mode === 'homeassistant' ? 'Home Assistant server' : 'Baby Buddy server'}
+            {session?.mode === 'homeassistant'
+              ? t('settings.serverHomeAssistant')
+              : t('settings.serverBabyBuddy')}
           </AppText>
           <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
             {session?.baseUrl ?? '—'}
@@ -123,17 +152,17 @@ export function SettingsScreen({ navigation }: Props) {
               username, so it shows the (masked) token instead. */}
           {session?.userName ? (
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              Logged in as {session.userName}
+              {t('settings.loggedInAs', { name: session.userName })}
             </AppText>
           ) : session?.token ? (
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              Access token {maskToken(session.token)}
+              {t('settings.accessToken', { token: maskToken(session.token) })}
             </AppText>
           ) : null}
         </Card>
 
         <ActionButton
-          label="Log out"
+          label={t('settings.logOut')}
           variant="danger"
           fullWidth
           onPress={() => {

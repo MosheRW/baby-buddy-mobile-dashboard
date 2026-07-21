@@ -11,6 +11,7 @@
  *  - Name suggestions: the 20 most-recent medication entries (any child),
  *    deduped by name, most recent first.
  */
+import i18n from '../i18n';
 import type { DosageUnit, Entry, MedicationEntry } from '../api/types';
 
 const HOUR = 60 * 60 * 1000;
@@ -23,34 +24,41 @@ export interface DoseUnitSpec {
   step: number;
   /** Decimal places to render. */
   precision: number;
-  /** Picker label. */
-  label: string;
-  /**
-   * What follows the number. The word units keep a leading space ("5 tablets")
-   * while the symbol units don't ("5mg") — matching the prototype.
-   */
-  suffix: string;
 }
 
+/** Numeric behaviour of each unit; its label/suffix are looked up from i18n. */
 export const DOSE_UNITS: Record<DosageUnit, DoseUnitSpec> = {
-  mg: { step: 1, precision: 0, label: 'mg', suffix: 'mg' },
-  ml: { step: 0.1, precision: 1, label: 'ml', suffix: 'ml' },
-  tablets: { step: 0.5, precision: 1, label: 'Tablets', suffix: ' tablets' },
-  drops: { step: 1, precision: 0, label: 'Drops', suffix: ' drops' },
-  paste: { step: 0.5, precision: 1, label: 'Paste', suffix: ' paste' },
+  mg: { step: 1, precision: 0 },
+  ml: { step: 0.1, precision: 1 },
+  tablets: { step: 0.5, precision: 1 },
+  drops: { step: 1, precision: 0 },
+  paste: { step: 0.5, precision: 1 },
 };
 
 /** The picker's order. */
 export const DOSE_UNIT_ORDER: DosageUnit[] = ['mg', 'ml', 'tablets', 'drops', 'paste'];
 
+/** Picker label for a dose unit ("mg", "Tablets", …). */
+export function doseUnitLabel(unit: DosageUnit): string {
+  return i18n.t(`med.unitLabel.${unit}`);
+}
+
+/**
+ * What follows the number. The word units keep a leading space ("5 tablets")
+ * while the symbol units don't ("5mg") — matching the prototype.
+ */
+export function doseUnitSuffix(unit: DosageUnit): string {
+  return i18n.t(`med.unitSuffix.${unit}`);
+}
+
 export function doseFieldLabel(unit: DosageUnit): string {
-  return `Dose (${DOSE_UNITS[unit].label})`;
+  return i18n.t('med.doseFieldLabel', { unit: doseUnitLabel(unit) });
 }
 
 /** "2.5ml" / "1 tablets" — the number formatted at its unit's precision. */
 export function formatDose(dose: number, unit: DosageUnit): string {
   const spec = DOSE_UNITS[unit];
-  return `${dose.toFixed(spec.precision)}${spec.suffix}`;
+  return `${dose.toFixed(spec.precision)}${doseUnitSuffix(unit)}`;
 }
 
 /** How close to due a scheduled dose has to be before the row turns red. */
@@ -182,7 +190,7 @@ export function countdownLabel(ms: number): string {
   const totalMin = Math.round(Math.abs(ms) / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  return h > 0 ? i18n.t('duration.hoursMinutes', { h, m }) : i18n.t('duration.minutes', { m });
 }
 
 /**
@@ -192,15 +200,19 @@ export function countdownLabel(ms: number): string {
  * how long is left. See `halfOver`.
  */
 export function neededStatusLabel(status: MedStatus): string {
-  if (!status.halfOver) return `${countdownLabel(status.elapsedMs)} since last dose`;
+  if (!status.halfOver) {
+    return i18n.t('med.status.sinceLastDose', { duration: countdownLabel(status.elapsedMs) });
+  }
   return status.isDue
-    ? `overdue by ${countdownLabel(status.dueInMs)}`
-    : `due in ${countdownLabel(status.dueInMs)}`;
+    ? i18n.t('med.status.overdueBy', { duration: countdownLabel(status.dueInMs) })
+    : i18n.t('med.status.dueIn', { duration: countdownLabel(status.dueInMs) });
 }
 
 /** The right-hand status on an as-needed ("eligible") medication row. */
 export function eligibleStatusLabel(status: MedStatus): string {
-  return status.isDue ? 'eligible now' : `eligible in ${countdownLabel(status.dueInMs)}`;
+  return status.isDue
+    ? i18n.t('med.status.eligibleNow')
+    : i18n.t('med.status.eligibleIn', { duration: countdownLabel(status.dueInMs) });
 }
 
 // --- 24h dose limits --------------------------------------------------------
