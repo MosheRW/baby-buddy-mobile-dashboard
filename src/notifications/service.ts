@@ -160,6 +160,21 @@ export interface DeliveredNotification {
   deliveredAt: number;
 }
 
+/**
+ * Coerce a delivered notification's `date` to epoch ms. The SDK's typing says
+ * `number`, but in practice it varies by platform — Android gives epoch ms, iOS
+ * can hand back a `Date` — so accept both and fall back to now for anything
+ * missing/odd (rather than let a bad value scramble the newest-first ordering).
+ */
+function deliveredAtMs(date: unknown): number {
+  if (typeof date === 'number' && date > 0) return date;
+  if (date instanceof Date) {
+    const ms = date.getTime();
+    if (ms > 0) return ms;
+  }
+  return Date.now();
+}
+
 function normalizeDelivered(n: unknown): DeliveredNotification | null {
   // Guard defensively — this crosses the native bridge and the shape isn't ours.
   const req = (n as { request?: { identifier?: string; content?: Record<string, unknown> } })
@@ -168,14 +183,12 @@ function normalizeDelivered(n: unknown): DeliveredNotification | null {
   if (!id) return null;
   const content = req.content ?? {};
   const data = (content.data ?? {}) as { childId?: unknown };
-  const date = (n as { date?: unknown }).date;
   return {
     id,
     title: typeof content.title === 'string' ? content.title : '',
     body: typeof content.body === 'string' ? content.body : '',
     childId: typeof data.childId === 'string' ? data.childId : undefined,
-    // Android reports `date` in ms; fall back to now if it's missing/odd.
-    deliveredAt: typeof date === 'number' && date > 0 ? date : Date.now(),
+    deliveredAt: deliveredAtMs((n as { date?: unknown }).date),
   };
 }
 

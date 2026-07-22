@@ -100,9 +100,11 @@ export function NotificationCarousel({
       >
         {items.map((n) => {
           const child = n.childId ? childrenById[n.childId] : undefined;
-          // Tappable only when the key maps to a screen we can open — a weekly
-          // recap or an unrecognised reminder is a read-only card.
-          const tappable = notificationAction(n.id).kind !== 'none';
+          // Tappable only when the key maps to a screen we can open AND we have
+          // the childId that screen needs — every navigable action is
+          // child-scoped, so without it the tap would go nowhere. A weekly recap
+          // or unrecognised reminder is a read-only card.
+          const tappable = !!n.childId && notificationAction(n.id).kind !== 'none';
           return (
             <View key={n.id} style={{ width }}>
               {/* Styled to match the dashboard's inactive-days prompt: a flat

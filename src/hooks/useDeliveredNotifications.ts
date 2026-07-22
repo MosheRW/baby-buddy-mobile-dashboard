@@ -32,10 +32,6 @@ export function useDeliveredNotifications(): DeliveredNotifications {
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const [items, setItems] = useState<DeliveredNotification[]>([]);
 
-  const refresh = useCallback(() => {
-    void service.getDeliveredAsync().then(setItems);
-  }, []);
-
   useEffect(() => {
     if (!masterEnabled) {
       // Clearing on disable syncs to external state (nothing schedulable), not a
@@ -44,18 +40,29 @@ export function useDeliveredNotifications(): DeliveredNotifications {
       setItems([]);
       return;
     }
-    refresh();
+    // Guard every async read against a resolve that lands after this effect is
+    // torn down (disable / unmount / a masterEnabled flip). Without it an
+    // in-flight getDeliveredAsync could re-populate items once notifications are
+    // off, defeating the masterEnabled gate.
+    let cancelled = false;
+    const load = () => {
+      void service.getDeliveredAsync().then((next) => {
+        if (!cancelled) setItems(next);
+      });
+    };
+    load();
     const appState = AppState.addEventListener('change', (s) => {
-      if (s === 'active') refresh();
+      if (s === 'active') load();
     });
-    const unsubscribe = service.addDeliveredListener(refresh);
-    const id = setInterval(refresh, REFRESH_INTERVAL_MS);
+    const unsubscribe = service.addDeliveredListener(load);
+    const id = setInterval(load, REFRESH_INTERVAL_MS);
     return () => {
+      cancelled = true;
       appState.remove();
       unsubscribe();
       clearInterval(id);
     };
-  }, [masterEnabled, refresh]);
+  }, [masterEnabled]);
 
   // Optimistically drop the card so the tap feels instant, then tell the OS.
   const dismiss = useCallback((id: string) => {
