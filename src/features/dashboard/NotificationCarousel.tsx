@@ -105,9 +105,12 @@ export function NotificationCarousel({
           const tappable = notificationAction(n.id).kind !== 'none';
           return (
             <View key={n.id} style={{ width }}>
+              {/* Styled to match the dashboard's inactive-days prompt: a flat
+                  cream card (no shadow), control radius, and the same title/body
+                  type scale — so the two read as one message component. */}
               <Card
-                elevation="feedRow"
-                radius={radii.feedRow}
+                elevation="none"
+                radius={radii.control}
                 padding={spacing['2xl']}
                 style={styles.card}
               >
@@ -117,11 +120,11 @@ export function NotificationCarousel({
                   onPress={tappable ? () => onPress(n) : undefined}
                   style={styles.body}
                 >
-                  <AppText size={fontSize.body} weight="800" numberOfLines={1}>
+                  <AppText size={fontSize.bodySm} weight="800" numberOfLines={1}>
                     {n.title}
                   </AppText>
                   <AppText
-                    size={fontSize.bodySm}
+                    size={fontSize.metaSm}
                     weight="600"
                     color={colors.textSecondary}
                     numberOfLines={2}
