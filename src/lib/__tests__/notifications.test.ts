@@ -6,6 +6,7 @@ import {
 } from '../notifications';
 import type { Child, Entry, MedicationEntry } from '../../api/types';
 import type { RunningTimer } from '../timers';
+import i18n from '../../i18n';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -202,6 +203,28 @@ describe('buildNotifications — forgotten timers', () => {
       NOW,
     );
     expect(plan).toEqual([]);
+  });
+});
+
+describe('buildNotifications — localization', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('he');
+  });
+  afterAll(async () => {
+    await i18n.changeLanguage('en');
+  });
+
+  it('renders titles and bodies in the active language, with the child interpolated', () => {
+    const entries: Entry[] = [med({ name: 'Amoxicillin', time: iso(NOW - HOUR), repeatHours: 8 })];
+    const plan = buildNotifications(
+      input({
+        entries,
+        settings: settings({ scheduledMeds: { enabled: true, timing: timing({ at: true }) } }),
+      }),
+      NOW,
+    );
+    expect(plan[0].title).toBe('הגיע זמן התרופה');
+    expect(plan[0].body).toBe('Amoxicillin עבור Emma אמורה להינתן עכשיו.');
   });
 });
 

@@ -54,16 +54,16 @@ export function SettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Notifications"
+          accessibilityLabel={t('notifications.navTitle')}
           onPress={() => navigation.navigate('Notifications')}
         >
           <Card style={styles.navRow}>
             <View style={styles.navText}>
               <AppText size={fontSize.bodySm} weight="800">
-                Notifications
+                {t('notifications.navTitle')}
               </AppText>
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                Reminders for medications, timers, and more.
+                {t('notifications.navHint')}
               </AppText>
             </View>
             <View style={styles.chevron}>

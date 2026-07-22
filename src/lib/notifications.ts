@@ -16,9 +16,10 @@
  * The three MVP cases are wired here. Diaper-interval and food-min are deferred;
  * add them as further branches without changing this shape.
  */
+import i18n from '../i18n';
 import type { Child, Entry } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
-import type { RunningTimer, TimerType } from './timers';
+import type { RunningTimer } from './timers';
 
 const MINUTE = 60_000;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
@@ -90,28 +91,35 @@ function expand(timing: TimingPrefs, anchor: number): { kind: OffsetKind; fireAt
   return out;
 }
 
-/** Readable timer names for notification copy (distinct from the wire names). */
-const TIMER_LABELS: Record<TimerType, string> = {
-  feeding: 'Feeding',
-  sleep: 'Sleep',
-  tummyTime: 'Tummy time',
+/**
+ * Copy is localized through the shared i18n instance (see src/i18n) — the same
+ * pattern the medication/date helpers use. The child suffix ("… for Emma") is a
+ * per-locale sentence variant selected by i18next's `_noChild` context rather
+ * than a concatenated fragment, so RTL languages can place it grammatically.
+ */
+const MED_KIND_KEY: Record<OffsetKind, string> = {
+  before: 'medDueBefore',
+  at: 'medDueAt',
+  after: 'medDueAfter',
+};
+const ELIG_KIND_KEY: Record<OffsetKind, string> = {
+  before: 'eligBefore',
+  at: 'eligAt',
+  after: 'eligAfter',
 };
 
-/** " for {child}" or "" — the child suffix, when we can resolve a name. */
-function forChild(name: string | undefined): string {
-  return name ? ` for ${name}` : '';
+/** i18next appends `_noChild` when no child name resolved. */
+function childContext(child: string | undefined) {
+  return child ? undefined : 'noChild';
 }
 
 function medBody(kind: OffsetKind, med: string, child: string | undefined, minutes: number): string {
-  const who = forChild(child);
-  switch (kind) {
-    case 'before':
-      return `${med}${who} is due in ${countdownLabel(minutes * MINUTE)}.`;
-    case 'at':
-      return `${med}${who} is due now.`;
-    case 'after':
-      return `${med}${who} was due ${countdownLabel(minutes * MINUTE)} ago.`;
-  }
+  return i18n.t(`notifications.${MED_KIND_KEY[kind]}`, {
+    context: childContext(child),
+    med,
+    child,
+    duration: countdownLabel(minutes * MINUTE),
+  });
 }
 
 function eligibleBody(
@@ -120,15 +128,12 @@ function eligibleBody(
   child: string | undefined,
   minutes: number,
 ): string {
-  const who = forChild(child);
-  switch (kind) {
-    case 'before':
-      return `${med}${who} can be given again in ${countdownLabel(minutes * MINUTE)}.`;
-    case 'at':
-      return `${med}${who} can be given again now.`;
-    case 'after':
-      return `${med}${who} has been due for another dose for ${countdownLabel(minutes * MINUTE)}.`;
-  }
+  return i18n.t(`notifications.${ELIG_KIND_KEY[kind]}`, {
+    context: childContext(child),
+    med,
+    child,
+    duration: countdownLabel(minutes * MINUTE),
+  });
 }
 
 /** Lead/lag magnitude in minutes for a given kind. */
@@ -169,7 +174,7 @@ export function buildNotifications(
         out.push({
           key: `sched:${childId ?? '?'}:${nameKey(s.name)}:${kind}`,
           fireAt,
-          title: 'Medication due',
+          title: i18n.t('notifications.titleMedDue'),
           body: medBody(kind, s.name, who, minutesFor(kind, timing)),
           childId,
         });
@@ -191,7 +196,7 @@ export function buildNotifications(
         out.push({
           key: `elig:${childId ?? '?'}:${nameKey(s.name)}:${kind}`,
           fireAt,
-          title: 'Medication ready',
+          title: i18n.t('notifications.titleMedReady'),
           body: eligibleBody(kind, s.name, who, minutesFor(kind, timing)),
           childId,
         });
@@ -204,7 +209,7 @@ export function buildNotifications(
         out.push({
           key: `cap:${s.childId}:${nameKey(s.name)}:${kind}`,
           fireAt,
-          title: 'Medication ready',
+          title: i18n.t('notifications.titleMedReady'),
           body: eligibleBody(kind, s.name, who, minutesFor(kind, timing)),
           childId: s.childId,
         });
@@ -215,17 +220,19 @@ export function buildNotifications(
   // 3. Forgotten timers -----------------------------------------------------
   if (settings.forgottenTimer.enabled) {
     const threshold = settings.forgottenTimer.thresholdMinutes;
-    for (const t of timers) {
-      const who = childName.get(t.childId);
-      const label = TIMER_LABELS[t.type];
+    for (const rt of timers) {
+      const who = childName.get(rt.childId);
       out.push({
-        key: `timer:${t.type}:${t.childId}`,
-        fireAt: t.startedAt + threshold * MINUTE,
-        title: 'Timer still running',
-        body: `${label} timer${forChild(who)} has been running over ${countdownLabel(
-          threshold * MINUTE,
-        )} — did you forget to stop it?`,
-        childId: t.childId,
+        key: `timer:${rt.type}:${rt.childId}`,
+        fireAt: rt.startedAt + threshold * MINUTE,
+        title: i18n.t('notifications.titleTimerRunning'),
+        body: i18n.t('notifications.timerBody', {
+          context: childContext(who),
+          activity: i18n.t(`timer.typeLabel.${rt.type}`),
+          child: who,
+          duration: countdownLabel(threshold * MINUTE),
+        }),
+        childId: rt.childId,
       });
     }
   }

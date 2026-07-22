@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { AppText, Card, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { colors, fontSize, spacing } from '../../theme';
@@ -13,6 +14,7 @@ import * as service from '../../notifications/service';
 type Props = NativeStackScreenProps<MainStackParamList, 'Notifications'>;
 
 export function NotificationSettingsScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const permissionStatus = useNotificationStore((s) => s.permissionStatus);
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);
@@ -34,19 +36,26 @@ export function NotificationSettingsScreen({ navigation }: Props) {
     }
   };
 
+  const timingLabels: TimingLabels = {
+    before: t('notifications.before'),
+    atTime: t('notifications.atTime'),
+    after: t('notifications.after'),
+    minSuffix: t('notifications.minSuffix'),
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t('common.back')}
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
           <ChevronLeftGlyph size={24} />
         </Pressable>
         <AppText size={fontSize.screenTitle} weight="800">
-          Notifications
+          {t('notifications.title')}
         </AppText>
       </View>
 
@@ -55,42 +64,44 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           <View style={styles.row}>
             <View style={styles.rowText}>
               <AppText size={fontSize.bodySm} weight="800">
-                Enable notifications
+                {t('notifications.enable')}
               </AppText>
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                Local reminders, scheduled on this device.
+                {t('notifications.enableHint')}
               </AppText>
             </View>
             <ToggleSwitch value={masterEnabled} onValueChange={onToggleMaster} />
           </View>
           {masterEnabled && permissionStatus === 'denied' ? (
             <AppText size={fontSize.metaSm} weight="600" color={colors.danger}>
-              Notifications are blocked. Turn them on for Baby Buddy in your device settings.
+              {t('notifications.blocked')}
             </AppText>
           ) : null}
           {masterEnabled && permissionStatus === 'unsupported' ? (
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              Notifications aren&apos;t available on this platform.
+              {t('notifications.unsupported')}
             </AppText>
           ) : null}
         </Card>
 
         <CaseCard
-          title="Scheduled medications"
-          subtitle="Remind me when a scheduled dose is due."
+          title={t('notifications.scheduledMedsTitle')}
+          subtitle={t('notifications.scheduledMedsHint')}
           enabled={scheduledMeds.enabled}
           timing={scheduledMeds.timing}
           disabled={!masterEnabled}
+          labels={timingLabels}
           onToggle={(v) => setCaseEnabled('scheduledMeds', v)}
           onTiming={(patch) => updateTiming('scheduledMeds', patch)}
         />
 
         <CaseCard
-          title="Medication eligibility"
-          subtitle="Remind me when an as-needed medicine can be given again, or its 24h limit frees up."
+          title={t('notifications.eligibilityTitle')}
+          subtitle={t('notifications.eligibilityHint')}
           enabled={medEligibility.enabled}
           timing={medEligibility.timing}
           disabled={!masterEnabled}
+          labels={timingLabels}
           onToggle={(v) => setCaseEnabled('medEligibility', v)}
           onTiming={(patch) => updateTiming('medEligibility', patch)}
         />
@@ -99,10 +110,10 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           <View style={styles.row}>
             <View style={styles.rowText}>
               <AppText size={fontSize.bodySm} weight="800">
-                Forgotten timers
+                {t('notifications.forgottenTitle')}
               </AppText>
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                Warn me when a timer has been running unusually long.
+                {t('notifications.forgottenHint')}
               </AppText>
             </View>
             <ToggleSwitch
@@ -114,14 +125,14 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           {masterEnabled && forgottenTimer.enabled ? (
             <View style={styles.field}>
               <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                After
+                {t('notifications.after')}
               </AppText>
               <Stepper
                 value={forgottenTimer.thresholdMinutes}
                 onChange={setForgottenTimerMinutes}
                 step={5}
                 min={5}
-                suffix=" min"
+                suffix={t('notifications.minSuffix')}
               />
             </View>
           ) : null}
@@ -133,17 +144,35 @@ export function NotificationSettingsScreen({ navigation }: Props) {
 
 // --- Case card + timing controls -------------------------------------------
 
+/** Pre-translated labels threaded down to the module-level sub-components. */
+interface TimingLabels {
+  before: string;
+  atTime: string;
+  after: string;
+  minSuffix: string;
+}
+
 interface CaseCardProps {
   title: string;
   subtitle: string;
   enabled: boolean;
   timing: TimingPrefs;
   disabled: boolean;
+  labels: TimingLabels;
   onToggle: (value: boolean) => void;
   onTiming: (patch: Partial<TimingPrefs>) => void;
 }
 
-function CaseCard({ title, subtitle, enabled, timing, disabled, onToggle, onTiming }: CaseCardProps) {
+function CaseCard({
+  title,
+  subtitle,
+  enabled,
+  timing,
+  disabled,
+  labels,
+  onToggle,
+  onTiming,
+}: CaseCardProps) {
   return (
     <Card style={styles.section}>
       <View style={styles.row}>
@@ -157,39 +186,55 @@ function CaseCard({ title, subtitle, enabled, timing, disabled, onToggle, onTimi
         </View>
         <ToggleSwitch value={enabled} onValueChange={onToggle} disabled={disabled} />
       </View>
-      {!disabled && enabled ? <TimingControls timing={timing} onChange={onTiming} /> : null}
+      {!disabled && enabled ? (
+        <TimingControls timing={timing} labels={labels} onChange={onTiming} />
+      ) : null}
     </Card>
   );
 }
 
 function TimingControls({
   timing,
+  labels,
   onChange,
 }: {
   timing: TimingPrefs;
+  labels: TimingLabels;
   onChange: (patch: Partial<TimingPrefs>) => void;
 }) {
   return (
     <View style={styles.timing}>
-      <ToggleRow label="Before" value={timing.before} onValueChange={(v) => onChange({ before: v })} />
+      <ToggleRow
+        label={labels.before}
+        value={timing.before}
+        onValueChange={(v) => onChange({ before: v })}
+      />
       {timing.before ? (
         <Stepper
           value={timing.beforeMinutes}
           onChange={(v) => onChange({ beforeMinutes: v })}
           step={5}
           min={5}
-          suffix=" min"
+          suffix={labels.minSuffix}
         />
       ) : null}
-      <ToggleRow label="At the time" value={timing.at} onValueChange={(v) => onChange({ at: v })} />
-      <ToggleRow label="After" value={timing.after} onValueChange={(v) => onChange({ after: v })} />
+      <ToggleRow
+        label={labels.atTime}
+        value={timing.at}
+        onValueChange={(v) => onChange({ at: v })}
+      />
+      <ToggleRow
+        label={labels.after}
+        value={timing.after}
+        onValueChange={(v) => onChange({ after: v })}
+      />
       {timing.after ? (
         <Stepper
           value={timing.afterMinutes}
           onChange={(v) => onChange({ afterMinutes: v })}
           step={5}
           min={5}
-          suffix=" min"
+          suffix={labels.minSuffix}
         />
       ) : null}
     </View>
