@@ -121,7 +121,7 @@ export interface FoodTrend {
   up: boolean;
   /** 0–100 bar fill: today as a share of the baseline, clamped. */
   percent: number;
-  /** Days the baseline total was divided by (7, or active days when excluding). */
+  /** Active baseline days the average is over: 7, or the true 0–7 count when excluding. */
   basisDays: number;
   /** True when inactive days were dropped from the divisor. */
   excluded: boolean;
@@ -163,15 +163,15 @@ export function foodTrend(
 ): FoodTrend {
   const last24 = foodTotalRange(entries, 24, 0, now);
   const prior7Days = foodTotalRange(entries, 192, 24, now);
-  // The baseline spans 7 days. Excluding inactive ones divides by the days that
-  // actually had entries (buckets 1..7, skipping today), so a logging gap stops
-  // dragging the norm toward zero. At least 1 to avoid a divide-by-zero, at most
-  // 7 so the divisor never exceeds the window it's averaging over.
+  // The baseline spans 7 days. Excluding inactive ones averages over just the
+  // days that actually had entries (buckets 1..7, skipping today), so a logging
+  // gap stops dragging the norm toward zero. `basisDays` is the *true* count
+  // (0–7) — it drives the caption — while the divisor floors it at 1 so an empty
+  // baseline yields 0 rather than a divide-by-zero. (An empty baseline has no
+  // feeds either, so `prior7Days` is 0 and `avgPerDay` stays 0 regardless.)
   const excluded = opts.excludeInactiveDays === true;
-  const basisDays = excluded
-    ? Math.min(7, Math.max(1, activeDayCount(entries, now, 7, 1)))
-    : 7;
-  const avgPerDay = Math.round(prior7Days / basisDays);
+  const basisDays = excluded ? Math.min(7, activeDayCount(entries, now, 7, 1)) : 7;
+  const avgPerDay = Math.round(prior7Days / Math.max(1, basisDays));
   // With no prior history the bar gauges today against itself, so it reads
   // full rather than empty. A fresh install has no norm to fall short of, and
   // an empty bar under "120ml today" looks like a bug.

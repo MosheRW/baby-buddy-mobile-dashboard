@@ -236,10 +236,13 @@ describe('foodTrend', () => {
     expect(trend.up).toBe(false);
   });
 
-  it('never divides by zero when excluding with an empty baseline', () => {
+  it('reports 0 active baseline days (not a clamped 1) with an empty baseline', () => {
+    // Only today has entries, so the baseline is empty. avgPerDay is 0 without
+    // dividing by zero, and the caption honestly reads 0 active days.
     const trend = foodTrend([feeding('t', NOW - HOUR, 150)], NOW, { excludeInactiveDays: true });
     expect(trend.avgPerDay).toBe(0);
-    expect(trend.basisDays).toBe(1);
+    expect(trend.basisDays).toBe(0);
+    expect(foodTrendLabel(trend)).toBe('150ml today vs 0ml/day (0d active avg)');
   });
 });
 
