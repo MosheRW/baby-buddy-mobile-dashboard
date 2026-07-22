@@ -12,6 +12,8 @@ interface ToggleSwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
+  /** Announced by screen readers when the switch has no adjacent text label. */
+  accessibilityLabel?: string;
 }
 
 const TRACK_W = 44;
@@ -20,7 +22,12 @@ const KNOB = 18;
 const PAD = 3;
 
 /** 44×24 track with an animated knob (the "Still sleeping" toggle). */
-export function ToggleSwitch({ value, onValueChange, disabled = false }: ToggleSwitchProps) {
+export function ToggleSwitch({
+  value,
+  onValueChange,
+  disabled = false,
+  accessibilityLabel,
+}: ToggleSwitchProps) {
   // Read-only derived value tracks `value` and animates on every change.
   const progress = useDerivedValue(() => withTiming(value ? 1 : 0, { duration: 160 }), [value]);
 
@@ -35,6 +42,7 @@ export function ToggleSwitch({ value, onValueChange, disabled = false }: ToggleS
   return (
     <Pressable
       accessibilityRole="switch"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked: value, disabled }}
       disabled={disabled}
       onPress={() => onValueChange(!value)}

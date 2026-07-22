@@ -5,12 +5,17 @@ import { colors } from '../theme';
 import { useAuthStore } from '../stores';
 import { useTimerSync } from '../hooks/useTimers';
 import { useNotificationSync } from '../hooks/useNotifications';
+import { useApplyDefaultVisibility } from '../hooks/useApplyDefaultVisibility';
+import { useShakeReveal } from '../hooks/useShakeReveal';
 import type { MainStackParamList } from './types';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { DashboardScreen } from '../features/dashboard/DashboardScreen';
 import { LogEntryScreen } from '../features/logEntry/LogEntryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { NotificationSettingsScreen } from '../features/settings/NotificationSettingsScreen';
+import { AdvancedSettingsScreen } from '../features/settings/AdvancedSettingsScreen';
+import { KidEditorScreen } from '../features/settings/KidEditorScreen';
+import { GroupEditorScreen } from '../features/settings/GroupEditorScreen';
 import { DeleteConfirmSheet } from '../features/deleteSheet/DeleteConfirmSheet';
 import { MedBreakdownSheet } from '../features/medBreakdown/MedBreakdownSheet';
 
@@ -34,6 +39,10 @@ export function RootNavigator() {
   useTimerSync();
   // Keeps the OS's scheduled reminders in step with data + settings.
   useNotificationSync();
+  // Starts newly-appearing children hidden when that's the chosen default.
+  useApplyDefaultVisibility();
+  // Shake to temporarily reveal hidden children.
+  useShakeReveal();
 
   return (
     <NavigationContainer theme={navTheme}>
@@ -48,6 +57,9 @@ export function RootNavigator() {
             />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Notifications" component={NotificationSettingsScreen} />
+            <Stack.Screen name="AdvancedSettings" component={AdvancedSettingsScreen} />
+            <Stack.Screen name="KidEditor" component={KidEditorScreen} />
+            <Stack.Screen name="GroupEditor" component={GroupEditorScreen} />
             <Stack.Screen
               name="DeleteConfirm"
               component={DeleteConfirmSheet}

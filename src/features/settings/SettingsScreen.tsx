@@ -7,7 +7,7 @@ import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { avatarTint, colors, fontSize, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
-import { useAuthStore, useLocaleStore, useSettingsStore } from '../../stores';
+import { useAuthStore, useKidsStore, useLocaleStore, useSettingsStore } from '../../stores';
 import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
 import { useDashboardData } from '../../data/queries';
@@ -28,6 +28,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
   const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
+  const hidden = useKidsStore((s) => s.hidden);
+  const setHidden = useKidsStore((s) => s.setHidden);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
   const activeLanguage = useEffectiveLanguage();
 
@@ -62,6 +64,26 @@ export function SettingsScreen({ navigation }: Props) {
               </AppText>
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
                 {t('notifications.navHint')}
+              </AppText>
+            </View>
+            <View style={styles.chevron}>
+              <ChevronLeftGlyph size={20} color={colors.textMuted} />
+            </View>
+          </Card>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('advanced.navTitle')}
+          onPress={() => navigation.navigate('AdvancedSettings')}
+        >
+          <Card style={styles.navRow}>
+            <View style={styles.navText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('advanced.navTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('advanced.navHint')}
               </AppText>
             </View>
             <View style={styles.chevron}>
@@ -109,6 +131,7 @@ export function SettingsScreen({ navigation }: Props) {
           </AppText>
           {children.map((child) => {
             const tint = avatarTint(child.hue);
+            const isVisible = !hidden[child.id];
             return (
               <View key={child.id} style={styles.childRow}>
                 <View style={styles.childInfo}>
@@ -121,14 +144,21 @@ export function SettingsScreen({ navigation }: Props) {
                     {child.name}
                   </AppText>
                 </View>
-                <View style={styles.stepperWrap}>
-                  <Stepper
-                    value={defaultMl(child.id, child.defaultFoodMl)}
-                    onChange={(v) => setDefaultFoodMl(child.id, v)}
-                    step={1}
-                    min={0}
-                    suffix={t('settings.mlSuffix')}
+                <View style={styles.childControls}>
+                  <ToggleSwitch
+                    value={isVisible}
+                    onValueChange={(visible) => setHidden(child.id, !visible)}
+                    accessibilityLabel={t('settings.visibilityToggle', { name: child.name })}
                   />
+                  <View style={styles.stepperWrap}>
+                    <Stepper
+                      value={defaultMl(child.id, child.defaultFoodMl)}
+                      onChange={(v) => setDefaultFoodMl(child.id, v)}
+                      step={1}
+                      min={0}
+                      suffix={t('settings.mlSuffix')}
+                    />
+                  </View>
                 </View>
               </View>
             );
@@ -220,6 +250,12 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   childInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    flexShrink: 1,
+  },
+  childControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,

@@ -76,6 +76,8 @@ export const en = {
       'Exclude those inactive days so they stop dragging down your averages and gauges?',
     inactiveDaysExclude: 'Exclude',
     inactiveDaysDismiss: 'Not now',
+    showHidden_one: 'Show {{count}} hidden child',
+    showHidden_other: 'Show {{count}} hidden children',
   },
 
   filter: {
@@ -305,6 +307,12 @@ export const en = {
       'Days with no logged entries are dropped from the food-trend average and the feed gauges, so a logging gap does not drag your stats down.',
     children: 'Children & default food quantity',
     mlSuffix: ' ml',
+    visibilityToggle: 'Show {{name}} on the dashboard',
+    newChildren: 'New children',
+    newChildrenHint:
+      'Whether children added later start out shown or hidden on the dashboard.',
+    visibilityVisible: 'Shown',
+    visibilityHidden: 'Hidden',
     serverHomeAssistant: 'Home Assistant server',
     serverBabyBuddy: 'Baby Buddy server',
     loggedInAs: 'Logged in as {{name}}',
@@ -313,6 +321,53 @@ export const en = {
     language: 'Language',
     languageEnglish: 'English',
     languageHebrew: 'עברית',
+  },
+
+  advanced: {
+    // Settings-screen navigation row.
+    navTitle: 'Advanced',
+    navHint: 'Groups, colours, and visibility schedules.',
+    // Advanced settings screen.
+    title: 'Advanced',
+    groups: 'Groups',
+    noGroups: 'No groups yet.',
+    addGroup: 'Add group',
+    newGroupName: 'New group',
+    groupMembers_one: '{{count}} child',
+    groupMembers_other: '{{count}} children',
+    kids: 'Children',
+    kidsHint: 'Tap a child to set its colour, group, and visibility.',
+    hiddenBadge: 'Hidden',
+    // Kid editor.
+    kidVisibility: 'Show on the dashboard',
+    accentColor: 'Accent colour',
+    accentAuto: 'Auto',
+    accentKidHint: 'Overrides the group colour for this child.',
+    group: 'Group',
+    groupNone: 'None',
+    // Group editor.
+    groupName: 'Group name',
+    accentGroupHint: 'Applied to members that don’t set their own colour.',
+    groupHidden: 'Hide the whole group',
+    groupHiddenHint: 'Every child in this group leaves the dashboard.',
+    members: 'Members',
+    memberToggle: 'Include {{name}} in this group',
+    deleteGroup: 'Delete group',
+    // Shake to reveal.
+    shakeTitle: 'Shake to reveal',
+    shakeHint: 'Shake the device to show hidden children for a while.',
+    shakeDuration: 'Reveal for',
+    shakeMinSuffix: ' min',
+  },
+
+  schedule: {
+    title: 'Hide on a schedule',
+    hint: 'Hidden only during this daily window.',
+    from: 'From',
+    to: 'To',
+    days: 'Days',
+    everyDay: 'Applies every day.',
+    selectedDays: 'Applies only on the selected days.',
   },
 
   notifications: {

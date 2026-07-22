@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { AppText } from '../../components';
+import { AppText, Chip } from '../../components';
 import { SettingsButton } from './SettingsButton';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { greeting, longDate } from '../../lib/dates';
@@ -20,7 +20,8 @@ import { isTimerType, type TimerType } from '../../lib/timers';
 import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
-import { useAuthStore, useSettingsStore, useUiStore } from '../../stores';
+import { useAuthStore, useKidsStore, useSettingsStore, useUiStore } from '../../stores';
+import { hiddenCount, visibleChildren } from '../../lib/visibility';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
@@ -43,6 +44,18 @@ export function DashboardScreen({ navigation }: Props) {
   const userName = useAuthStore((s) => s.session?.userName);
   const welcomeDismissed = useUiStore((s) => s.welcomeDismissed);
   const dismissWelcome = useUiStore((s) => s.dismissWelcome);
+  const revealHiddenUntil = useUiStore((s) => s.revealHiddenUntil);
+  const revealHidden = useUiStore((s) => s.revealHidden);
+  const clearReveal = useUiStore((s) => s.clearReveal);
+
+  // Visibility/appearance state (client-only). Selecting the fields individually
+  // keeps each a stable reference, so the memo below only recomputes on a real
+  // change.
+  const hidden = useKidsStore((s) => s.hidden);
+  const childGroupId = useKidsStore((s) => s.childGroupId);
+  const childSchedule = useKidsStore((s) => s.childSchedule);
+  const groups = useKidsStore((s) => s.groups);
+  const revealDurationMinutes = useKidsStore((s) => s.shakeReveal.durationMinutes);
 
   const now = useMinuteTick();
   const timerNow = useTimerTick();
@@ -53,7 +66,40 @@ export function DashboardScreen({ navigation }: Props) {
     [children],
   );
 
-  const activeChild = children[activeIndex] ?? children[0];
+  // Hidden children drop off the dashboard entirely (managed from settings). A
+  // reveal window temporarily shows them all. Re-evaluated on the minute tick,
+  // so a schedule boundary passing re-filters within a minute.
+  const revealActive = revealHiddenUntil != null && revealHiddenUntil > now;
+  const visible = useMemo(
+    () => visibleChildren(children, { hidden, childGroupId, childSchedule, groups }, now, revealActive),
+    [children, hidden, childGroupId, childSchedule, groups, now, revealActive],
+  );
+
+  // Count real hidden children regardless of the reveal window, so the "show
+  // hidden" affordance reflects what's actually hidden.
+  const numHidden = useMemo(
+    () => hiddenCount(children, { hidden, childGroupId, childSchedule, groups }, now),
+    [children, hidden, childGroupId, childSchedule, groups, now],
+  );
+
+  // Re-hide exactly when the reveal window expires. The minute tick alone would
+  // leave them shown for up to a minute past the deadline.
+  useEffect(() => {
+    if (revealHiddenUntil == null) return;
+    const ms = revealHiddenUntil - Date.now();
+    if (ms <= 0) {
+      clearReveal();
+      return;
+    }
+    const id = setTimeout(() => clearReveal(), ms);
+    return () => clearTimeout(id);
+  }, [revealHiddenUntil, clearReveal]);
+
+  // If the currently-active child was just hidden, `activeIndex` can point past
+  // the filtered list — clamp so a tab stays selected and swipe navigation keeps
+  // working instead of landing on nothing.
+  const clampedIndex = activeIndex < visible.length ? activeIndex : 0;
+  const activeChild = visible[clampedIndex];
   const feedEntries = activeChild ? entriesForChild(entries, activeChild.id) : [];
 
   // Offer the exclude-inactive-days feature the first time a logging gap is
@@ -98,7 +144,7 @@ export function DashboardScreen({ navigation }: Props) {
 
   const openTimer = (childId: string, type: TimerType) => {
     dismiss();
-    const idx = children.findIndex((c) => c.id === childId);
+    const idx = visible.findIndex((c) => c.id === childId);
     if (idx >= 0) setActiveIndex(idx);
     navigation.navigate('LogEntry', { mode: 'create', childId, type });
   };
@@ -216,11 +262,23 @@ export function DashboardScreen({ navigation }: Props) {
 
         <TimerStrip childrenById={childrenById} now={timerNow} onPress={openTimer} />
 
+        {numHidden > 0 && !revealActive ? (
+          <View style={styles.revealRow}>
+            <Chip
+              label={t('dashboard.showHidden', { count: numHidden })}
+              onPress={() => {
+                dismiss();
+                revealHidden(revealDurationMinutes * 60_000);
+              }}
+            />
+          </View>
+        ) : null}
+
         {activeChild ? (
           <ChildNav
-            childList={children}
+            childList={visible}
             entries={entries}
-            activeIndex={activeIndex}
+            activeIndex={clampedIndex}
             onActiveChange={changeChild}
             now={now}
             timerNow={timerNow}
@@ -301,5 +359,8 @@ const styles = StyleSheet.create({
   },
   settingsFallback: {
     alignItems: 'flex-end',
+  },
+  revealRow: {
+    alignItems: 'flex-start',
   },
 });

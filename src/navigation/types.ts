@@ -27,6 +27,14 @@ export interface MedBreakdownParams {
   childName: string;
 }
 
+export interface KidEditorParams {
+  childId: string;
+}
+
+export interface GroupEditorParams {
+  groupId: string;
+}
+
 /** All stack screens. `Login` shows only while unauthenticated; the rest only
  * while authenticated (React Navigation's conditional-screens pattern). */
 export type MainStackParamList = {
@@ -35,6 +43,9 @@ export type MainStackParamList = {
   LogEntry: LogEntryParams;
   Settings: undefined;
   Notifications: undefined;
+  AdvancedSettings: undefined;
+  KidEditor: KidEditorParams;
+  GroupEditor: GroupEditorParams;
   DeleteConfirm: DeleteConfirmParams;
   MedBreakdown: MedBreakdownParams;
 };
