@@ -256,6 +256,7 @@ export const en = {
     notePlaceholder: 'Optional note',
     tags: 'Tags',
     addTagOffer: '+ {{tag}}',
+    saveDetails: 'Save details',
     saveAndEnd: 'Save and end {{activity}}',
     activity: {
       feeding: 'feeding',
