@@ -14,7 +14,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { asyncStorage } from './storage';
-import type { CaseSettings, PerChildThresholds, TimingPrefs } from '../lib/notifications';
+import type {
+  CaseSettings,
+  PerChildThresholds,
+  TimingPrefs,
+  WeeklySummarySettings,
+} from '../lib/notifications';
 
 export type { PerChildThresholds } from '../lib/notifications';
 
@@ -33,6 +38,7 @@ interface NotificationState {
   forgottenTimer: { enabled: boolean; thresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
+  weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
   /** Live OS permission state — not persisted. */
   permissionStatus: PermissionStatus;
@@ -44,6 +50,7 @@ interface NotificationState {
   setForgottenTimerMinutes: (minutes: number) => void;
   setIntervalCaseEnabled: (id: IntervalCaseId, enabled: boolean) => void;
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
+  updateWeeklySummary: (patch: Partial<WeeklySummarySettings>) => void;
   setPermissionStatus: (status: PermissionStatus) => void;
 }
 
@@ -65,6 +72,10 @@ export const useNotificationStore = create<NotificationState>()(
       forgottenTimer: { enabled: true, thresholdMinutes: 30 },
       diaperInterval: { enabled: false },
       foodMin: { enabled: false },
+      // On by default (it's the point of the feature); the toggle is the opt-out.
+      // Sunday 9am is a natural "week in review" slot and the start of the week
+      // in the he locale too.
+      weeklySummary: { enabled: true, weekday: 0, hour: 9 },
       perChild: {},
       permissionStatus: 'undetermined',
 
@@ -95,6 +106,9 @@ export const useNotificationStore = create<NotificationState>()(
         set((state) => ({
           perChild: { ...state.perChild, [childId]: { ...state.perChild[childId], ...patch } },
         })),
+
+      updateWeeklySummary: (patch) =>
+        set((state) => ({ weeklySummary: { ...state.weeklySummary, ...patch } })),
 
       setPermissionStatus: (status) => set({ permissionStatus: status }),
     }),
