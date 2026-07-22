@@ -30,7 +30,7 @@ import {
 import { foodTrend, foodTrendLabel } from '../../lib/feed';
 import { DEFAULT_FOOD_INTERVAL_MINUTES } from '../../lib/notifications';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
-import { useNotificationStore, useTimerStore } from '../../stores';
+import { useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
 
 interface ChildCardProps {
   child: Child;
@@ -74,7 +74,8 @@ export function ChildCard({
   const needed = neededMeds(childEntries, now);
   const eligible = eligibleMeds(childEntries, now);
   const limits = medLimitSummaries(childEntries, now);
-  const trend = foodTrend(childEntries, now);
+  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
+  const trend = foodTrend(childEntries, now, { excludeInactiveDays });
   const tint = avatarTint(child.hue);
 
   // Live mm:ss labels for this child's running timers, keyed by entry type.

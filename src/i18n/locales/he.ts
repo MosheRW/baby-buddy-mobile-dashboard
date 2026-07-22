@@ -56,6 +56,10 @@ export const he = {
     filterByTag: 'סינון לפי תגית {{tag}}',
     addTag: 'הוספת תגית {{tag}}',
     switchToChild: 'מעבר אל {{name}}',
+    inactiveDaysTitle: 'בימים מסוימים לא נרשמו רשומות',
+    inactiveDaysBody: 'להחריג את הימים הלא־פעילים כדי שלא ימשכו את הממוצעים והמדדים כלפי מטה?',
+    inactiveDaysExclude: 'החרגה',
+    inactiveDaysDismiss: 'לא עכשיו',
   },
 
   filter: {
@@ -168,6 +172,7 @@ export const he = {
     amountUnitSolid: ' גרם',
     amountUnitLiquid: ' מ״ל',
     trendLabel: '{{last24}} מ״ל היום מול {{avg}} מ״ל ליום (ממוצע 7 ימים)',
+    trendLabelActive: '{{last24}} מ״ל היום מול {{avg}} מ״ל ליום (ממוצע {{days}} ימים פעילים)',
     typeLabel: 'סוג',
     methodLabel: 'שיטה',
     foodTypeLabel: 'סוג מזון',
@@ -277,6 +282,10 @@ export const he = {
 
   settings: {
     title: 'הגדרות',
+    stats: 'סטטיסטיקה',
+    excludeInactiveDays: 'החרגת ימים לא־פעילים',
+    excludeInactiveDaysHint:
+      'ימים ללא רשומות מוחרגים מממוצע מגמת האוכל וממדדי ההאכלה, כך שפער ברישום לא מושך את הנתונים כלפי מטה.',
     children: 'ילדים וכמות אוכל ברירת מחדל',
     mlSuffix: ' מ״ל',
     serverHomeAssistant: 'שרת Home Assistant',

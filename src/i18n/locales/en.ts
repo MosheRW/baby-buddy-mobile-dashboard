@@ -57,6 +57,11 @@ export const en = {
     filterByTag: 'Filter by tag {{tag}}',
     addTag: 'Add tag {{tag}}',
     switchToChild: 'Switch to {{name}}',
+    inactiveDaysTitle: 'Some days had no entries',
+    inactiveDaysBody:
+      'Exclude those inactive days so they stop dragging down your averages and gauges?',
+    inactiveDaysExclude: 'Exclude',
+    inactiveDaysDismiss: 'Not now',
   },
 
   filter: {
@@ -169,6 +174,7 @@ export const en = {
     amountUnitSolid: ' g',
     amountUnitLiquid: ' ml',
     trendLabel: '{{last24}}ml today vs {{avg}}ml/day (7d avg)',
+    trendLabelActive: '{{last24}}ml today vs {{avg}}ml/day ({{days}}d active avg)',
     typeLabel: 'Type',
     methodLabel: 'Method',
     foodTypeLabel: 'Food type',
@@ -278,6 +284,10 @@ export const en = {
 
   settings: {
     title: 'Settings',
+    stats: 'Statistics',
+    excludeInactiveDays: 'Exclude inactive days',
+    excludeInactiveDaysHint:
+      'Days with no logged entries are dropped from the food-trend average and the feed gauges, so a logging gap does not drag your stats down.',
     children: 'Children & default food quantity',
     mlSuffix: ' ml',
     serverHomeAssistant: 'Home Assistant server',

@@ -14,12 +14,13 @@ import { AppText } from '../../components';
 import { SettingsButton } from './SettingsButton';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { greeting, longDate } from '../../lib/dates';
+import { hasInactiveBaselineDays } from '../../lib/activeDays';
 import type { Child, Entry, EntryType } from '../../api/types';
 import { isTimerType, type TimerType } from '../../lib/timers';
 import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
-import { useAuthStore, useUiStore } from '../../stores';
+import { useAuthStore, useSettingsStore, useUiStore } from '../../stores';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
@@ -35,6 +36,10 @@ export function DashboardScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { children, entries, isLoading, isRefreshing, error, refetch } = useDashboardData();
   const [activeIndex, setActiveIndex] = useState(0);
+  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
+  const inactiveDaysPromptSeen = useSettingsStore((s) => s.inactiveDaysPromptSeen);
+  const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
+  const markInactiveDaysPromptSeen = useSettingsStore((s) => s.markInactiveDaysPromptSeen);
   const userName = useAuthStore((s) => s.session?.userName);
   const welcomeDismissed = useUiStore((s) => s.welcomeDismissed);
   const dismissWelcome = useUiStore((s) => s.dismissWelcome);
@@ -50,6 +55,14 @@ export function DashboardScreen({ navigation }: Props) {
 
   const activeChild = children[activeIndex] ?? children[0];
   const feedEntries = activeChild ? entriesForChild(entries, activeChild.id) : [];
+
+  // Offer the exclude-inactive-days feature the first time a logging gap is
+  // actually diluting the active child's food-trend baseline — not before there
+  // is anything to fix, and not again once the user has answered.
+  const showInactiveDaysPrompt =
+    !inactiveDaysPromptSeen &&
+    !excludeInactiveDays &&
+    hasInactiveBaselineDays(feedEntries, now);
 
   /**
    * The greeting is a welcome, not a fixture: once the user does anything on
@@ -170,6 +183,37 @@ export function DashboardScreen({ navigation }: Props) {
           </View>
         ) : null}
 
+        {showInactiveDaysPrompt ? (
+          <View style={styles.inactivePrompt}>
+            <AppText size={fontSize.bodySm} weight="800">
+              {t('dashboard.inactiveDaysTitle')}
+            </AppText>
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textSecondary}>
+              {t('dashboard.inactiveDaysBody')}
+            </AppText>
+            <View style={styles.inactiveActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => markInactiveDaysPromptSeen()}
+                style={styles.inactiveDismiss}
+              >
+                <AppText size={fontSize.metaSm} weight="800" color={colors.textSecondary}>
+                  {t('dashboard.inactiveDaysDismiss')}
+                </AppText>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setExcludeInactiveDays(true)}
+                style={styles.inactiveConfirm}
+              >
+                <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
+                  {t('dashboard.inactiveDaysExclude')}
+                </AppText>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <TimerStrip childrenById={childrenById} now={timerNow} onPress={openTimer} />
 
         {activeChild ? (
@@ -230,6 +274,30 @@ const styles = StyleSheet.create({
   },
   loading: {
     paddingVertical: spacing['7xl'],
+  },
+  inactivePrompt: {
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radii.control,
+    padding: spacing['2xl'],
+  },
+  inactiveActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  inactiveDismiss: {
+    borderRadius: radii.chipSmall,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing['2xl'],
+    backgroundColor: colors.neutral,
+  },
+  inactiveConfirm: {
+    borderRadius: radii.chipSmall,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing['2xl'],
+    backgroundColor: colors.accent,
   },
   settingsFallback: {
     alignItems: 'flex-end',
