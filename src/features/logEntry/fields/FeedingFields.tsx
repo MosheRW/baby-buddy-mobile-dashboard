@@ -164,7 +164,7 @@ export function FeedingFields({
           <Stepper
             value={draft.amount}
             onChange={(amount) => patch({ amount })}
-            step={10}
+            step={1}
             min={0}
             suffix={amountUnit(draft.kind)}
           />

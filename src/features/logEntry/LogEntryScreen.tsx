@@ -12,9 +12,9 @@ import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
 import {
   draftToEntry,
-  emptyDraft,
   entryToDraft,
   medSuggestionPatch,
+  seedDraft,
   type FormDraft,
 } from '../../lib/formDraft';
 import { isTimerType, type TimerType } from '../../lib/timers';
@@ -157,6 +157,11 @@ export function LogEntryScreen({ route, navigation }: Props) {
     // phone running slightly fast can't log a "now" entry.
     const seedNow = runningStart ?? serverNow();
 
+    // A new entry inherits the shape of this child's most recent entry of the
+    // same type (last feed's amount, last diaper's contents, …) — re-logging
+    // almost always repeats those choices.
+    const seedEntries = entries.filter((e) => e.childId === childId);
+
     openForm({
       mode,
       type: seedType,
@@ -165,7 +170,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
       draft: editingEntry
         ? entryToDraft(editingEntry, defaultFoodMl)
         : {
-            ...emptyDraft(seedNow, defaultFoodMl),
+            ...seedDraft(seedType, seedEntries, seedNow, defaultFoodMl),
             ...(savedTimerDraft ?? {}),
             ...(prefillMed ? medSuggestionPatch(prefillMed) : {}),
             // A restored draft carries the start/end from when it was stashed;
@@ -182,6 +187,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
     readyKey,
     isEdit,
     editingEntry,
+    entries,
     openForm,
     mode,
     initialType,

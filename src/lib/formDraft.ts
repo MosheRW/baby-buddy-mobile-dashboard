@@ -23,6 +23,7 @@ import type {
   TemperatureMethod,
 } from '../api/types';
 import i18n from '../i18n';
+import { defaultTimeForMethod } from './feed';
 
 export interface FormDraft {
   /** ISO start time. */
@@ -71,7 +72,15 @@ export interface FormDraft {
    */
   maxDose24h: number | null;
   schedule: MedicationSchedule;
+  /** Hours until the next dose; `0` means "don't repeat" (a one-off dose). */
   repeatHours: number;
+  /**
+   * Whether the repeat interval is a custom (off-preset) value. Tracked
+   * explicitly rather than derived from `repeatHours` so the custom stepper can
+   * land on a value that happens to coincide with a preset (e.g. 6h) without the
+   * "Custom" chip snapping back and hiding the field.
+   */
+  repeatCustom: boolean;
 
   // temperature
   temperature: number;
@@ -115,6 +124,7 @@ export function emptyDraft(now: number = Date.now(), defaultFoodMl = 120): FormD
     maxDose24h: null,
     schedule: 'scheduled',
     repeatHours: 6,
+    repeatCustom: false,
 
     temperature: 37,
     tempMethod: 'oral',
@@ -267,12 +277,18 @@ export function medSuggestionPatch(m: MedicationEntry): Partial<FormDraft> {
     bodyArea: m.bodyArea ?? '',
     schedule: m.schedule,
     repeatHours: m.repeatHours,
+    repeatCustom: m.repeatHours > 0 && isCustomRepeat(m.repeatHours),
     maxDose24h: m.maxDose24h ?? null,
   };
 }
 
 /** Preset repeat intervals; anything else is "Custom". */
 export const REPEAT_HOURS = [2, 4, 6, 8, 12] as const;
+
+/** A one-off dose that isn't repeated is stored as a zero-hour interval. */
+export function isNoRepeat(hours: number): boolean {
+  return hours <= 0;
+}
 
 export function isCustomRepeat(hours: number): boolean {
   return !(REPEAT_HOURS as readonly number[]).includes(hours);
@@ -388,6 +404,67 @@ export function draftToEntry({ draft, type, childId, id, creator }: ToEntryParam
   }
 }
 
+/** The most recent entry of a given type, or undefined when there is none. */
+export function mostRecentOfType(entries: Entry[], type: EntryType): Entry | undefined {
+  let best: Entry | undefined;
+  let bestAt = -Infinity;
+  for (const e of entries) {
+    if (e.type !== type) continue;
+    const at = Date.parse(e.time);
+    if (at > bestAt) {
+      bestAt = at;
+      best = e;
+    }
+  }
+  return best;
+}
+
+/**
+ * Defaults for a brand-new entry of `type`, carrying forward the *shape* of the
+ * caregiver's most recent entry of that same type — the feed's kind/method/
+ * amount, the medicine and its dose/schedule, the diaper's contents, the
+ * temperature method, and so on. Re-logging almost always repeats last time's
+ * choices, so this saves re-picking them every entry. Falls back to
+ * `emptyDraft` when there's no prior entry of the type.
+ *
+ * `entries` should already be scoped to the child the form is for, so one
+ * child's habits never seed another's.
+ *
+ * Only the "what" carries over; the "when" and the per-entry annotations don't —
+ * time resets to now, any timed span is dropped, and note/tags start empty.
+ */
+export function seedDraft(
+  type: EntryType,
+  entries: Entry[],
+  now: number = Date.now(),
+  defaultFoodMl = 120,
+): FormDraft {
+  const base = emptyDraft(now, defaultFoodMl);
+  const last = mostRecentOfType(entries, type);
+  if (!last) return base;
+
+  const seeded = entryToDraft(last, defaultFoodMl);
+  seeded.time = base.time;
+  seeded.endTime = null;
+  seeded.note = '';
+  seeded.tags = [];
+
+  if (last.type === 'feeding') {
+    // Re-capture the gauge baseline against today's settings/history rather than
+    // freezing the prior entry's — a Settings change since then should count.
+    Object.assign(
+      seeded,
+      baselinePatch(seeded.method, defaultFoodMl, defaultTimeForMethod(entries, seeded.method, now)),
+    );
+  }
+  if (last.type === 'sleep') {
+    // A fresh sleep entry defaults to "still sleeping"; don't inherit the prior
+    // sleep's completed/ongoing state.
+    seeded.stillSleeping = base.stillSleeping;
+  }
+  return seeded;
+}
+
 /** Hydrate a draft from an existing entry (edit mode). */
 export function entryToDraft(entry: Entry, defaultFoodMl?: number): FormDraft {
   const draft = emptyDraft(Date.parse(entry.time), defaultFoodMl);
@@ -424,6 +501,7 @@ export function entryToDraft(entry: Entry, defaultFoodMl?: number): FormDraft {
       draft.maxDose24h = entry.maxDose24h ?? null;
       draft.schedule = entry.schedule;
       draft.repeatHours = entry.repeatHours;
+      draft.repeatCustom = entry.repeatHours > 0 && isCustomRepeat(entry.repeatHours);
       break;
     case 'temperature':
       draft.temperature = entry.value;

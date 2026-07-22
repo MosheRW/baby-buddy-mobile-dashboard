@@ -94,6 +94,13 @@ describe('neededMeds (scheduled)', () => {
     ];
     expect(neededMeds(entries, NOW).map((s) => s.name)).toEqual(['A', 'B']);
   });
+
+  it('excludes a one-off dose (zero interval) with no next dose to be due for', () => {
+    const entries: Entry[] = [
+      med({ name: 'OneOff', time: iso(NOW - 1 * HOUR), repeatHours: 0, schedule: 'scheduled' }),
+    ];
+    expect(neededMeds(entries, NOW)).toHaveLength(0);
+  });
 });
 
 describe('eligibleMeds (as-needed / PRN)', () => {
@@ -125,6 +132,13 @@ describe('eligibleMeds (as-needed / PRN)', () => {
   it('ignores scheduled meds', () => {
     const entries: Entry[] = [
       med({ name: 'Amoxicillin', time: iso(NOW - 1 * HOUR), schedule: 'scheduled' }),
+    ];
+    expect(eligibleMeds(entries, NOW)).toHaveLength(0);
+  });
+
+  it('excludes a one-off PRN dose that is never eligible again', () => {
+    const entries: Entry[] = [
+      med({ name: 'OneOff', time: iso(NOW - 1 * HOUR), repeatHours: 0, schedule: 'asNeeded' }),
     ];
     expect(eligibleMeds(entries, NOW)).toHaveLength(0);
   });
