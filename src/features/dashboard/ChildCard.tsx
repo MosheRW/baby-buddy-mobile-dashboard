@@ -28,13 +28,13 @@ import {
   type MedLimitSummary,
 } from '../../lib/medication';
 import { foodTrend, foodTrendLabel } from '../../lib/feed';
+import { DEFAULT_FOOD_INTERVAL_MINUTES } from '../../lib/notifications';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
-import { useSettingsStore, useTimerStore } from '../../stores';
+import { useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
 
 interface ChildCardProps {
   child: Child;
   entries: Entry[];
-  foodWindowHours: number;
   /** 60s tick for relative-time labels. */
   now: number;
   /** 1s tick for live timer elapsed labels on quick-action buttons. */
@@ -52,7 +52,6 @@ interface ChildCardProps {
 export function ChildCard({
   child,
   entries,
-  foodWindowHours,
   now,
   timerNow,
   onQuickAction,
@@ -62,11 +61,16 @@ export function ChildCard({
   width,
 }: ChildCardProps) {
   const { t } = useTranslation();
+  // The per-child feeding interval doubles as this child's food-total window
+  // (merged from the old global "feeding window" setting).
+  const windowMinutes = useNotificationStore(
+    (s) => s.perChild[child.id]?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES,
+  );
   const childEntries = entriesForChild(entries, child.id);
   const pee = lastDiaper(childEntries, 'pee');
   const poo = lastDiaper(childEntries, 'poo');
   const feeding = lastFeeding(childEntries);
-  const total = foodTotal(childEntries, foodWindowHours);
+  const total = foodTotal(childEntries, windowMinutes / 60);
   const needed = neededMeds(childEntries, now);
   const eligible = eligibleMeds(childEntries, now);
   const limits = medLimitSummaries(childEntries, now);
@@ -139,7 +143,7 @@ export function ChildCard({
       </StatTile>
 
       <StatTile
-        label={t('childCard.foodWindow', { hours: foodWindowHours })}
+        label={t('childCard.foodWindow', { window: countdownLabel(windowMinutes * 60_000) })}
         value={t('childCard.foodValue', { amount: total })}
         tint={{ bg: colors.tileNeutral }}
       />

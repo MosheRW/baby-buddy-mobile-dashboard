@@ -7,13 +7,23 @@ import { colors, fontSize, radii, spacing } from '../theme';
 interface StepperProps {
   value: number;
   onChange: (value: number) => void;
-  step: number;
+  /**
+   * Increment size. A function is resolved from the current `value` on each
+   * press, so the step can adapt as the value moves (e.g. finer near zero,
+   * coarser once it's large) — see `intervalStep` in `lib/notifications`.
+   */
+  step: number | ((value: number) => number);
   min?: number;
   max?: number;
   /** Digits after the decimal point when displaying (0 for integers). */
   decimals?: number;
   /** Suffix appended to the value, e.g. " ml", "°C", " min". */
   suffix?: string;
+  /**
+   * Render the whole label from the value, replacing the numeric display (and
+   * `suffix`). Lets a minute count read as "3h 30m" via `countdownLabel`.
+   */
+  format?: (value: number) => string;
   /**
    * Drop trailing fractional zeros from the display, so a 0.1-step temperature
    * reads "37°C" at a whole degree and "37.4°C" between. The stored value keeps
@@ -36,18 +46,28 @@ export function Stepper({
   max = Infinity,
   decimals = 0,
   suffix = '',
+  format,
   trimZeros = false,
   disabled = false,
 }: StepperProps) {
-  const round = (n: number) => {
-    const p = Math.pow(10, Math.max(decimals, countDecimals(step)));
+  const stepAt = (v: number) => (typeof step === 'function' ? step(v) : step);
+  const round = (n: number, s: number) => {
+    const p = Math.pow(10, Math.max(decimals, countDecimals(s)));
     return Math.round(n * p) / p;
   };
-  const dec = () => !disabled && onChange(round(Math.max(min, value - step)));
-  const inc = () => !disabled && onChange(round(Math.min(max, value + step)));
+  const dec = () => {
+    if (disabled) return;
+    const s = stepAt(value);
+    onChange(round(Math.max(min, value - s), s));
+  };
+  const inc = () => {
+    if (disabled) return;
+    const s = stepAt(value);
+    onChange(round(Math.min(max, value + s), s));
+  };
   // Fixed precision keeps float drift out; `trimZeros` then drops "37.0" → "37".
   const fixed = value.toFixed(decimals);
-  const display = trimZeros ? String(Number(fixed)) : fixed;
+  const display = format ? format(value) : trimZeros ? String(Number(fixed)) : fixed;
 
   return (
     <View style={[styles.row, disabled && styles.disabled]}>
@@ -55,7 +75,7 @@ export function Stepper({
       <View style={styles.valueBox}>
         <AppText size={fontSize.cardTitle} weight="800">
           {display}
-          {suffix}
+          {format ? '' : suffix}
         </AppText>
       </View>
       <StepButton onPress={inc} disabled={disabled || value >= max} kind="plus" />

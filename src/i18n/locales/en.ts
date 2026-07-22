@@ -82,7 +82,7 @@ export const en = {
     lastPoo: 'Last poo',
     lastFeeding: 'Last feeding',
     lastFeedingValue: '{{title}} · {{ago}}',
-    foodWindow: 'Food, {{hours}}h',
+    foodWindow: 'Food, {{window}}',
     foodValue: '{{amount}} ml',
     logDose: 'Log a dose of {{name}}',
     lastAt: 'last {{time}}',
@@ -284,9 +284,6 @@ export const en = {
 
   settings: {
     title: 'Settings',
-    feedingWindow: 'Feeding window',
-    feedingWindowHint: "Controls the dashboard's food-total window.",
-    windowChip: '{{hours}}h',
     stats: 'Statistics',
     excludeInactiveDays: 'Exclude inactive days',
     excludeInactiveDaysHint:
@@ -324,6 +321,9 @@ export const en = {
     diaperHint: "Remind me when it's been too long since the last change.",
     foodTitle: 'Feeding gaps',
     foodHint: "Remind me when it's been too long since the last feed.",
+    feedingScheduleTitle: 'Feeding schedule',
+    feedingScheduleHint: 'Expected time between feeds. Also sets the dashboard food-total window.',
+    feedingInterval: 'Time between feeds',
     weeklyTitle: 'Weekly summary',
     weeklyHint: 'A weekly recap of what you logged, and how it compares with the other caregivers.',
     weeklyDay: 'Day',
@@ -340,7 +340,6 @@ export const en = {
     },
     maxGap: 'Max gap',
     targetAmount: 'Target amount',
-    hourSuffix: ' h',
     before: 'Before',
     atTime: 'At the time',
     after: 'After',

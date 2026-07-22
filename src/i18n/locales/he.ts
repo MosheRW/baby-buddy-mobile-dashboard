@@ -80,7 +80,7 @@ export const he = {
     lastPoo: 'יציאה אחרונה',
     lastFeeding: 'האכלה אחרונה',
     lastFeedingValue: '{{title}} · {{ago}}',
-    foodWindow: 'אוכל, {{hours}} ש׳',
+    foodWindow: 'אוכל, {{window}}',
     foodValue: '{{amount}} מ״ל',
     logDose: 'רישום מנה של {{name}}',
     lastAt: 'לאחרונה {{time}}',
@@ -282,9 +282,6 @@ export const he = {
 
   settings: {
     title: 'הגדרות',
-    feedingWindow: 'חלון האכלה',
-    feedingWindowHint: 'קובע את חלון סכום האוכל בלוח הבקרה.',
-    windowChip: '{{hours}} ש׳',
     stats: 'סטטיסטיקה',
     excludeInactiveDays: 'החרגת ימים לא־פעילים',
     excludeInactiveDaysHint:
@@ -319,6 +316,9 @@ export const he = {
     diaperHint: 'הזכירו לי כשעבר יותר מדי זמן מאז ההחלפה האחרונה.',
     foodTitle: 'מרווחי האכלה',
     foodHint: 'הזכירו לי כשעבר יותר מדי זמן מאז ההאכלה האחרונה.',
+    feedingScheduleTitle: 'לוח האכלות',
+    feedingScheduleHint: 'הזמן הצפוי בין האכלות. קובע גם את חלון סכום האוכל בלוח הבקרה.',
+    feedingInterval: 'זמן בין האכלות',
     weeklyTitle: 'סיכום שבועי',
     weeklyHint: 'סיכום שבועי של מה שתיעדתם, ואיך זה משתווה למטפלים האחרים.',
     weeklyDay: 'יום',
@@ -335,7 +335,6 @@ export const he = {
     },
     maxGap: 'מרווח מרבי',
     targetAmount: 'כמות יעד',
-    hourSuffix: ' ש׳',
     before: 'לפני',
     atTime: 'בזמן',
     after: 'אחרי',

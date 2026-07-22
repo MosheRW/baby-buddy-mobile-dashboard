@@ -36,7 +36,6 @@ export function DashboardScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { children, entries, isLoading, isRefreshing, error, refetch } = useDashboardData();
   const [activeIndex, setActiveIndex] = useState(0);
-  const foodWindowHours = useSettingsStore((s) => s.foodWindowHours);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
   const inactiveDaysPromptSeen = useSettingsStore((s) => s.inactiveDaysPromptSeen);
   const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
@@ -223,7 +222,6 @@ export function DashboardScreen({ navigation }: Props) {
             entries={entries}
             activeIndex={activeIndex}
             onActiveChange={changeChild}
-            foodWindowHours={foodWindowHours}
             now={now}
             timerNow={timerNow}
             onQuickAction={openCreate}
