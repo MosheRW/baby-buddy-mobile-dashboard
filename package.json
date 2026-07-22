@@ -1,6 +1,6 @@
 {
   "name": "baby-buddy-native",
-  "version": "1.0.0-5",
+  "version": "1.0.0-6",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
