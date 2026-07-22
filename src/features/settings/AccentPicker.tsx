@@ -28,6 +28,7 @@ export function AccentPicker({ value, onChange, autoLabel }: AccentPickerProps) 
           <Pressable
             key={id}
             accessibilityRole="button"
+            accessibilityLabel={id}
             accessibilityState={{ selected }}
             onPress={() => onChange(hue)}
             style={[

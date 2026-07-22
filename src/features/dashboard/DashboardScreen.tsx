@@ -95,7 +95,11 @@ export function DashboardScreen({ navigation }: Props) {
     return () => clearTimeout(id);
   }, [revealHiddenUntil, clearReveal]);
 
-  const activeChild = visible[activeIndex] ?? visible[0];
+  // If the currently-active child was just hidden, `activeIndex` can point past
+  // the filtered list — clamp so a tab stays selected and swipe navigation keeps
+  // working instead of landing on nothing.
+  const clampedIndex = activeIndex < visible.length ? activeIndex : 0;
+  const activeChild = visible[clampedIndex];
   const feedEntries = activeChild ? entriesForChild(entries, activeChild.id) : [];
 
   // Offer the exclude-inactive-days feature the first time a logging gap is
@@ -274,7 +278,7 @@ export function DashboardScreen({ navigation }: Props) {
           <ChildNav
             childList={visible}
             entries={entries}
-            activeIndex={activeIndex}
+            activeIndex={clampedIndex}
             onActiveChange={changeChild}
             now={now}
             timerNow={timerNow}

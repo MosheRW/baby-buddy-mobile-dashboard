@@ -35,18 +35,19 @@ export function Card({
         { padding, borderRadius: radius },
         elevation === 'card' && shadows.card,
         elevation === 'feedRow' && shadows.feedRow,
-        // The gradient fills to the rounded edge, so the corners have to clip.
-        gradient != null && { backgroundColor: 'transparent', overflow: 'hidden' },
+        gradient != null && styles.transparent,
         style,
       ]}
       {...rest}
     >
       {gradient != null ? (
+        // The gradient carries the corner radius itself rather than the parent
+        // clipping with overflow:'hidden', which would drop the card's iOS shadow.
         <LinearGradient
           colors={gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
           pointerEvents="none"
         />
       ) : null}
@@ -58,5 +59,9 @@ export function Card({
 const styles = StyleSheet.create({
   base: {
     backgroundColor: colors.card,
+  },
+  // The gradient layer supplies the fill, so the base must not paint over it.
+  transparent: {
+    backgroundColor: 'transparent',
   },
 });

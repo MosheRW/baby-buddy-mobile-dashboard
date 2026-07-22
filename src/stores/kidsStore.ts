@@ -64,8 +64,12 @@ export const useKidsStore = create<KidsState>()(
       knownChildIds: [],
       shakeReveal: { enabled: true, durationMinutes: 5 },
 
+      // Only hidden children are recorded; showing one drops its key so the
+      // persisted map doesn't accumulate `false` entries over time.
       setHidden: (childId, hidden) =>
-        set((state) => ({ hidden: { ...state.hidden, [childId]: hidden } })),
+        set((state) => ({
+          hidden: hidden ? { ...state.hidden, [childId]: true } : omit(state.hidden, childId),
+        })),
 
       setDefaultVisibility: (value) => set({ defaultVisibility: value }),
 
