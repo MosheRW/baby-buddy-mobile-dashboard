@@ -380,16 +380,9 @@ export function LogEntryScreen({ route, navigation }: Props) {
               ) : null}
               {timerRunning ? (
                 <>
-                  {/* "Save details" stashes the draft and leaves the timer
-                      running — no entry yet; "Save and end" stops the timer and
-                      writes the entry, reusing whatever was stashed. */}
-                  <ActionButton
-                    label={t('logEntry.saveDetails')}
-                    variant="neutral"
-                    flex={1}
-                    disabled={saveEntry.isPending}
-                    onPress={saveDetails}
-                  />
+                  {/* "Save and end" stops the timer and writes the entry,
+                      reusing whatever was stashed; "Save details" stashes the
+                      draft and leaves the timer running — no entry yet. */}
                   <ActionButton
                     label={
                       saveEntry.isPending
@@ -400,6 +393,13 @@ export function LogEntryScreen({ route, navigation }: Props) {
                     flex={1}
                     disabled={saveEntry.isPending}
                     onPress={() => save()}
+                  />
+                  <ActionButton
+                    label={t('logEntry.saveDetails')}
+                    variant="neutral"
+                    flex={1}
+                    disabled={saveEntry.isPending}
+                    onPress={saveDetails}
                   />
                 </>
               ) : (
