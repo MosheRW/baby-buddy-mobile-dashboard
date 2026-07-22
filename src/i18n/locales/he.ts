@@ -17,6 +17,20 @@ export const he = {
     back: 'חזרה',
     dismiss: 'סגירה',
     retry: 'ניסיון חוזר',
+    ok: 'אישור',
+  },
+
+  stepper: {
+    increase: 'הגדלה',
+    decrease: 'הקטנה',
+    editValue: 'עריכת ערך',
+    resetHint: 'לחיצה ארוכה לאיפוס לערך ברירת המחדל',
+    editTitle: 'הזינו ערך',
+    invalidTitle: 'ערך לא תקין',
+    rangeBoth: 'הזינו מספר בין {{min}} ל־{{max}}.',
+    rangeMin: 'הזינו מספר של לפחות {{min}}.',
+    rangeMax: 'הזינו מספר של עד {{max}}.',
+    rangeAny: 'הזינו מספר תקין.',
   },
 
   login: {

@@ -125,7 +125,7 @@ export function SettingsScreen({ navigation }: Props) {
                   <Stepper
                     value={defaultMl(child.id, child.defaultFoodMl)}
                     onChange={(v) => setDefaultFoodMl(child.id, v)}
-                    step={10}
+                    step={1}
                     min={0}
                     suffix={t('settings.mlSuffix')}
                   />

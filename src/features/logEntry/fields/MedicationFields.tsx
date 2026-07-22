@@ -202,9 +202,11 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
           <Stepper
             value={draft.dose}
             onChange={(dose) => patch({ dose })}
-            step={spec.step}
+            step={0.1}
             min={0}
-            decimals={spec.precision}
+            // A 0.1 tap needs at least one visible decimal, else integer-unit
+            // doses (mg, drops) would appear not to move.
+            decimals={Math.max(spec.precision, 1)}
           />
         </View>
       ) : null}
