@@ -110,13 +110,19 @@ function TabsNav({
       translateX.value = e.translationX;
     })
     .onEnd((e) => {
-      const swiped =
-        Math.abs(e.translationX) > SWIPE_DISTANCE || Math.abs(e.velocityX) > SWIPE_VELOCITY;
-      if (!swiped) {
+      const distanceSwipe = Math.abs(e.translationX) > SWIPE_DISTANCE;
+      const velocitySwipe = Math.abs(e.velocityX) > SWIPE_VELOCITY;
+      if (!distanceSwipe && !velocitySwipe) {
         translateX.value = withTiming(0, { duration: 180 });
         return;
       }
-      const dir = e.translationX < 0 ? 1 : -1; // 1 = next child, -1 = previous
+      // Take the direction from whichever signal actually crossed its threshold,
+      // not always from translationX: a fast fling can trip the velocity
+      // threshold while translationX is tiny or has bounced to the opposite
+      // sign, which would otherwise flip to the wrong child. Net finger travel
+      // (distance) wins when both fired, since it best reflects the intent.
+      const signal = distanceSwipe ? e.translationX : e.velocityX;
+      const dir = signal < 0 ? 1 : -1; // 1 = next child, -1 = previous
       const w = cardWidth.value || 320;
       translateX.value = withTiming(-dir * w, { duration: 160 }, (finished) => {
         if (!finished) return;
