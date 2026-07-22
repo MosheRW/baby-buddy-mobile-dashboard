@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -14,6 +14,13 @@ import type { Child, Entry, EntryType } from '../../api/types';
 import type { MedStatus } from '../../lib/medication';
 import { ChildCard } from './ChildCard';
 import { SettingsButton } from './SettingsButton';
+
+// Reanimated shared values (useSharedValue) are mutable refs; writing `.value`
+// is their intended API, including from effects and layout callbacks. The
+// React-Compiler immutability rule models them as frozen render values and flags
+// every legitimate write, so it's disabled for this file — the only shared-value
+// user in the app.
+/* eslint-disable react-hooks/immutability */
 
 interface ChildNavProps {
   childList: Child[];
@@ -90,19 +97,68 @@ function TabsNav({
   // width off-screen rather than guessing a distance.
   const cardWidth = useSharedValue(0);
 
-  const goTo = (index: number) => {
+  // A committed swipe mounts the neighbour card off-screen and slides it in
+  // alongside the outgoing one — so the card that arrives already shows the
+  // neighbour, not a stale copy of the current child waiting to re-render. All
+  // children are already in memory (React Query cache + the loaded list), so
+  // the neighbour renders synchronously with no fetch.
+  //
+  // `phase` sequences the hand-off so the index swap never flashes the old
+  // child: 'animating' (both cards sliding) → 'settling' (index switched, but
+  // translateX still parks the freshly-swapped current card off-screen while the
+  // already-centred neighbour overlay covers it) → back to idle. Only in the
+  // settling effect — after the new current has rendered — is translateX reset
+  // to 0 and the overlay removed, so the two are the same child at the same spot.
+  const [incoming, setIncoming] = useState<{ index: number; dir: number } | null>(null);
+  const [phase, setPhase] = useState<'idle' | 'animating' | 'settling'>('idle');
+
+  const startTransition = (dir: number) => {
+    if (phase !== 'idle') return; // one swipe at a time
     const n = childList.length;
-    if (n === 0) return;
+    if (n < 2) return;
     // Wrap around: swiping past either end loops to the other side instead of
     // dead-ending, so the children form an endless carousel.
-    const wrapped = ((index % n) + n) % n;
-    onActiveChange(wrapped);
+    const neighbour = (((activeIndex + dir) % n) + n) % n;
+    setIncoming({ index: neighbour, dir });
+    setPhase('animating');
   };
 
-  // Horizontal drag follows the finger for feedback. A committed swipe then
-  // slides the current card the rest of the way off in the swipe direction,
-  // swaps in the neighbour off-screen on the opposite side, and eases it to
-  // centre — a real slide instead of the old snap-back-and-pop.
+  // Animation done: switch the active child but hold translateX where it is, so
+  // the re-rendered current card stays off-screen behind the centred overlay.
+  const settle = (index: number) => {
+    onActiveChange(index);
+    setPhase('settling');
+  };
+
+  // Drive the slide once the neighbour overlay is mounted (phase 'animating').
+  useEffect(() => {
+    if (phase !== 'animating' || !incoming) return;
+    const { dir, index } = incoming;
+    const w = cardWidth.value || 320;
+    translateX.value = withTiming(-dir * w, { duration: 220 }, (finished) => {
+      if (finished) runOnJS(settle)(index);
+    });
+    // translateX / cardWidth are shared values (stable); depend on the phase and
+    // the incoming payload only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, incoming]);
+
+  // Post-commit: the new current child has now rendered (off-screen at -dir*w).
+  // Snap translateX back to 0 to bring it to centre, then drop the overlay. Both
+  // show the same child at the same position, so there's nothing to flash.
+  useEffect(() => {
+    if (phase !== 'settling') return;
+    translateX.value = 0;
+    // Stepping the state machine forward from an effect is the intended cascade
+    // here — the render that dropped the overlay is exactly what we waited for.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIncoming(null);
+    setPhase('idle');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // Horizontal drag follows the finger for feedback; releasing either snaps back
+  // (no commit) or hands off to the slide above.
   const pan = Gesture.Pan()
     .activeOffsetX([-10, 10])
     .failOffsetY([-10, 10])
@@ -123,19 +179,22 @@ function TabsNav({
       // (distance) wins when both fired, since it best reflects the intent.
       const signal = distanceSwipe ? e.translationX : e.velocityX;
       const dir = signal < 0 ? 1 : -1; // 1 = next child, -1 = previous
-      const w = cardWidth.value || 320;
-      translateX.value = withTiming(-dir * w, { duration: 160 }, (finished) => {
-        if (!finished) return;
-        runOnJS(goTo)(activeIndex + dir);
-        // The swapped-in card starts off-screen on the far side, then slides in.
-        translateX.value = dir * w;
-        translateX.value = withTiming(0, { duration: 200 });
-      });
+      runOnJS(startTransition)(dir);
     });
 
-  const cardStyle = useAnimatedStyle(() => ({
+  const currentStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
+
+  // The neighbour overlay tracks the same drag/anim offset, one card-width to
+  // the side it enters from, so it eases to centre exactly as the current card
+  // leaves.
+  const incomingDir = incoming?.dir ?? 0;
+  const incomingStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value + incomingDir * cardWidth.value }],
+  }));
+
+  const incomingChild = incoming ? childList[incoming.index] : undefined;
 
   return (
     <View>
@@ -172,24 +231,39 @@ function TabsNav({
         </ScrollView>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[styles.tabCard, cardStyle]}
-          onLayout={(e) => {
-            cardWidth.value = e.nativeEvent.layout.width;
-          }}
-        >
-          <ChildCard
-            child={active}
-            entries={entries}
-            now={now}
-            timerNow={timerNow}
-            onQuickAction={(type) => onQuickAction(active.id, type)}
-            onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
-            onLogDose={(status) => onLogDose(active.id, status)}
-          />
-        </Animated.View>
-      </GestureDetector>
+      <View style={styles.cardArea}>
+        <GestureDetector gesture={pan}>
+          <Animated.View
+            style={currentStyle}
+            onLayout={(e) => {
+              cardWidth.value = e.nativeEvent.layout.width;
+            }}
+          >
+            <ChildCard
+              child={active}
+              entries={entries}
+              now={now}
+              timerNow={timerNow}
+              onQuickAction={(type) => onQuickAction(active.id, type)}
+              onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
+              onLogDose={(status) => onLogDose(active.id, status)}
+            />
+          </Animated.View>
+        </GestureDetector>
+        {incomingChild ? (
+          <Animated.View style={[styles.overlay, incomingStyle]} pointerEvents="none">
+            <ChildCard
+              child={incomingChild}
+              entries={entries}
+              now={now}
+              timerNow={timerNow}
+              onQuickAction={(type) => onQuickAction(incomingChild.id, type)}
+              onOpenMedBreakdown={() => onOpenMedBreakdown(incomingChild)}
+              onLogDose={(status) => onLogDose(incomingChild.id, status)}
+            />
+          </Animated.View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -218,7 +292,17 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: colors.accent,
   },
-  tabCard: {
+  // Relative anchor for the card + the sliding neighbour overlay. Height is set
+  // by the current (relative) card; the overlay is absolute so it can't stretch
+  // the layout while it slides through.
+  cardArea: {
     marginTop: spacing.xs,
+    position: 'relative',
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
   },
 });
