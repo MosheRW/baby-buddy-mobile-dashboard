@@ -255,6 +255,7 @@ export const he = {
     notePlaceholder: 'הערה (רשות)',
     tags: 'תגיות',
     addTagOffer: '+ {{tag}}',
+    saveDetails: 'שמירת פרטים',
     saveAndEnd: 'שמירה וסיום {{activity}}',
     activity: {
       feeding: 'האכלה',

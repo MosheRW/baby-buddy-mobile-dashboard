@@ -147,6 +147,15 @@ export function LogEntryScreen({ route, navigation }: Props) {
       !isEdit && isTimerType(seedType)
         ? useTimerStore.getState().getTimer(seedType, childId)?.startedAt
         : undefined;
+    // Details the caregiver stashed with "Save details" while the timer ran —
+    // reapply them so reopening to stop-and-save doesn't start from scratch.
+    const savedTimerDraft =
+      !isEdit && isTimerType(seedType)
+        ? useTimerStore.getState().getDraft(seedType, childId)
+        : undefined;
+    // serverNow, not Date.now: the server rejects times in its own future, so a
+    // phone running slightly fast can't log a "now" entry.
+    const seedNow = runningStart ?? serverNow();
 
     openForm({
       mode,
@@ -156,10 +165,12 @@ export function LogEntryScreen({ route, navigation }: Props) {
       draft: editingEntry
         ? entryToDraft(editingEntry, defaultFoodMl)
         : {
-            // serverNow, not Date.now: the server rejects times in its own
-            // future, so a phone running slightly fast can't log a "now" entry.
-            ...emptyDraft(runningStart ?? serverNow(), defaultFoodMl),
+            ...emptyDraft(seedNow, defaultFoodMl),
+            ...(savedTimerDraft ?? {}),
             ...(prefillMed ? medSuggestionPatch(prefillMed) : {}),
+            // A restored draft carries the start/end from when it was stashed;
+            // the live timer owns the Time field and the end defaults to now.
+            ...(savedTimerDraft ? { time: new Date(seedNow).toISOString(), endTime: null } : {}),
           },
     });
     // One-time seeding, guarded by the key above — it can't cascade because
@@ -182,8 +193,19 @@ export function LogEntryScreen({ route, navigation }: Props) {
   ]);
 
   const saveEntry = useSaveEntry();
+  const saveTimerDraft = useTimerStore((s) => s.saveDraft);
 
-  const save = ({ keepTimer = false }: { keepTimer?: boolean } = {}) => {
+  // "Save details" while a timer runs: stash the draft on the timer (not the
+  // ephemeral formStore) and close, leaving the timer running. No entry is
+  // created — that happens only on stop-and-save. Reopening the form later
+  // rehydrates these details, so the caregiver never re-enters them.
+  const saveDetails = () => {
+    if (!timerType) return;
+    saveTimerDraft(timerType, childId, draft);
+    navigation.goBack();
+  };
+
+  const save = () => {
     // While a timer runs its duration isn't in the draft yet, so fold the
     // measured span in here rather than relying on a not-yet-committed patch.
     const spanVals = timerRunning ? spanPatch() : {};
@@ -200,8 +222,8 @@ export function LogEntryScreen({ route, navigation }: Props) {
       onSuccess: () => {
         // A timer that produced this entry has done its job — clear it only
         // once the entry is safely saved, so a failed save doesn't lose it.
-        // "Save" (keepTimer) leaves it running to log another span later.
-        if (isTimerType(type) && !keepTimer) stopTimer(type, childId);
+        // (stopTimer no-ops for a non-timer type or when nothing is running.)
+        if (isTimerType(type)) stopTimer(type, childId);
         navigation.goBack();
       },
     });
@@ -352,14 +374,15 @@ export function LogEntryScreen({ route, navigation }: Props) {
               ) : null}
               {timerRunning ? (
                 <>
-                  {/* Save keeps the timer running to log another span; "Save and
-                      end" stops it and closes out the activity. */}
+                  {/* "Save details" stashes the draft and leaves the timer
+                      running — no entry yet; "Save and end" stops the timer and
+                      writes the entry, reusing whatever was stashed. */}
                   <ActionButton
-                    label={t('common.save')}
+                    label={t('logEntry.saveDetails')}
                     variant="neutral"
                     flex={1}
                     disabled={saveEntry.isPending}
-                    onPress={() => save({ keepTimer: true })}
+                    onPress={saveDetails}
                   />
                   <ActionButton
                     label={
