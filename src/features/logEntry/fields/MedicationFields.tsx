@@ -202,6 +202,9 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
           <Stepper
             value={draft.dose}
             onChange={(dose) => patch({ dose })}
+            // Deliberately a uniform 0.1 fine step across all units (a product
+            // decision), not the per-unit `spec.step`; the press-and-hold ramp
+            // covers larger doses.
             step={0.1}
             min={0}
             // A 0.1 tap needs at least one visible decimal, else integer-unit

@@ -54,9 +54,10 @@ interface StepperProps {
 }
 
 /**
- * ± stepper. Handles all handoff cases via props:
- *  ±1 ml/g/dose, ±1 min duration, ±0.1° temperature, adaptive notification
- *  intervals. Tap ±  to step by the fine unit; press-and-hold to accelerate.
+ * ± stepper. The caller's `step` prop is the fine single-tap increment, so each
+ * usage picks its own: ±1 ml/g amount, ±0.1 dose/°, ±1 min duration, ±1 hour,
+ * etc. Tap ±  to step by that unit; press-and-hold to accelerate (see
+ * `rampStep`).
  * Rounds to a stable number of decimals to avoid float drift (0.1 + 0.2 etc).
  */
 export function Stepper({
@@ -116,7 +117,8 @@ export function Stepper({
     setEditing(false);
     const parsed = parseNumericInput(editText);
     if (parsed == null || parsed < min || parsed > max) {
-      // Invalid or out of range: tell the user and restore the pre-edit value.
+      // Invalid or out of range: tell the user and restore `defaultValue` — the
+      // value captured at mount, same target as the long-press reset.
       onChange(defaultValue);
       Alert.alert(t('stepper.invalidTitle'), rangeMessage(t, min, max));
       return;
