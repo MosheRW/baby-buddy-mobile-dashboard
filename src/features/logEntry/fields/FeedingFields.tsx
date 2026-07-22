@@ -177,7 +177,7 @@ export function FeedingFields({
           <Stepper
             value={draft.durationMinutes}
             onChange={(durationMinutes) => patch({ durationMinutes })}
-            step={5}
+            step={1}
             min={0}
             suffix={t('feeding.durationSuffix')}
           />

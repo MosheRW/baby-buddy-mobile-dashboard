@@ -18,6 +18,20 @@ export const en = {
     back: 'Back',
     dismiss: 'Dismiss',
     retry: 'Retry',
+    ok: 'OK',
+  },
+
+  stepper: {
+    increase: 'Increase',
+    decrease: 'Decrease',
+    editValue: 'Edit value',
+    resetHint: 'Long-press to reset to the default value',
+    editTitle: 'Enter a value',
+    invalidTitle: 'Invalid value',
+    rangeBoth: 'Enter a number between {{min}} and {{max}}.',
+    rangeMin: 'Enter a number of at least {{min}}.',
+    rangeMax: 'Enter a number of at most {{max}}.',
+    rangeAny: 'Enter a valid number.',
   },
 
   login: {
