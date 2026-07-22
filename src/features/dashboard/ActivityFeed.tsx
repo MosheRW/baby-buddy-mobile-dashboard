@@ -5,9 +5,10 @@ import { AppText, Card, ChipRow } from '../../components';
 import { EntryGlyph, PencilGlyph, TrashGlyph } from '../../components/glyphs/entryGlyphs';
 import { colors, fontSize, radii, spacing, tints } from '../../theme';
 import { timeAgo } from '../../lib/dates';
-import { feedingGaugePercent, filterAndGroup, type FeedFilter } from '../../lib/feed';
+import { dailyIntakeNorm, feedingGaugePercent, filterAndGroup, type FeedFilter } from '../../lib/feed';
 import { filterByTag, selectableTagLabels } from '../../lib/tags';
 import { entryDurationLabel, entryTitle, entryVisual, type EntryVisual } from '../../lib/entryDisplay';
+import { useSettingsStore } from '../../stores';
 import type { Entry } from '../../api/types';
 
 const FILTER_VALUES: FeedFilter[] = ['all', 'diaper', 'feeding', 'medication', 'sleep'];
@@ -26,9 +27,18 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
   // The two filters stack: a type chip narrows the list, a tag narrows it
   // further. Tapping a tag on any row sets it; the chip below clears it.
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
 
   const scoped = tagFilter ? filterByTag(entries, tagFilter) : entries;
   const groups = filterAndGroup(scoped, filter, now);
+
+  // Only with the feature on do the feed gauges switch from the frozen per-entry
+  // baseline to the toggle-sensitive per-day norm; off, they stay exactly as
+  // before. `entries` is already scoped to the active child, so this norm is
+  // that child's own average daily intake.
+  const dailyNorm = excludeInactiveDays
+    ? dailyIntakeNorm(entries, now, { excludeInactiveDays: true })
+    : undefined;
 
   const filterOptions = FILTER_VALUES.map((value) => ({
     value,
@@ -83,6 +93,7 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
                 key={entry.id}
                 entry={entry}
                 now={now}
+                dailyNorm={dailyNorm}
                 onEdit={() => onEditEntry(entry)}
                 onDelete={() => onDeleteEntry(entry)}
                 onTagPress={setTagFilter}
@@ -98,19 +109,22 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
 function FeedRow({
   entry,
   now,
+  dailyNorm,
   onEdit,
   onDelete,
   onTagPress,
 }: {
   entry: Entry;
   now: number;
+  /** Per-day intake norm when excluding inactive days; else undefined. */
+  dailyNorm?: number;
   onEdit: () => void;
   onDelete: () => void;
   onTagPress: (tag: string) => void;
 }) {
   const { t } = useTranslation();
   const visual = entryVisual(entry);
-  const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry) : null;
+  const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry, dailyNorm) : null;
   const tags = selectableTagLabels(entry);
   // The non-removable "by {creator}" author tag rides at the front of every
   // entry. It shows as its own chip so each row records who logged it, but it

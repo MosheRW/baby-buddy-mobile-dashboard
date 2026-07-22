@@ -1,5 +1,6 @@
 import {
   avgBreastDuration,
+  dailyIntakeNorm,
   defaultTimeForMethod,
   feedingGaugePercent,
   filterAndGroup,
@@ -205,6 +206,41 @@ describe('foodTrend', () => {
   it('is flat and not-up with no data at all', () => {
     expect(foodTrend([], NOW)).toMatchObject({ last24: 0, avgPerDay: 0, up: false, percent: 0 });
   });
+
+  it('divides by 7 regardless of gaps when not excluding inactive days', () => {
+    // Baseline intake of 700ml, but spread over only 2 active days. Default
+    // behaviour still averages over the full 7-day span.
+    const entries: Entry[] = [
+      feeding('today', NOW - HOUR, 100),
+      feeding('p1', NOW - 1 * DAY, 350),
+      feeding('p2', NOW - 2 * DAY, 350),
+    ];
+    const trend = foodTrend(entries, NOW);
+    expect(trend.avgPerDay).toBe(100); // 700 / 7
+    expect(trend.basisDays).toBe(7);
+    expect(trend.excluded).toBe(false);
+  });
+
+  it('divides by active baseline days when excluding inactive days', () => {
+    // Same 700ml over 2 active baseline days → 350/day instead of 100/day.
+    const entries: Entry[] = [
+      feeding('today', NOW - HOUR, 100),
+      feeding('p1', NOW - 1 * DAY, 350),
+      feeding('p2', NOW - 2 * DAY, 350),
+    ];
+    const trend = foodTrend(entries, NOW, { excludeInactiveDays: true });
+    expect(trend.avgPerDay).toBe(350); // 700 / 2 active days
+    expect(trend.basisDays).toBe(2);
+    expect(trend.excluded).toBe(true);
+    // Today's 100ml now falls well short of the higher norm.
+    expect(trend.up).toBe(false);
+  });
+
+  it('never divides by zero when excluding with an empty baseline', () => {
+    const trend = foodTrend([feeding('t', NOW - HOUR, 150)], NOW, { excludeInactiveDays: true });
+    expect(trend.avgPerDay).toBe(0);
+    expect(trend.basisDays).toBe(1);
+  });
 });
 
 describe('foodTrendLabel', () => {
@@ -212,6 +248,37 @@ describe('foodTrendLabel', () => {
     expect(foodTrendLabel(foodTrend([feeding('t', NOW - HOUR, 120)], NOW))).toBe(
       '120ml today vs 0ml/day (7d avg)',
     );
+  });
+
+  it('names the active-day basis when inactive days are excluded', () => {
+    const entries: Entry[] = [
+      feeding('today', NOW - HOUR, 100),
+      feeding('p1', NOW - 1 * DAY, 350),
+      feeding('p2', NOW - 2 * DAY, 350),
+    ];
+    expect(foodTrendLabel(foodTrend(entries, NOW, { excludeInactiveDays: true }))).toBe(
+      '100ml today vs 350ml/day (2d active avg)',
+    );
+  });
+});
+
+describe('dailyIntakeNorm', () => {
+  // 600ml of intake spread over 2 active days within the trailing 7.
+  const entries: Entry[] = [
+    feeding('today', NOW - HOUR, 300),
+    feeding('p2', NOW - 2 * DAY, 300),
+  ];
+
+  it('divides trailing intake by 7 by default', () => {
+    expect(dailyIntakeNorm(entries, NOW)).toBeCloseTo(600 / 7);
+  });
+
+  it('divides by active days when excluding inactive days', () => {
+    expect(dailyIntakeNorm(entries, NOW, { excludeInactiveDays: true })).toBe(300); // 600 / 2
+  });
+
+  it('is 0 with no intake to average', () => {
+    expect(dailyIntakeNorm([diaper('d', NOW - HOUR)], NOW, { excludeInactiveDays: true })).toBe(0);
   });
 });
 
@@ -263,5 +330,15 @@ describe('feedingGaugePercent', () => {
 
   it('gives an amountless, durationless feed no gauge', () => {
     expect(feedingGaugePercent(bottle(0))).toBeNull();
+  });
+
+  it('gauges against the per-day norm when one is supplied, ignoring the frozen baseline', () => {
+    // 90ml against a 300ml/day norm → 30%, regardless of the frozen 120ml.
+    expect(feedingGaugePercent(bottle(90, 120), 300)).toBe(30);
+  });
+
+  it('falls back to the frozen baseline when the per-day norm is 0 or absent', () => {
+    expect(feedingGaugePercent(bottle(60, 120), 0)).toBe(50);
+    expect(feedingGaugePercent(bottle(60, 120))).toBe(50);
   });
 });
