@@ -29,6 +29,9 @@ export function useNotificationSync(): void {
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);
   const medEligibility = useNotificationStore((s) => s.medEligibility);
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
+  const diaperInterval = useNotificationStore((s) => s.diaperInterval);
+  const foodMin = useNotificationStore((s) => s.foodMin);
+  const perChild = useNotificationStore((s) => s.perChild);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
 
   const [tick, setTick] = useState(0);
@@ -60,11 +63,31 @@ export function useNotificationSync(): void {
       entries: entries ?? [],
       timers,
       children: children ?? [],
-      settings: { masterEnabled, scheduledMeds, medEligibility, forgottenTimer },
+      settings: {
+        masterEnabled,
+        scheduledMeds,
+        medEligibility,
+        forgottenTimer,
+        diaperInterval,
+        foodMin,
+        perChild,
+      },
     });
     const sig = JSON.stringify(plan.map((p) => [p.key, p.fireAt]));
     if (sig === lastSig.current) return;
     lastSig.current = sig;
     void service.syncScheduledAsync(plan);
-  }, [entries, children, timers, masterEnabled, scheduledMeds, medEligibility, forgottenTimer, tick]);
+  }, [
+    entries,
+    children,
+    timers,
+    masterEnabled,
+    scheduledMeds,
+    medEligibility,
+    forgottenTimer,
+    diaperInterval,
+    foodMin,
+    perChild,
+    tick,
+  ]);
 }

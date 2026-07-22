@@ -14,25 +14,25 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { asyncStorage } from './storage';
-import type { CaseSettings, TimingPrefs } from '../lib/notifications';
+import type { CaseSettings, PerChildThresholds, TimingPrefs } from '../lib/notifications';
+
+export type { PerChildThresholds } from '../lib/notifications';
 
 /** Cases that use the before/at/after timing model. */
 export type TimingCaseId = 'scheduledMeds' | 'medEligibility';
 
-export type PermissionStatus = 'granted' | 'denied' | 'undetermined' | 'unsupported';
+/** Cases that are a single on/off with per-child thresholds. */
+export type IntervalCaseId = 'diaperInterval' | 'foodMin';
 
-/** Per-child thresholds for the deferred diaper/food cases. */
-export interface PerChildThresholds {
-  diaperIntervalHours?: number;
-  foodMinMl?: number;
-  foodMinIntervalHours?: number;
-}
+export type PermissionStatus = 'granted' | 'denied' | 'undetermined' | 'unsupported';
 
 interface NotificationState {
   masterEnabled: boolean;
   scheduledMeds: CaseSettings;
   medEligibility: CaseSettings;
   forgottenTimer: { enabled: boolean; thresholdMinutes: number };
+  diaperInterval: { enabled: boolean };
+  foodMin: { enabled: boolean };
   perChild: Record<string, PerChildThresholds>;
   /** Live OS permission state — not persisted. */
   permissionStatus: PermissionStatus;
@@ -42,6 +42,7 @@ interface NotificationState {
   updateTiming: (id: TimingCaseId, patch: Partial<TimingPrefs>) => void;
   setForgottenTimerEnabled: (enabled: boolean) => void;
   setForgottenTimerMinutes: (minutes: number) => void;
+  setIntervalCaseEnabled: (id: IntervalCaseId, enabled: boolean) => void;
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
   setPermissionStatus: (status: PermissionStatus) => void;
 }
@@ -62,6 +63,8 @@ export const useNotificationStore = create<NotificationState>()(
       scheduledMeds: { enabled: true, timing: defaultTiming() },
       medEligibility: { enabled: true, timing: defaultTiming({ before: false, afterMinutes: 30 }) },
       forgottenTimer: { enabled: true, thresholdMinutes: 30 },
+      diaperInterval: { enabled: false },
+      foodMin: { enabled: false },
       perChild: {},
       permissionStatus: 'undetermined',
 
@@ -84,6 +87,9 @@ export const useNotificationStore = create<NotificationState>()(
 
       setForgottenTimerMinutes: (minutes) =>
         set((state) => ({ forgottenTimer: { ...state.forgottenTimer, thresholdMinutes: minutes } })),
+
+      setIntervalCaseEnabled: (id, enabled) =>
+        set(() => ({ [id]: { enabled } }) as Pick<NotificationState, IntervalCaseId>),
 
       setPerChildThreshold: (childId, patch) =>
         set((state) => ({
