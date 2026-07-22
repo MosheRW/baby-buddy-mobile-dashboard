@@ -4,7 +4,7 @@ import {
   type TimingPrefs,
   type NotificationBuildInput,
 } from '../notifications';
-import type { Child, Entry, MedicationEntry } from '../../api/types';
+import type { Child, DiaperEntry, Entry, FeedingEntry, MedicationEntry } from '../../api/types';
 import type { RunningTimer } from '../timers';
 import i18n from '../../i18n';
 
@@ -26,6 +26,34 @@ function med(partial: Partial<MedicationEntry> & { name: string; time: string })
     schedule: partial.schedule ?? 'scheduled',
     repeatHours: partial.repeatHours ?? 8,
     ...partial,
+  };
+}
+
+function diaper(time: string, over: Partial<DiaperEntry> = {}): DiaperEntry {
+  return {
+    id: over.id ?? `diaper-${time}`,
+    childId: over.childId ?? 'c1',
+    type: 'diaper',
+    time,
+    tags: [],
+    creator: 'Sarah',
+    pee: true,
+    poo: false,
+    ...over,
+  };
+}
+
+function feeding(time: string, over: Partial<FeedingEntry> = {}): FeedingEntry {
+  return {
+    id: over.id ?? `feeding-${time}`,
+    childId: over.childId ?? 'c1',
+    type: 'feeding',
+    time,
+    tags: [],
+    creator: 'Sarah',
+    kind: 'formula',
+    method: 'bottle',
+    ...over,
   };
 }
 
@@ -53,6 +81,9 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     scheduledMeds: { enabled: false, timing: timing() },
     medEligibility: { enabled: false, timing: timing() },
     forgottenTimer: { enabled: false, thresholdMinutes: 30 },
+    diaperInterval: { enabled: false },
+    foodMin: { enabled: false },
+    perChild: {},
     ...over,
   };
 }
@@ -203,6 +234,120 @@ describe('buildNotifications — forgotten timers', () => {
       NOW,
     );
     expect(plan).toEqual([]);
+  });
+});
+
+describe('buildNotifications — diaper interval', () => {
+  const diaperOn = (thresholds?: { diaperIntervalHours?: number }) =>
+    settings({
+      diaperInterval: { enabled: true },
+      perChild: thresholds ? { c1: thresholds } : {},
+    });
+
+  it('schedules at the last change + the per-child interval', () => {
+    const entries: Entry[] = [diaper(iso(NOW - HOUR))];
+    const plan = buildNotifications(
+      input({ entries, settings: diaperOn({ diaperIntervalHours: 3 }) }),
+      NOW,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].key).toBe('diaper:c1');
+    expect(plan[0].fireAt).toBe(NOW - HOUR + 3 * HOUR);
+    expect(plan[0].childId).toBe('c1');
+    expect(plan[0].body).toContain('Emma');
+  });
+
+  it('anchors on the most recent change', () => {
+    const entries: Entry[] = [diaper(iso(NOW - 5 * HOUR)), diaper(iso(NOW - HOUR))];
+    const plan = buildNotifications(
+      input({ entries, settings: diaperOn({ diaperIntervalHours: 3 }) }),
+      NOW,
+    );
+    expect(plan[0].fireAt).toBe(NOW - HOUR + 3 * HOUR);
+  });
+
+  it('applies the default interval when the child has no threshold', () => {
+    const entries: Entry[] = [diaper(iso(NOW - 30 * MINUTE))];
+    const plan = buildNotifications(input({ entries, settings: diaperOn() }), NOW);
+    expect(plan).toHaveLength(1);
+    expect(plan[0].fireAt).toBe(NOW - 30 * MINUTE + 3 * HOUR);
+  });
+
+  it('opts a child out with a zero threshold', () => {
+    const entries: Entry[] = [diaper(iso(NOW - HOUR))];
+    const plan = buildNotifications(
+      input({ entries, settings: diaperOn({ diaperIntervalHours: 0 }) }),
+      NOW,
+    );
+    expect(plan).toEqual([]);
+  });
+
+  it('skips a child with no diaper history', () => {
+    const plan = buildNotifications(input({ entries: [], settings: diaperOn() }), NOW);
+    expect(plan).toEqual([]);
+  });
+
+  it('drops a change already past its interval', () => {
+    const entries: Entry[] = [diaper(iso(NOW - 5 * HOUR))];
+    const plan = buildNotifications(
+      input({ entries, settings: diaperOn({ diaperIntervalHours: 3 }) }),
+      NOW,
+    );
+    expect(plan).toEqual([]);
+  });
+
+  it('is silent when the case is disabled', () => {
+    const entries: Entry[] = [diaper(iso(NOW - HOUR))];
+    expect(buildNotifications(input({ entries }), NOW)).toEqual([]);
+  });
+});
+
+describe('buildNotifications — food minimum interval', () => {
+  const foodOn = (thresholds: { foodMinIntervalHours?: number; foodMinMl?: number } = {}) =>
+    settings({ foodMin: { enabled: true }, perChild: { c1: thresholds } });
+
+  it('schedules at the last feed + the per-child interval', () => {
+    const entries: Entry[] = [feeding(iso(NOW - HOUR), { amount: 60 })];
+    const plan = buildNotifications(
+      input({ entries, settings: foodOn({ foodMinIntervalHours: 4 }) }),
+      NOW,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].key).toBe('food:c1');
+    expect(plan[0].fireAt).toBe(NOW - HOUR + 4 * HOUR);
+    expect(plan[0].body).toContain('Emma');
+  });
+
+  it('names the target amount when foodMinMl is set', () => {
+    const entries: Entry[] = [feeding(iso(NOW - HOUR))];
+    const plan = buildNotifications(
+      input({ entries, settings: foodOn({ foodMinIntervalHours: 4, foodMinMl: 120 }) }),
+      NOW,
+    );
+    expect(plan[0].body).toContain('120');
+  });
+
+  it('uses the default interval when only the case is enabled', () => {
+    const entries: Entry[] = [feeding(iso(NOW - HOUR))];
+    const plan = buildNotifications(
+      input({ entries, settings: settings({ foodMin: { enabled: true } }) }),
+      NOW,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].fireAt).toBe(NOW - HOUR + 4 * HOUR);
+  });
+
+  it('skips a child with no feeding history', () => {
+    const plan = buildNotifications(
+      input({ entries: [], settings: settings({ foodMin: { enabled: true } }) }),
+      NOW,
+    );
+    expect(plan).toEqual([]);
+  });
+
+  it('is silent when the case is disabled', () => {
+    const entries: Entry[] = [feeding(iso(NOW - HOUR))];
+    expect(buildNotifications(input({ entries }), NOW)).toEqual([]);
   });
 });
 

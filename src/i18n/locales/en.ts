@@ -308,6 +308,13 @@ export const en = {
       'Remind me when an as-needed medicine can be given again, or its 24h limit frees up.',
     forgottenTitle: 'Forgotten timers',
     forgottenHint: 'Warn me when a timer has been running unusually long.',
+    diaperTitle: 'Diaper changes',
+    diaperHint: "Remind me when it's been too long since the last change.",
+    foodTitle: 'Feeding gaps',
+    foodHint: "Remind me when it's been too long since the last feed.",
+    maxGap: 'Max gap',
+    targetAmount: 'Target amount',
+    hourSuffix: ' h',
     before: 'Before',
     atTime: 'At the time',
     after: 'After',
@@ -317,6 +324,8 @@ export const en = {
     titleMedDue: 'Medication due',
     titleMedReady: 'Medication ready',
     titleTimerRunning: 'Timer still running',
+    titleDiaperDue: 'Diaper check',
+    titleFoodDue: 'Feeding reminder',
     medDueBefore: '{{med}} for {{child}} is due in {{duration}}.',
     medDueBefore_noChild: '{{med}} is due in {{duration}}.',
     medDueAt: '{{med}} for {{child}} is due now.',
@@ -333,6 +342,9 @@ export const en = {
       '{{activity}} timer for {{child}} has been running over {{duration}} — did you forget to stop it?',
     timerBody_noChild:
       '{{activity}} timer has been running over {{duration}} — did you forget to stop it?',
+    diaperBody: "{{child}} hasn't had a diaper change in {{duration}}.",
+    foodBody: "{{child}} hasn't been fed in {{duration}}.",
+    foodBodyMin: "{{child}} hasn't been fed in {{duration}} — aim for at least {{min}}ml.",
   },
 
   dates: {

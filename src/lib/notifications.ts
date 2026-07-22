@@ -13,19 +13,29 @@
  *    `neededMeds` / `eligibleMeds` / `medLimitSummaries` (src/lib/medication.ts).
  *  - forgotten timers → `startedAt + threshold`.
  *
- * The three MVP cases are wired here. Diaper-interval and food-min are deferred;
- * add them as further branches without changing this shape.
+ * All five cases are wired here: scheduled meds, medication eligibility, and
+ * forgotten timers use the before/at/after timing model; diaper-interval and
+ * food-min are per-child "time since the last one" reminders (a single fire at
+ * the deadline, like the forgotten-timer case — no before/at/after).
  */
 import i18n from '../i18n';
-import type { Child, Entry } from '../api/types';
+import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
 import type { RunningTimer } from './timers';
 
 const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
 const HORIZON_MS = 48 * 60 * MINUTE;
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
 const MAX_PLANNED = 64;
+
+/**
+ * Applied to every child once the diaper/food case is on, unless that child
+ * carries its own threshold. A per-child value of 0 opts the child out.
+ */
+export const DEFAULT_DIAPER_INTERVAL_HOURS = 3;
+export const DEFAULT_FOOD_INTERVAL_HOURS = 4;
 
 // --- Settings shapes (shared with the store) --------------------------------
 
@@ -46,12 +56,28 @@ export interface CaseSettings {
   timing: TimingPrefs;
 }
 
+/**
+ * Per-child thresholds for the diaper/food cases. A missing value means "use the
+ * case default"; an explicit 0 means "don't remind for this child".
+ */
+export interface PerChildThresholds {
+  /** Max hours between diaper changes before a reminder fires. */
+  diaperIntervalHours?: number;
+  /** Target amount (ml) mentioned in the food reminder; 0/absent = don't mention. */
+  foodMinMl?: number;
+  /** Max hours between feeds before a reminder fires. */
+  foodMinIntervalHours?: number;
+}
+
 /** The subset of notification settings the builder reads. */
 export interface NotificationSettings {
   masterEnabled: boolean;
   scheduledMeds: CaseSettings;
   medEligibility: CaseSettings;
   forgottenTimer: { enabled: boolean; thresholdMinutes: number };
+  diaperInterval: { enabled: boolean };
+  foodMin: { enabled: boolean };
+  perChild: Record<string, PerChildThresholds>;
 }
 
 // --- Output -----------------------------------------------------------------
@@ -139,6 +165,17 @@ function eligibleBody(
 /** Lead/lag magnitude in minutes for a given kind. */
 function minutesFor(kind: OffsetKind, timing: TimingPrefs): number {
   return kind === 'before' ? timing.beforeMinutes : kind === 'after' ? timing.afterMinutes : 0;
+}
+
+/** Epoch ms of the most recent entry of `type` for `childId`, or null if none. */
+function lastEntryOfType(entries: Entry[], childId: string, type: EntryType): number | null {
+  let latest: number | null = null;
+  for (const e of entries) {
+    if (e.type !== type || e.childId !== childId) continue;
+    const at = new Date(e.time).getTime();
+    if (latest == null || at > latest) latest = at;
+  }
+  return latest;
 }
 
 /**
@@ -233,6 +270,56 @@ export function buildNotifications(
           duration: countdownLabel(threshold * MINUTE),
         }),
         childId: rt.childId,
+      });
+    }
+  }
+
+  // 4. Diaper interval (per child) -----------------------------------------
+  // Anchored on the child's last diaper change: fire once, `interval` after it.
+  // With no diaper history there's nothing to anchor on, so the child is skipped
+  // (the same "no data → no reminder" rule the medication cases follow).
+  if (settings.diaperInterval.enabled) {
+    for (const child of children) {
+      const hours = settings.perChild[child.id]?.diaperIntervalHours ?? DEFAULT_DIAPER_INTERVAL_HOURS;
+      if (hours <= 0) continue;
+      const last = lastEntryOfType(entries, child.id, 'diaper');
+      if (last == null) continue;
+      out.push({
+        key: `diaper:${child.id}`,
+        fireAt: last + hours * HOUR,
+        title: i18n.t('notifications.titleDiaperDue'),
+        body: i18n.t('notifications.diaperBody', {
+          child: child.name,
+          duration: countdownLabel(hours * HOUR),
+        }),
+        childId: child.id,
+      });
+    }
+  }
+
+  // 5. Food minimum interval (per child) ------------------------------------
+  // Anchored on the child's last feed. `foodMinMl`, when set, is surfaced in the
+  // copy as a target — it's advisory, not a scheduling gate (a future amount
+  // can't be measured now), so the reminder is fundamentally a "time since last
+  // feed" nudge, parallel to the diaper case.
+  if (settings.foodMin.enabled) {
+    for (const child of children) {
+      const t = settings.perChild[child.id];
+      const hours = t?.foodMinIntervalHours ?? DEFAULT_FOOD_INTERVAL_HOURS;
+      if (hours <= 0) continue;
+      const last = lastEntryOfType(entries, child.id, 'feeding');
+      if (last == null) continue;
+      const minMl = t?.foodMinMl ?? 0;
+      out.push({
+        key: `food:${child.id}`,
+        fireAt: last + hours * HOUR,
+        title: i18n.t('notifications.titleFoodDue'),
+        body: i18n.t(minMl > 0 ? 'notifications.foodBodyMin' : 'notifications.foodBody', {
+          child: child.name,
+          duration: countdownLabel(hours * HOUR),
+          min: minMl,
+        }),
+        childId: child.id,
       });
     }
   }

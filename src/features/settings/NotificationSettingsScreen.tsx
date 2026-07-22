@@ -8,18 +8,27 @@ import { ChevronLeftGlyph } from '../../components/glyphs';
 import { colors, fontSize, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useNotificationStore } from '../../stores';
-import type { TimingPrefs } from '../../lib/notifications';
+import {
+  DEFAULT_DIAPER_INTERVAL_HOURS,
+  DEFAULT_FOOD_INTERVAL_HOURS,
+  type TimingPrefs,
+} from '../../lib/notifications';
+import { useDashboardData } from '../../data/queries';
 import * as service from '../../notifications/service';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Notifications'>;
 
 export function NotificationSettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { children } = useDashboardData();
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const permissionStatus = useNotificationStore((s) => s.permissionStatus);
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);
   const medEligibility = useNotificationStore((s) => s.medEligibility);
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
+  const diaperInterval = useNotificationStore((s) => s.diaperInterval);
+  const foodMin = useNotificationStore((s) => s.foodMin);
+  const perChild = useNotificationStore((s) => s.perChild);
 
   const setMasterEnabled = useNotificationStore((s) => s.setMasterEnabled);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
@@ -27,6 +36,8 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const updateTiming = useNotificationStore((s) => s.updateTiming);
   const setForgottenTimerEnabled = useNotificationStore((s) => s.setForgottenTimerEnabled);
   const setForgottenTimerMinutes = useNotificationStore((s) => s.setForgottenTimerMinutes);
+  const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
+  const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
 
   const onToggleMaster = async (next: boolean) => {
     setMasterEnabled(next);
@@ -136,6 +147,98 @@ export function NotificationSettingsScreen({ navigation }: Props) {
               />
             </View>
           ) : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.diaperTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.diaperHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch
+              value={diaperInterval.enabled}
+              onValueChange={(v) => setIntervalCaseEnabled('diaperInterval', v)}
+              disabled={!masterEnabled}
+            />
+          </View>
+          {masterEnabled && diaperInterval.enabled
+            ? children.map((child) => (
+                <View key={child.id} style={styles.childBlock}>
+                  <AppText size={fontSize.body} weight="700">
+                    {child.name}
+                  </AppText>
+                  <View style={styles.field}>
+                    <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                      {t('notifications.maxGap')}
+                    </AppText>
+                    <Stepper
+                      value={perChild[child.id]?.diaperIntervalHours ?? DEFAULT_DIAPER_INTERVAL_HOURS}
+                      onChange={(v) => setPerChildThreshold(child.id, { diaperIntervalHours: v })}
+                      step={1}
+                      min={1}
+                      suffix={t('notifications.hourSuffix')}
+                    />
+                  </View>
+                </View>
+              ))
+            : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.foodTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.foodHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch
+              value={foodMin.enabled}
+              onValueChange={(v) => setIntervalCaseEnabled('foodMin', v)}
+              disabled={!masterEnabled}
+            />
+          </View>
+          {masterEnabled && foodMin.enabled
+            ? children.map((child) => (
+                <View key={child.id} style={styles.childBlock}>
+                  <AppText size={fontSize.body} weight="700">
+                    {child.name}
+                  </AppText>
+                  <View style={styles.field}>
+                    <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                      {t('notifications.maxGap')}
+                    </AppText>
+                    <Stepper
+                      value={
+                        perChild[child.id]?.foodMinIntervalHours ?? DEFAULT_FOOD_INTERVAL_HOURS
+                      }
+                      onChange={(v) => setPerChildThreshold(child.id, { foodMinIntervalHours: v })}
+                      step={1}
+                      min={1}
+                      suffix={t('notifications.hourSuffix')}
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                      {t('notifications.targetAmount')}
+                    </AppText>
+                    <Stepper
+                      value={perChild[child.id]?.foodMinMl ?? 0}
+                      onChange={(v) => setPerChildThreshold(child.id, { foodMinMl: v })}
+                      step={10}
+                      min={0}
+                      suffix={t('settings.mlSuffix')}
+                    />
+                  </View>
+                </View>
+              ))
+            : null}
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -298,5 +401,11 @@ const styles = StyleSheet.create({
   },
   field: {
     gap: spacing.sm,
+  },
+  childBlock: {
+    gap: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.neutral,
+    paddingTop: spacing.lg,
   },
 });
