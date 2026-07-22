@@ -56,6 +56,7 @@ export const en = {
     deleteEntry: 'Delete entry',
     filterByTag: 'Filter by tag {{tag}}',
     addTag: 'Add tag {{tag}}',
+    switchToChild: 'Switch to {{name}}',
   },
 
   filter: {

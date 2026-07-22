@@ -55,6 +55,7 @@ export const he = {
     deleteEntry: 'מחיקת רשומה',
     filterByTag: 'סינון לפי תגית {{tag}}',
     addTag: 'הוספת תגית {{tag}}',
+    switchToChild: 'מעבר אל {{name}}',
   },
 
   filter: {

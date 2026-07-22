@@ -1,14 +1,19 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { AppText } from '../../components';
-import { colors, fontSize, radii, shadows, spacing, tints } from '../../theme';
+import { colors, fontSize, radii, spacing } from '../../theme';
 import type { Child, Entry, EntryType } from '../../api/types';
 import type { MedStatus } from '../../lib/medication';
 import { ChildCard } from './ChildCard';
 import { SettingsButton } from './SettingsButton';
-
-// Width of the vertical "peek" strip that stands in for the inactive child.
-const PEEK = 40;
 
 interface ChildNavProps {
   childList: Child[];
@@ -24,25 +29,26 @@ interface ChildNavProps {
   onOpenSettings: () => void;
 }
 
-/**
- * Adaptive child navigation: an exchange carousel for ≤2 children, a scrollable
- * pill tab row for ≥3. Both wrap the same ChildCard.
- */
-export function ChildNav(props: ChildNavProps) {
-  return props.childList.length >= 3 ? <TabsNav {...props} /> : <CarouselNav {...props} />;
-}
+// A deliberate swipe needs either this much horizontal travel or this much
+// fling speed (px, px/s) — short enough to feel responsive, long enough that
+// scrolling the feed below doesn't accidentally flip a child.
+const SWIPE_DISTANCE = 60;
+const SWIPE_VELOCITY = 800;
 
 /**
- * ≤2 children: one active card at full width, with a slim vertical "peek" strip
- * on its right edge carrying the *other* child's name. There is no swiping —
- * tapping the strip (or a dot) exchanges which child is active in place, exactly
- * as the prototype does. A single child gets neither strip nor dots.
+ * Child navigation: a scrollable pill tab row above the active child's card,
+ * swipeable left/right to switch. Identical for 2 children and for 20 — the
+ * prototype's exchange-carousel/peek-strip layout below 3 children was a
+ * second interaction pattern for no real benefit, so every count now gets the
+ * tab-row treatment. A single child gets neither: there's nothing to switch to.
  */
-function CarouselNav({
+export function ChildNav(props: ChildNavProps) {
+  return props.childList.length > 1 ? <TabsNav {...props} /> : <SingleChildNav {...props} />;
+}
+
+function SingleChildNav({
   childList,
   entries,
-  activeIndex,
-  onActiveChange,
   foodWindowHours,
   now,
   timerNow,
@@ -51,69 +57,20 @@ function CarouselNav({
   onLogDose,
   onOpenSettings,
 }: ChildNavProps) {
-  const active = childList[activeIndex] ?? childList[0];
-  const hasPeek = childList.length > 1;
-  const nextIndex = (activeIndex + 1) % childList.length;
-  const peekChild = childList[nextIndex];
-
+  const child = childList[0];
+  if (!child) return null;
   return (
-    <View>
-      <View style={styles.exchangeRow}>
-        <View style={styles.activeCard}>
-          <ChildCard
-            child={active}
-            entries={entries}
-            foodWindowHours={foodWindowHours}
-            now={now}
-            timerNow={timerNow}
-            onQuickAction={(type) => onQuickAction(active.id, type)}
-            onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
-            onLogDose={(status) => onLogDose(active.id, status)}
-            // ≤2 children: the cog floats inline with the name in the card
-            // header. (≥3 renders it in the tab row instead — see TabsNav.)
-            onOpenSettings={onOpenSettings}
-          />
-        </View>
-
-        {hasPeek && peekChild ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Switch to ${peekChild.name}`}
-            onPress={() => onActiveChange(nextIndex)}
-            style={styles.peek}
-          >
-            {/* Rotated so the name reads top-to-bottom. numberOfLines + a fixed
-                width keep it from wrapping inside the narrow strip; the rotation
-                is visual only, so the box re-centers within the strip. */}
-            <AppText
-              numberOfLines={1}
-              size={fontSize.meta}
-              weight="800"
-              color={tints.feeding.fg}
-              style={styles.peekLabel}
-            >
-              {peekChild.name}
-            </AppText>
-          </Pressable>
-        ) : null}
-      </View>
-
-      {hasPeek ? (
-        <View style={styles.dots}>
-          {childList.map((child, i) => (
-            <Pressable
-              key={child.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${child.name}`}
-              onPress={() => onActiveChange(i)}
-              hitSlop={spacing.md}
-            >
-              <View style={[styles.dot, i === activeIndex && styles.dotActive]} />
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-    </View>
+    <ChildCard
+      child={child}
+      entries={entries}
+      foodWindowHours={foodWindowHours}
+      now={now}
+      timerNow={timerNow}
+      onQuickAction={(type) => onQuickAction(child.id, type)}
+      onOpenMedBreakdown={() => onOpenMedBreakdown(child)}
+      onLogDose={(status) => onLogDose(child.id, status)}
+      onOpenSettings={onOpenSettings}
+    />
   );
 }
 
@@ -130,11 +87,41 @@ function TabsNav({
   onLogDose,
   onOpenSettings,
 }: ChildNavProps) {
+  const { t } = useTranslation();
   const active = childList[activeIndex] ?? childList[0];
+  const translateX = useSharedValue(0);
+
+  const goTo = (index: number) => {
+    if (index >= 0 && index < childList.length) onActiveChange(index);
+  };
+
+  // Horizontal drag follows the finger for feedback, then always snaps back to
+  // 0 — the index change (if any) swaps the card contents instead of sliding
+  // the view, so it works the same regardless of how many children flank the
+  // active one.
+  const pan = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-10, 10])
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+    })
+    .onEnd((e) => {
+      const swiped =
+        Math.abs(e.translationX) > SWIPE_DISTANCE || Math.abs(e.velocityX) > SWIPE_VELOCITY;
+      if (swiped) {
+        runOnJS(goTo)(e.translationX < 0 ? activeIndex + 1 : activeIndex - 1);
+      }
+      translateX.value = withTiming(0, { duration: 180 });
+    });
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   return (
     <View>
-      {/* ≥3 children: names live on their own pill row, so the cog sits on that
-          same line, pinned to the right while the pills scroll under it. */}
+      {/* Names live on their own pill row, so the cog sits on that same line,
+          pinned to the right while the pills scroll under it. */}
       <View style={styles.tabsRow}>
         <ScrollView
           horizontal
@@ -145,10 +132,13 @@ function TabsNav({
           {childList.map((child, i) => {
             const isActive = i === activeIndex;
             return (
-              <View
+              <Pressable
                 key={child.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+                accessibilityLabel={t('dashboard.switchToChild', { name: child.name })}
+                onPress={() => onActiveChange(i)}
                 style={[styles.tab, isActive && styles.tabActive]}
-                onTouchEnd={() => onActiveChange(i)}
               >
                 <AppText
                   size={fontSize.bodySm}
@@ -157,71 +147,31 @@ function TabsNav({
                 >
                   {child.name}
                 </AppText>
-              </View>
+              </Pressable>
             );
           })}
         </ScrollView>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <View style={styles.tabCard}>
-        <ChildCard
-          child={active}
-          entries={entries}
-          foodWindowHours={foodWindowHours}
-          now={now}
-          timerNow={timerNow}
-          onQuickAction={(type) => onQuickAction(active.id, type)}
-          onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
-          onLogDose={(status) => onLogDose(active.id, status)}
-        />
-      </View>
+      <GestureDetector gesture={pan}>
+        <Animated.View style={[styles.tabCard, cardStyle]}>
+          <ChildCard
+            child={active}
+            entries={entries}
+            foodWindowHours={foodWindowHours}
+            now={now}
+            timerNow={timerNow}
+            onQuickAction={(type) => onQuickAction(active.id, type)}
+            onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
+            onLogDose={(status) => onLogDose(active.id, status)}
+          />
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  exchangeRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.lg,
-  },
-  activeCard: {
-    flex: 1,
-  },
-  peek: {
-    width: PEEK,
-    borderTopLeftRadius: radii.card,
-    borderBottomLeftRadius: radii.card,
-    borderTopRightRadius: radii.iconButton,
-    borderBottomRightRadius: radii.iconButton,
-    backgroundColor: colors.card,
-    opacity: 0.55,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.card,
-  },
-  peekLabel: {
-    // Overshoot the strip width so a longer name doesn't truncate; the rotation
-    // re-centers the box, so the extra width is never visible.
-    width: 160,
-    textAlign: 'center',
-    transform: [{ rotate: '90deg' }],
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.xl,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: colors.neutral,
-  },
-  dotActive: {
-    backgroundColor: colors.accent,
-  },
   tabsRow: {
     flexDirection: 'row',
     alignItems: 'center',
