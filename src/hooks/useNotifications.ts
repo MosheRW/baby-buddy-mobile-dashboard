@@ -14,6 +14,7 @@ import { AppState } from 'react-native';
 import { useChildren, useEntries } from '../data/queries';
 import { buildNotifications } from '../lib/notifications';
 import { useNotificationStore } from '../stores';
+import { useAuthStore } from '../stores/authStore';
 import { useTimerStore } from '../stores/timerStore';
 import * as service from '../notifications/service';
 
@@ -31,8 +32,10 @@ export function useNotificationSync(): void {
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
+  const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
+  const me = useAuthStore((s) => s.session?.userName);
 
   const [tick, setTick] = useState(0);
 
@@ -70,10 +73,16 @@ export function useNotificationSync(): void {
         forgottenTimer,
         diaperInterval,
         foodMin,
+        weeklySummary,
         perChild,
       },
+      me,
     });
-    const sig = JSON.stringify(plan.map((p) => [p.key, p.fireAt]));
+    // Body is part of the signature so the weekly summary re-syncs when its
+    // trailing-week counts change — its fireAt stays fixed all week, but the
+    // recap it will deliver must reflect the latest data each time the app opens.
+    // The other cases have fireAt-stable bodies, so this adds no churn for them.
+    const sig = JSON.stringify(plan.map((p) => [p.key, p.fireAt, p.body]));
     if (sig === lastSig.current) return;
     lastSig.current = sig;
     void service.syncScheduledAsync(plan);
@@ -87,7 +96,9 @@ export function useNotificationSync(): void {
     forgottenTimer,
     diaperInterval,
     foodMin,
+    weeklySummary,
     perChild,
+    me,
     tick,
   ]);
 }

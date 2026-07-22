@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { AppText, Card, Stepper, ToggleSwitch } from '../../components';
+import { AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { colors, fontSize, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
@@ -33,6 +33,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
+  const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
 
   const setMasterEnabled = useNotificationStore((s) => s.setMasterEnabled);
@@ -43,6 +44,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const setForgottenTimerMinutes = useNotificationStore((s) => s.setForgottenTimerMinutes);
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
   const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
+  const updateWeeklySummary = useNotificationStore((s) => s.updateWeeklySummary);
 
   const onToggleMaster = async (next: boolean) => {
     setMasterEnabled(next);
@@ -265,10 +267,64 @@ export function NotificationSettingsScreen({ navigation }: Props) {
               ))
             : null}
         </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.weeklyTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.weeklyHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch
+              value={weeklySummary.enabled}
+              onValueChange={(v) => updateWeeklySummary({ enabled: v })}
+              disabled={!masterEnabled}
+            />
+          </View>
+          {masterEnabled && weeklySummary.enabled ? (
+            <View style={styles.childBlock}>
+              <View style={styles.field}>
+                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                  {t('notifications.weeklyDay')}
+                </AppText>
+                <View style={styles.dayRow}>
+                  {WEEKDAYS.map((d) => (
+                    <Chip
+                      key={d}
+                      label={t(`notifications.weekdayShort.${d}`)}
+                      active={weeklySummary.weekday === d}
+                      onPress={() => updateWeeklySummary({ weekday: d })}
+                      style={styles.dayChip}
+                    />
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                  {t('notifications.weeklyTime')}
+                </AppText>
+                <Stepper
+                  value={weeklySummary.hour}
+                  onChange={(v) => updateWeeklySummary({ hour: v })}
+                  step={1}
+                  min={0}
+                  max={23}
+                  suffix={t('notifications.weeklyHourSuffix')}
+                />
+              </View>
+            </View>
+          ) : null}
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+/** Sunday-first, matching the store's 0=Sunday..6=Saturday weekday. */
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 // --- Case card + timing controls -------------------------------------------
 
@@ -432,5 +488,13 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.neutral,
     paddingTop: spacing.lg,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  dayChip: {
+    paddingHorizontal: spacing.lg,
   },
 });
