@@ -2,6 +2,7 @@ import {
   buildNotifications,
   intervalStep,
   nextWeeklySlot,
+  notificationAction,
   type NotificationSettings,
   type TimingPrefs,
   type NotificationBuildInput,
@@ -501,5 +502,34 @@ describe('intervalStep', () => {
   it('nudges by 10 minutes from an hour up', () => {
     expect(intervalStep(60)).toBe(10);
     expect(intervalStep(240)).toBe(10);
+  });
+});
+
+describe('notificationAction', () => {
+  it('routes all three medication cases to the med breakdown', () => {
+    // Keys as buildNotifications writes them: `${prefix}:${child}:${name}:${kind}`.
+    expect(notificationAction('sched:c1:tylenol:at')).toEqual({ kind: 'medication' });
+    expect(notificationAction('elig:c1:ibuprofen:before')).toEqual({ kind: 'medication' });
+    expect(notificationAction('cap:c1:tylenol:after')).toEqual({ kind: 'medication' });
+  });
+
+  it('routes a forgotten-timer key to its timer type', () => {
+    expect(notificationAction('timer:feeding:c1')).toEqual({ kind: 'timer', timerType: 'feeding' });
+    expect(notificationAction('timer:sleep:c2')).toEqual({ kind: 'timer', timerType: 'sleep' });
+    expect(notificationAction('timer:tummyTime:c1')).toEqual({
+      kind: 'timer',
+      timerType: 'tummyTime',
+    });
+  });
+
+  it('routes diaper/food keys to a create form for that type', () => {
+    expect(notificationAction('diaper:c1')).toEqual({ kind: 'create', entryType: 'diaper' });
+    expect(notificationAction('food:c1')).toEqual({ kind: 'create', entryType: 'feeding' });
+  });
+
+  it('leaves the weekly summary and unknown keys inert', () => {
+    expect(notificationAction('weekly')).toEqual({ kind: 'none' });
+    expect(notificationAction('timer:bogus:c1')).toEqual({ kind: 'none' });
+    expect(notificationAction('something-else')).toEqual({ kind: 'none' });
   });
 });

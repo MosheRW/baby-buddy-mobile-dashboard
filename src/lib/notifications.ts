@@ -22,7 +22,7 @@ import i18n from '../i18n';
 import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
 import { computeContribution, contributionBody } from './contribution';
-import type { RunningTimer } from './timers';
+import { TIMER_TYPES, type RunningTimer, type TimerType } from './timers';
 
 const MINUTE = 60_000;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
@@ -395,4 +395,39 @@ export function buildNotifications(
     .filter((n) => n.fireAt > now && (n.key === WEEKLY_KEY || n.fireAt <= now + HORIZON_MS))
     .sort((a, b) => a.fireAt - b.fireAt)
     .slice(0, MAX_PLANNED);
+}
+
+/**
+ * What tapping a delivered notification should open, derived from its key (the
+ * `PlannedNotification.key` we scheduled it under — the OS keeps it as the
+ * notification's identifier, so it round-trips back unchanged).
+ *
+ *  - the three medication cases (`sched`/`elig`/`cap`) → the med breakdown sheet
+ *    for that child, the one place to review status and log a dose.
+ *  - a forgotten timer → the log-entry form for that timer type (to stop/save it).
+ *  - diaper / food → a prefilled create form for that entry type.
+ *  - the weekly summary (and anything unrecognised) → nothing to open.
+ *
+ * `none` means "not a tap target" — the carousel leaves those cards inert rather
+ * than offering a tap that goes nowhere.
+ */
+export type NotificationAction =
+  | { kind: 'medication' }
+  | { kind: 'timer'; timerType: TimerType }
+  | { kind: 'create'; entryType: 'diaper' | 'feeding' }
+  | { kind: 'none' };
+
+export function notificationAction(key: string): NotificationAction {
+  if (key.startsWith('sched:') || key.startsWith('elig:') || key.startsWith('cap:'))
+    return { kind: 'medication' };
+  if (key.startsWith('timer:')) {
+    // `timer:${type}:${childId}` — the type is the second segment.
+    const type = key.split(':')[1];
+    if (type && (TIMER_TYPES as readonly string[]).includes(type))
+      return { kind: 'timer', timerType: type as TimerType };
+    return { kind: 'none' };
+  }
+  if (key.startsWith('diaper:')) return { kind: 'create', entryType: 'diaper' };
+  if (key.startsWith('food:')) return { kind: 'create', entryType: 'feeding' };
+  return { kind: 'none' };
 }
