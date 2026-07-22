@@ -444,6 +444,10 @@ export const en = {
     weeklyBody:
       "You logged {{mine}} of {{total}} entries this week — {{share}}% of the family's total. {{breakdown}}",
     weeklyBodySolo: 'You logged {{mine}} entries this week. {{breakdown}}',
+    // In-app carousel of already-delivered reminders, shown above the child card.
+    carouselHeading: 'Notifications',
+    dismissOne: 'Dismiss notification',
+    dismissAll: 'Clear all',
   },
 
   dates: {

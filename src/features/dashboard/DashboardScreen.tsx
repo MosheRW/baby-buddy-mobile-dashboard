@@ -25,8 +25,14 @@ import { hiddenCount, visibleChildren } from '../../lib/visibility';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
+import { notificationAction } from '../../lib/notifications';
+import {
+  useDeliveredNotifications,
+  type DeliveredNotification,
+} from '../../hooks/useDeliveredNotifications';
 import { ChildNav } from './ChildNav';
 import { TimerStrip } from './TimerStrip';
+import { NotificationCarousel } from './NotificationCarousel';
 import { ActivityFeed } from './ActivityFeed';
 import { entriesForChild } from './selectors';
 import { errorMessage } from '../../api/client';
@@ -60,6 +66,15 @@ export function DashboardScreen({ navigation }: Props) {
   const now = useMinuteTick();
   const timerNow = useTimerTick();
   const { start: startTimer } = useTimerActions();
+
+  // Reminders the OS has already delivered, surfaced in an in-app carousel above
+  // the child card. Empty (so the carousel hides) on web/Expo Go and whenever
+  // notifications are off — see the hook.
+  const {
+    items: deliveredNotifications,
+    dismiss: dismissNotification,
+    dismissAll: dismissAllNotifications,
+  } = useDeliveredNotifications();
 
   const childrenById = useMemo<Record<string, Child>>(
     () => Object.fromEntries(children.map((c) => [c.id, c])),
@@ -177,6 +192,38 @@ export function DashboardScreen({ navigation }: Props) {
     setActiveIndex(index);
   };
 
+  // Tapping a delivered notification opens the screen it's about: the med
+  // breakdown for a medication reminder, or a prefilled log form for a
+  // timer/diaper/feeding one (see `notificationAction`). The child's tab is
+  // focused first so the destination — and the dashboard behind it — is in
+  // context. Weekly/unrecognised reminders aren't tappable, so never arrive here.
+  const openNotification = (item: DeliveredNotification) => {
+    dismiss();
+    const childId = item.childId;
+    if (childId) {
+      const idx = visible.findIndex((c) => c.id === childId);
+      if (idx >= 0) setActiveIndex(idx);
+    }
+    const action = notificationAction(item.id);
+    if (!childId) return;
+    switch (action.kind) {
+      case 'medication':
+        navigation.navigate('MedBreakdown', {
+          childId,
+          childName: childrenById[childId]?.name ?? '',
+        });
+        return;
+      case 'timer':
+        navigation.navigate('LogEntry', { mode: 'create', childId, type: action.timerType });
+        return;
+      case 'create':
+        navigation.navigate('LogEntry', { mode: 'create', childId, type: action.entryType });
+        return;
+      case 'none':
+        return;
+    }
+  };
+
   const openSettings = () => {
     dismiss();
     navigation.navigate('Settings');
@@ -273,6 +320,14 @@ export function DashboardScreen({ navigation }: Props) {
             />
           </View>
         ) : null}
+
+        <NotificationCarousel
+          items={deliveredNotifications}
+          childrenById={childrenById}
+          onDismiss={dismissNotification}
+          onDismissAll={dismissAllNotifications}
+          onPress={openNotification}
+        />
 
         {activeChild ? (
           <ChildNav

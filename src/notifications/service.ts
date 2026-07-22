@@ -146,6 +146,112 @@ export async function syncScheduledAsync(planned: PlannedNotification[]): Promis
   }
 }
 
+/**
+ * A reminder the OS has already *delivered* (it's sitting in the tray / shade),
+ * normalized away from the SDK's `Notification` shape. `id` is the OS identifier,
+ * which for our own reminders equals the `PlannedNotification.key` we scheduled.
+ */
+export interface DeliveredNotification {
+  id: string;
+  title: string;
+  body: string;
+  childId?: string;
+  /** Epoch ms the OS delivered it, for newest-first ordering. */
+  deliveredAt: number;
+}
+
+/**
+ * Coerce a delivered notification's `date` to epoch ms. The SDK's typing says
+ * `number`, but in practice it varies by platform — Android gives epoch ms, iOS
+ * can hand back a `Date` — so accept both and fall back to now for anything
+ * missing/odd (rather than let a bad value scramble the newest-first ordering).
+ */
+function deliveredAtMs(date: unknown): number {
+  if (typeof date === 'number' && date > 0) return date;
+  if (date instanceof Date) {
+    const ms = date.getTime();
+    if (ms > 0) return ms;
+  }
+  return Date.now();
+}
+
+function normalizeDelivered(n: unknown): DeliveredNotification | null {
+  // Guard defensively — this crosses the native bridge and the shape isn't ours.
+  const req = (n as { request?: { identifier?: string; content?: Record<string, unknown> } })
+    ?.request;
+  const id = req?.identifier;
+  if (!id) return null;
+  const content = req.content ?? {};
+  const data = (content.data ?? {}) as { childId?: unknown };
+  return {
+    id,
+    title: typeof content.title === 'string' ? content.title : '',
+    body: typeof content.body === 'string' ? content.body : '',
+    childId: typeof data.childId === 'string' ? data.childId : undefined,
+    deliveredAt: deliveredAtMs((n as { date?: unknown }).date),
+  };
+}
+
+/**
+ * The reminders currently presented in the tray. `[]` wherever notifications
+ * can't be delivered (web, Expo Go) — so the in-app carousel is simply empty
+ * there, consistent with the rest of this module degrading silently.
+ */
+export async function getDeliveredAsync(): Promise<DeliveredNotification[]> {
+  const N = nm();
+  if (!N) return [];
+  try {
+    const list = await N.getPresentedNotificationsAsync();
+    return list
+      .map(normalizeDelivered)
+      .filter((n): n is DeliveredNotification => n != null)
+      // Newest first, so the most recently fired reminder leads the carousel.
+      .sort((a, b) => b.deliveredAt - a.deliveredAt);
+  } catch (err) {
+    console.warn('[notifications] read delivered failed:', err);
+    return [];
+  }
+}
+
+/** Dismiss one delivered notification from the tray by its identifier. */
+export async function dismissDeliveredAsync(id: string): Promise<void> {
+  const N = nm();
+  if (!N) return;
+  try {
+    await N.dismissNotificationAsync(id);
+  } catch (err) {
+    console.warn('[notifications] dismiss failed:', err);
+  }
+}
+
+/** Dismiss every delivered notification. */
+export async function dismissAllDeliveredAsync(): Promise<void> {
+  const N = nm();
+  if (!N) return;
+  try {
+    await N.dismissAllNotificationsAsync();
+  } catch (err) {
+    console.warn('[notifications] dismiss-all failed:', err);
+  }
+}
+
+/**
+ * Subscribe to notifications delivered while the app is foregrounded, so the
+ * carousel can refresh the instant a reminder fires. Returns an unsubscribe
+ * function; a no-op (returning a no-op) where notifications are unsupported.
+ */
+export function addDeliveredListener(onDelivered: () => void): () => void {
+  const N = nm();
+  if (!N) return () => {};
+  try {
+    const sub = N.addNotificationReceivedListener(() => onDelivered());
+    return () => sub.remove();
+  } catch (err) {
+    console.warn('[notifications] listener failed:', err);
+    return () => {};
+  }
+}
+
 /** Cancel every scheduled reminder. */
 export async function cancelAllAsync(): Promise<void> {
   const N = nm();
