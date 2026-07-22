@@ -24,7 +24,6 @@ import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './m
 import type { RunningTimer } from './timers';
 
 const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
 const HORIZON_MS = 48 * 60 * MINUTE;
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
@@ -32,10 +31,21 @@ const MAX_PLANNED = 64;
 
 /**
  * Applied to every child once the diaper/food case is on, unless that child
- * carries its own threshold. A per-child value of 0 opts the child out.
+ * carries its own threshold (in minutes). A per-child value of 0 opts out.
  */
-export const DEFAULT_DIAPER_INTERVAL_HOURS = 3;
-export const DEFAULT_FOOD_INTERVAL_HOURS = 4;
+export const DEFAULT_DIAPER_INTERVAL_MINUTES = 180;
+export const DEFAULT_FOOD_INTERVAL_MINUTES = 240;
+
+/**
+ * Adaptive step size (minutes) for the time-interval steppers: single minutes
+ * below 10, five up to an hour, ten beyond. Keeps fine control where the value
+ * is small without making multi-hour intervals a tap marathon.
+ */
+export function intervalStep(minutes: number): number {
+  if (minutes < 10) return 1;
+  if (minutes < 60) return 5;
+  return 10;
+}
 
 // --- Settings shapes (shared with the store) --------------------------------
 
@@ -61,12 +71,15 @@ export interface CaseSettings {
  * case default"; an explicit 0 means "don't remind for this child".
  */
 export interface PerChildThresholds {
-  /** Max hours between diaper changes before a reminder fires. */
-  diaperIntervalHours?: number;
+  /** Max minutes between diaper changes before a reminder fires. */
+  diaperIntervalMinutes?: number;
   /** Target amount (ml) mentioned in the food reminder; 0/absent = don't mention. */
   foodMinMl?: number;
-  /** Max hours between feeds before a reminder fires. */
-  foodMinIntervalHours?: number;
+  /**
+   * Max minutes between feeds. Doubles as the dashboard food-total window for
+   * this child, so it's edited even when notifications are off.
+   */
+  foodMinIntervalMinutes?: number;
 }
 
 /** The subset of notification settings the builder reads. */
@@ -280,17 +293,18 @@ export function buildNotifications(
   // (the same "no data → no reminder" rule the medication cases follow).
   if (settings.diaperInterval.enabled) {
     for (const child of children) {
-      const hours = settings.perChild[child.id]?.diaperIntervalHours ?? DEFAULT_DIAPER_INTERVAL_HOURS;
-      if (hours <= 0) continue;
+      const minutes =
+        settings.perChild[child.id]?.diaperIntervalMinutes ?? DEFAULT_DIAPER_INTERVAL_MINUTES;
+      if (minutes <= 0) continue;
       const last = lastEntryOfType(entries, child.id, 'diaper');
       if (last == null) continue;
       out.push({
         key: `diaper:${child.id}`,
-        fireAt: last + hours * HOUR,
+        fireAt: last + minutes * MINUTE,
         title: i18n.t('notifications.titleDiaperDue'),
         body: i18n.t('notifications.diaperBody', {
           child: child.name,
-          duration: countdownLabel(hours * HOUR),
+          duration: countdownLabel(minutes * MINUTE),
         }),
         childId: child.id,
       });
@@ -305,18 +319,18 @@ export function buildNotifications(
   if (settings.foodMin.enabled) {
     for (const child of children) {
       const t = settings.perChild[child.id];
-      const hours = t?.foodMinIntervalHours ?? DEFAULT_FOOD_INTERVAL_HOURS;
-      if (hours <= 0) continue;
+      const minutes = t?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES;
+      if (minutes <= 0) continue;
       const last = lastEntryOfType(entries, child.id, 'feeding');
       if (last == null) continue;
       const minMl = t?.foodMinMl ?? 0;
       out.push({
         key: `food:${child.id}`,
-        fireAt: last + hours * HOUR,
+        fireAt: last + minutes * MINUTE,
         title: i18n.t('notifications.titleFoodDue'),
         body: i18n.t(minMl > 0 ? 'notifications.foodBodyMin' : 'notifications.foodBody', {
           child: child.name,
-          duration: countdownLabel(hours * HOUR),
+          duration: countdownLabel(minutes * MINUTE),
           min: minMl,
         }),
         childId: child.id,

@@ -1,5 +1,6 @@
 import {
   buildNotifications,
+  intervalStep,
   type NotificationSettings,
   type TimingPrefs,
   type NotificationBuildInput,
@@ -238,7 +239,7 @@ describe('buildNotifications — forgotten timers', () => {
 });
 
 describe('buildNotifications — diaper interval', () => {
-  const diaperOn = (thresholds?: { diaperIntervalHours?: number }) =>
+  const diaperOn = (thresholds?: { diaperIntervalMinutes?: number }) =>
     settings({
       diaperInterval: { enabled: true },
       perChild: thresholds ? { c1: thresholds } : {},
@@ -247,7 +248,7 @@ describe('buildNotifications — diaper interval', () => {
   it('schedules at the last change + the per-child interval', () => {
     const entries: Entry[] = [diaper(iso(NOW - HOUR))];
     const plan = buildNotifications(
-      input({ entries, settings: diaperOn({ diaperIntervalHours: 3 }) }),
+      input({ entries, settings: diaperOn({ diaperIntervalMinutes: 180 }) }),
       NOW,
     );
     expect(plan).toHaveLength(1);
@@ -260,7 +261,7 @@ describe('buildNotifications — diaper interval', () => {
   it('anchors on the most recent change', () => {
     const entries: Entry[] = [diaper(iso(NOW - 5 * HOUR)), diaper(iso(NOW - HOUR))];
     const plan = buildNotifications(
-      input({ entries, settings: diaperOn({ diaperIntervalHours: 3 }) }),
+      input({ entries, settings: diaperOn({ diaperIntervalMinutes: 180 }) }),
       NOW,
     );
     expect(plan[0].fireAt).toBe(NOW - HOUR + 3 * HOUR);
@@ -276,7 +277,7 @@ describe('buildNotifications — diaper interval', () => {
   it('opts a child out with a zero threshold', () => {
     const entries: Entry[] = [diaper(iso(NOW - HOUR))];
     const plan = buildNotifications(
-      input({ entries, settings: diaperOn({ diaperIntervalHours: 0 }) }),
+      input({ entries, settings: diaperOn({ diaperIntervalMinutes: 0 }) }),
       NOW,
     );
     expect(plan).toEqual([]);
@@ -290,7 +291,7 @@ describe('buildNotifications — diaper interval', () => {
   it('drops a change already past its interval', () => {
     const entries: Entry[] = [diaper(iso(NOW - 5 * HOUR))];
     const plan = buildNotifications(
-      input({ entries, settings: diaperOn({ diaperIntervalHours: 3 }) }),
+      input({ entries, settings: diaperOn({ diaperIntervalMinutes: 180 }) }),
       NOW,
     );
     expect(plan).toEqual([]);
@@ -303,13 +304,13 @@ describe('buildNotifications — diaper interval', () => {
 });
 
 describe('buildNotifications — food minimum interval', () => {
-  const foodOn = (thresholds: { foodMinIntervalHours?: number; foodMinMl?: number } = {}) =>
+  const foodOn = (thresholds: { foodMinIntervalMinutes?: number; foodMinMl?: number } = {}) =>
     settings({ foodMin: { enabled: true }, perChild: { c1: thresholds } });
 
   it('schedules at the last feed + the per-child interval', () => {
     const entries: Entry[] = [feeding(iso(NOW - HOUR), { amount: 60 })];
     const plan = buildNotifications(
-      input({ entries, settings: foodOn({ foodMinIntervalHours: 4 }) }),
+      input({ entries, settings: foodOn({ foodMinIntervalMinutes: 240 }) }),
       NOW,
     );
     expect(plan).toHaveLength(1);
@@ -321,7 +322,7 @@ describe('buildNotifications — food minimum interval', () => {
   it('names the target amount when foodMinMl is set', () => {
     const entries: Entry[] = [feeding(iso(NOW - HOUR))];
     const plan = buildNotifications(
-      input({ entries, settings: foodOn({ foodMinIntervalHours: 4, foodMinMl: 120 }) }),
+      input({ entries, settings: foodOn({ foodMinIntervalMinutes: 240, foodMinMl: 120 }) }),
       NOW,
     );
     expect(plan[0].body).toContain('120');
@@ -405,5 +406,24 @@ describe('buildNotifications — horizon + ordering', () => {
     expect(times).toEqual([...times].sort((a, b) => a - b));
     // timer fires at now+25m, med at now+7h → timer first.
     expect(plan[0].key.startsWith('timer:')).toBe(true);
+  });
+});
+
+describe('intervalStep', () => {
+  it('nudges by single minutes below 10', () => {
+    expect(intervalStep(0)).toBe(1);
+    expect(intervalStep(5)).toBe(1);
+    expect(intervalStep(9)).toBe(1);
+  });
+
+  it('nudges by 5 minutes from 10 up to an hour', () => {
+    expect(intervalStep(10)).toBe(5);
+    expect(intervalStep(30)).toBe(5);
+    expect(intervalStep(59)).toBe(5);
+  });
+
+  it('nudges by 10 minutes from an hour up', () => {
+    expect(intervalStep(60)).toBe(10);
+    expect(intervalStep(240)).toBe(10);
   });
 });

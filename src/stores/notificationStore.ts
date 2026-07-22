@@ -100,9 +100,36 @@ export const useNotificationStore = create<NotificationState>()(
     }),
     {
       name: 'notifications',
+      version: 1,
       storage: createJSONStorage(() => asyncStorage),
       // permissionStatus is live OS state, not a preference — never persist it.
       partialize: ({ permissionStatus: _permissionStatus, ...rest }) => rest,
+      // v0 stored the diaper/food intervals in whole hours; v1 stores minutes so
+      // the adaptive-step UI can offer 10-minute resolution. Convert per child.
+      migrate: (persisted, version) => {
+        const state = persisted as NotificationState;
+        if (version < 1 && state?.perChild) {
+          const perChild: Record<string, PerChildThresholds> = {};
+          for (const [id, t] of Object.entries(state.perChild)) {
+            const legacy = t as PerChildThresholds & {
+              diaperIntervalHours?: number;
+              foodMinIntervalHours?: number;
+            };
+            const { diaperIntervalHours, foodMinIntervalHours, ...rest } = legacy;
+            perChild[id] = {
+              ...rest,
+              ...(diaperIntervalHours != null
+                ? { diaperIntervalMinutes: diaperIntervalHours * 60 }
+                : {}),
+              ...(foodMinIntervalHours != null
+                ? { foodMinIntervalMinutes: foodMinIntervalHours * 60 }
+                : {}),
+            };
+          }
+          return { ...state, perChild };
+        }
+        return state;
+      },
     },
   ),
 );

@@ -12,8 +12,6 @@ import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
 import { useDashboardData } from '../../data/queries';
 
-const FOOD_WINDOWS = [2, 4, 6, 12];
-
 const LANGUAGE_LABEL_KEY: Record<AppLanguage, string> = {
   en: 'settings.languageEnglish',
   he: 'settings.languageHebrew',
@@ -26,8 +24,6 @@ export function SettingsScreen({ navigation }: Props) {
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
   const { children } = useDashboardData();
-  const foodWindow = useSettingsStore((s) => s.foodWindowHours);
-  const setFoodWindow = useSettingsStore((s) => s.setFoodWindowHours);
   const defaults = useSettingsStore((s) => s.defaultFoodMl);
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
@@ -83,25 +79,6 @@ export function SettingsScreen({ navigation }: Props) {
                 label={t(LANGUAGE_LABEL_KEY[lang])}
                 active={activeLanguage === lang}
                 onPress={() => setLanguage(lang)}
-              />
-            ))}
-          </View>
-        </Card>
-
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('settings.feedingWindow')}
-          </AppText>
-          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-            {t('settings.feedingWindowHint')}
-          </AppText>
-          <View style={styles.windowRow}>
-            {FOOD_WINDOWS.map((h) => (
-              <Chip
-                key={h}
-                label={t('settings.windowChip', { hours: h })}
-                active={foodWindow === h}
-                onPress={() => setFoodWindow(h)}
               />
             ))}
           </View>

@@ -19,7 +19,7 @@ import { isTimerType, type TimerType } from '../../lib/timers';
 import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
-import { useAuthStore, useSettingsStore, useUiStore } from '../../stores';
+import { useAuthStore, useUiStore } from '../../stores';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
@@ -35,7 +35,6 @@ export function DashboardScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { children, entries, isLoading, isRefreshing, error, refetch } = useDashboardData();
   const [activeIndex, setActiveIndex] = useState(0);
-  const foodWindowHours = useSettingsStore((s) => s.foodWindowHours);
   const userName = useAuthStore((s) => s.session?.userName);
   const welcomeDismissed = useUiStore((s) => s.welcomeDismissed);
   const dismissWelcome = useUiStore((s) => s.dismissWelcome);
@@ -179,7 +178,6 @@ export function DashboardScreen({ navigation }: Props) {
             entries={entries}
             activeIndex={activeIndex}
             onActiveChange={changeChild}
-            foodWindowHours={foodWindowHours}
             now={now}
             timerNow={timerNow}
             onQuickAction={openCreate}

@@ -20,7 +20,6 @@ interface ChildNavProps {
   entries: Entry[];
   activeIndex: number;
   onActiveChange: (index: number) => void;
-  foodWindowHours: number;
   now: number;
   timerNow: number;
   onQuickAction: (childId: string, type: EntryType) => void;
@@ -49,7 +48,6 @@ export function ChildNav(props: ChildNavProps) {
 function SingleChildNav({
   childList,
   entries,
-  foodWindowHours,
   now,
   timerNow,
   onQuickAction,
@@ -63,7 +61,6 @@ function SingleChildNav({
     <ChildCard
       child={child}
       entries={entries}
-      foodWindowHours={foodWindowHours}
       now={now}
       timerNow={timerNow}
       onQuickAction={(type) => onQuickAction(child.id, type)}
@@ -79,7 +76,6 @@ function TabsNav({
   entries,
   activeIndex,
   onActiveChange,
-  foodWindowHours,
   now,
   timerNow,
   onQuickAction,
@@ -158,7 +154,6 @@ function TabsNav({
           <ChildCard
             child={active}
             entries={entries}
-            foodWindowHours={foodWindowHours}
             now={now}
             timerNow={timerNow}
             onQuickAction={(type) => onQuickAction(active.id, type)}
