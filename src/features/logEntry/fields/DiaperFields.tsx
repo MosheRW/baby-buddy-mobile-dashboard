@@ -74,6 +74,9 @@ export function DiaperFields({ draft, patch }: FieldProps) {
           min={1}
           max={10}
           suffix={t('diaper.amountSuffix')}
+          // The 1–10 subjective scale gains nothing from manual entry or a
+          // magnitude ramp; keep the plain stepper.
+          enhanced={false}
         />
       </View>
     </>

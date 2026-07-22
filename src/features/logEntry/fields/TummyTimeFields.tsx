@@ -33,7 +33,7 @@ export function TummyTimeFields({ draft, patch, childId, mode }: TummyTimeFields
           <Stepper
             value={draft.tummyMinutes}
             onChange={(tummyMinutes) => patch({ tummyMinutes })}
-            step={5}
+            step={1}
             min={0}
             suffix={t('feeding.durationSuffix')}
           />

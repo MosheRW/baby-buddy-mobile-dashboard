@@ -11,7 +11,6 @@ import { useNotificationStore } from '../../stores';
 import {
   DEFAULT_DIAPER_INTERVAL_MINUTES,
   DEFAULT_FOOD_INTERVAL_MINUTES,
-  intervalStep,
   type TimingPrefs,
 } from '../../lib/notifications';
 import { countdownLabel } from '../../lib/medication';
@@ -148,7 +147,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
               <Stepper
                 value={forgottenTimer.thresholdMinutes}
                 onChange={setForgottenTimerMinutes}
-                step={intervalStep}
+                step={1}
                 min={5}
                 suffix={t('notifications.minSuffix')}
               />
@@ -187,7 +186,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                         perChild[child.id]?.diaperIntervalMinutes ?? DEFAULT_DIAPER_INTERVAL_MINUTES
                       }
                       onChange={(v) => setPerChildThreshold(child.id, { diaperIntervalMinutes: v })}
-                      step={intervalStep}
+                      step={1}
                       min={30}
                       format={formatMinutes}
                     />
@@ -220,7 +219,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                 <Stepper
                   value={perChild[child.id]?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES}
                   onChange={(v) => setPerChildThreshold(child.id, { foodMinIntervalMinutes: v })}
-                  step={intervalStep}
+                  step={1}
                   min={30}
                   format={formatMinutes}
                 />
@@ -397,7 +396,7 @@ function TimingControls({
         <Stepper
           value={timing.beforeMinutes}
           onChange={(v) => onChange({ beforeMinutes: v })}
-          step={intervalStep}
+          step={1}
           min={5}
           suffix={labels.minSuffix}
         />
@@ -416,7 +415,7 @@ function TimingControls({
         <Stepper
           value={timing.afterMinutes}
           onChange={(v) => onChange({ afterMinutes: v })}
-          step={intervalStep}
+          step={1}
           min={5}
           suffix={labels.minSuffix}
         />
