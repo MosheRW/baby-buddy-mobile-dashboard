@@ -52,6 +52,26 @@ export function SettingsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('notifications.navTitle')}
+          onPress={() => navigation.navigate('Notifications')}
+        >
+          <Card style={styles.navRow}>
+            <View style={styles.navText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.navTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.navHint')}
+              </AppText>
+            </View>
+            <View style={styles.chevron}>
+              <ChevronLeftGlyph size={20} color={colors.textMuted} />
+            </View>
+          </Card>
+        </Pressable>
+
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
             {t('settings.language')}
@@ -178,6 +198,20 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing.lg,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  navText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  chevron: {
+    // The only chevron glyph points left; flip it to point into the sub-screen.
+    transform: [{ rotate: '180deg' }],
   },
   windowRow: {
     flexDirection: 'row',

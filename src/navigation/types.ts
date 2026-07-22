@@ -34,6 +34,7 @@ export type MainStackParamList = {
   Dashboard: undefined;
   LogEntry: LogEntryParams;
   Settings: undefined;
+  Notifications: undefined;
   DeleteConfirm: DeleteConfirmParams;
   MedBreakdown: MedBreakdownParams;
 };

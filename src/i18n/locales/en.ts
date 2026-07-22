@@ -293,6 +293,50 @@ export const en = {
     languageHebrew: 'עברית',
   },
 
+  notifications: {
+    // Settings-screen navigation row.
+    navTitle: 'Notifications',
+    navHint: 'Reminders for medications, timers, and more.',
+    // Notification settings screen.
+    title: 'Notifications',
+    enable: 'Enable notifications',
+    enableHint: 'Local reminders, scheduled on this device.',
+    blocked: 'Notifications are blocked. Turn them on for Baby Buddy in your device settings.',
+    unsupported: "Notifications aren't available on this platform.",
+    scheduledMedsTitle: 'Scheduled medications',
+    scheduledMedsHint: 'Remind me when a scheduled dose is due.',
+    eligibilityTitle: 'Medication eligibility',
+    eligibilityHint:
+      'Remind me when an as-needed medicine can be given again, or its 24h limit frees up.',
+    forgottenTitle: 'Forgotten timers',
+    forgottenHint: 'Warn me when a timer has been running unusually long.',
+    before: 'Before',
+    atTime: 'At the time',
+    after: 'After',
+    minSuffix: ' min',
+    // Delivered-notification titles + bodies. `_noChild` is the i18next context
+    // variant used when the child can't be resolved.
+    titleMedDue: 'Medication due',
+    titleMedReady: 'Medication ready',
+    titleTimerRunning: 'Timer still running',
+    medDueBefore: '{{med}} for {{child}} is due in {{duration}}.',
+    medDueBefore_noChild: '{{med}} is due in {{duration}}.',
+    medDueAt: '{{med}} for {{child}} is due now.',
+    medDueAt_noChild: '{{med}} is due now.',
+    medDueAfter: '{{med}} for {{child}} was due {{duration}} ago.',
+    medDueAfter_noChild: '{{med}} was due {{duration}} ago.',
+    eligBefore: '{{med}} for {{child}} can be given again in {{duration}}.',
+    eligBefore_noChild: '{{med}} can be given again in {{duration}}.',
+    eligAt: '{{med}} for {{child}} can be given again now.',
+    eligAt_noChild: '{{med}} can be given again now.',
+    eligAfter: '{{med}} for {{child}} has been due for another dose for {{duration}}.',
+    eligAfter_noChild: '{{med}} has been due for another dose for {{duration}}.',
+    timerBody:
+      '{{activity}} timer for {{child}} has been running over {{duration}} — did you forget to stop it?',
+    timerBody_noChild:
+      '{{activity}} timer has been running over {{duration}} — did you forget to stop it?',
+  },
+
   dates: {
     now: 'now',
     minutesAgo: '{{m}}m ago',
