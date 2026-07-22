@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
 import { MinusGlyph, PlusGlyph } from './glyphs';
 import { colors, fontSize, radii, spacing } from '../theme';
+
+// Press-and-hold: after this delay the button starts auto-repeating, one step
+// every `HOLD_INTERVAL_MS`, so a long value (200ml at 1ml steps) doesn't need
+// 200 taps. A quick tap releases well before the delay and just steps once.
+const HOLD_DELAY_MS = 350;
+const HOLD_INTERVAL_MS = 80;
 
 interface StepperProps {
   value: number;
@@ -35,7 +41,8 @@ interface StepperProps {
 
 /**
  * ± stepper. Handles all handoff cases via props:
- *  ±5 min duration, ±10 ml/g amount, ±0.5 decimal dose, ±0.1° temperature.
+ *  ±5 min duration, ±1 ml/g amount, ±0.5 decimal dose, ±0.1° temperature.
+ * Press-and-hold either button to auto-repeat (see `StepButton`).
  * Rounds to a stable number of decimals to avoid float drift (0.1 + 0.2 etc).
  */
 export function Stepper({
@@ -71,34 +78,77 @@ export function Stepper({
 
   return (
     <View style={[styles.row, disabled && styles.disabled]}>
-      <StepButton onPress={dec} disabled={disabled || value <= min} kind="minus" />
+      <StepButton onStep={dec} disabled={disabled || value <= min} kind="minus" />
       <View style={styles.valueBox}>
         <AppText size={fontSize.cardTitle} weight="800">
           {display}
           {format ? '' : suffix}
         </AppText>
       </View>
-      <StepButton onPress={inc} disabled={disabled || value >= max} kind="plus" />
+      <StepButton onStep={inc} disabled={disabled || value >= max} kind="plus" />
     </View>
   );
 }
 
 function StepButton({
-  onPress,
+  onStep,
   disabled,
   kind,
 }: {
-  onPress: () => void;
+  onStep: () => void;
   disabled: boolean;
   kind: 'plus' | 'minus';
 }) {
+  // The latest step handler, read by the repeat timer so it always steps from
+  // the current value rather than a value captured when the hold began.
+  const stepRef = useRef(onStep);
+  useEffect(() => {
+    stepRef.current = onStep;
+  }, [onStep]);
+
+  const delay = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
+  // True once auto-repeat has fired, so the release tap (`onPress`) doesn't add
+  // one extra step on top of the ones the hold already applied.
+  const repeated = useRef(false);
+
+  const stopHold = useCallback(() => {
+    if (delay.current) clearTimeout(delay.current);
+    if (repeat.current) clearInterval(repeat.current);
+    delay.current = null;
+    repeat.current = null;
+  }, []);
+
+  const startHold = useCallback(() => {
+    repeated.current = false;
+    delay.current = setTimeout(() => {
+      repeated.current = true;
+      repeat.current = setInterval(() => stepRef.current(), HOLD_INTERVAL_MS);
+    }, HOLD_DELAY_MS);
+  }, []);
+
+  // Cancel any pending timers if the button unmounts mid-hold.
+  useEffect(() => stopHold, [stopHold]);
+
+  // A hold that drives the value to its min/max disables the button; RN may then
+  // not deliver onPressOut, so stop the repeat here rather than let it spin.
+  useEffect(() => {
+    if (disabled) stopHold();
+  }, [disabled, stopHold]);
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={kind === 'plus' ? 'Increase' : 'Decrease'}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPressIn={startHold}
+      onPressOut={stopHold}
+      onPress={() => {
+        // A hold already applied its steps via the interval; only a real tap
+        // (no repeat) steps here. This also serves screen-reader activation.
+        if (!repeated.current) onStep();
+      }}
       hitSlop={8}
       style={({ pressed }) => [styles.btn, pressed && !disabled && styles.pressed]}
     >

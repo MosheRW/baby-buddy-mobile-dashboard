@@ -222,6 +222,7 @@ export const en = {
     routeAnal: 'Anal',
     bodyArea: 'Body area',
     bodyAreaPlaceholder: 'e.g. chest, back',
+    once: 'Once',
     custom: 'Custom',
     customSuffix: ' h',
     maxDose: 'Max dose per 24h (optional)',

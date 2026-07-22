@@ -18,7 +18,8 @@ const POO_COLORS = Object.keys(pooSwatch) as PooColor[];
 /**
  * Pee and Poo are two independent toggles — a diaper can be pee-only, poo-only,
  * or both — so this is deliberately NOT a segmented control. The poo-color row
- * is always visible but only meaningful (and only saved) when Poo is on.
+ * only appears when Poo is on: a color is meaningless (and never saved) without
+ * it, so showing the swatches for a pee-only change is just noise.
  */
 export function DiaperFields({ draft, patch }: FieldProps) {
   const { t } = useTranslation();
@@ -44,23 +45,25 @@ export function DiaperFields({ draft, patch }: FieldProps) {
         </View>
       </View>
 
-      <View>
-        <FieldLabel>{t('diaper.pooColor')}</FieldLabel>
-        <View style={styles.swatches}>
-          {POO_COLORS.map((color) => (
-            <Pressable
-              key={color}
-              accessibilityRole="button"
-              accessibilityLabel={t('diaper.pooColorAria', { color })}
-              accessibilityState={{ selected: draft.pooColor === color }}
-              onPress={() => patch({ pooColor: color })}
-              style={[styles.swatchRing, draft.pooColor === color && styles.swatchRingActive]}
-            >
-              <View style={[styles.swatch, { backgroundColor: pooSwatch[color] }]} />
-            </Pressable>
-          ))}
+      {draft.poo ? (
+        <View>
+          <FieldLabel>{t('diaper.pooColor')}</FieldLabel>
+          <View style={styles.swatches}>
+            {POO_COLORS.map((color) => (
+              <Pressable
+                key={color}
+                accessibilityRole="button"
+                accessibilityLabel={t('diaper.pooColorAria', { color })}
+                accessibilityState={{ selected: draft.pooColor === color }}
+                onPress={() => patch({ pooColor: color })}
+                style={[styles.swatchRing, draft.pooColor === color && styles.swatchRingActive]}
+              >
+                <View style={[styles.swatch, { backgroundColor: pooSwatch[color] }]} />
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <View>
         <FieldLabel>{diaperAmountLabel(draft.pee, draft.poo)}</FieldLabel>

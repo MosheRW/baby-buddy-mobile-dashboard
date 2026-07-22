@@ -134,7 +134,11 @@ function toStatus(m: MedicationEntry, now: number): MedStatus {
 
 /** Scheduled meds whose next dose falls within ±24h of now, soonest first. */
 export function neededMeds(entries: Entry[], now: number = Date.now()): MedStatus[] {
-  const scheduled = medicationEntries(entries).filter((m) => m.schedule === 'scheduled');
+  // A zero interval means the dose was logged as a one-off — it has no next dose
+  // to be due for, so it never joins the needed list.
+  const scheduled = medicationEntries(entries).filter(
+    (m) => m.schedule === 'scheduled' && m.repeatHours > 0,
+  );
   return dedupeByNameMostRecent(scheduled)
     .map((m) => toStatus(m, now))
     .filter((s) => Math.abs(s.dueInMs) <= DAY)
@@ -153,7 +157,11 @@ export function eligibleMeds(entries: Entry[], now: number = Date.now()): MedSta
   const cutoff = now - 10 * DAY;
   const limited = limitedPairs(medicationEntries(entries));
   const prn = medicationEntries(entries).filter(
-    (m) => m.schedule === 'asNeeded' && timeOf(m) >= cutoff && !limited.has(pairKey(m)),
+    (m) =>
+      m.schedule === 'asNeeded' &&
+      m.repeatHours > 0 &&
+      timeOf(m) >= cutoff &&
+      !limited.has(pairKey(m)),
   );
   return dedupeByNameMostRecent(prn)
     .map((m) => toStatus(m, now))

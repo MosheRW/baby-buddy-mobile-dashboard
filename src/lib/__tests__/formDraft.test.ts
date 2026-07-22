@@ -1,4 +1,10 @@
-import type { DiaperEntry, FeedingEntry, MedicationEntry, SleepEntry } from '../../api/types';
+import type {
+  DiaperEntry,
+  Entry,
+  FeedingEntry,
+  MedicationEntry,
+  SleepEntry,
+} from '../../api/types';
 import {
   amountUnit,
   baselinePatch,
@@ -9,10 +15,13 @@ import {
   entryToDraft,
   isCustomRepeat,
   isDirectBreast,
+  isNoRepeat,
   medSuggestionPatch,
   methodForKindChange,
   methodsForKind,
+  mostRecentOfType,
   repeatLabel,
+  seedDraft,
   showsAmount,
   showsBodyArea,
   showsDose,
@@ -105,6 +114,11 @@ describe('medication repeat interval', () => {
   it('treats anything off-preset as custom', () => {
     expect(isCustomRepeat(6.5)).toBe(true);
     expect(isCustomRepeat(24)).toBe(true);
+  });
+
+  it('recognises a zero interval as a one-off (no repeat)', () => {
+    expect(isNoRepeat(0)).toBe(true);
+    expect(isNoRepeat(6)).toBe(false);
   });
 
   it('labels the interval by schedule type', () => {
@@ -495,8 +509,16 @@ describe('medSuggestionPatch', () => {
       bodyArea: '',
       schedule: 'asNeeded',
       repeatHours: 8,
+      repeatCustom: false,
       maxDose24h: 6,
     });
+  });
+
+  it('carries the custom flag for an off-preset interval', () => {
+    expect(medSuggestionPatch(med({ repeatHours: 6.5 })).repeatCustom).toBe(true);
+    expect(medSuggestionPatch(med({ repeatHours: 8 })).repeatCustom).toBe(false);
+    // A one-off dose is neither a preset nor custom.
+    expect(medSuggestionPatch(med({ repeatHours: 0 })).repeatCustom).toBe(false);
   });
 
   it('falls back to the defaults for fields the suggestion does not carry', () => {
@@ -528,5 +550,86 @@ describe('sleep type', () => {
     }) as SleepEntry;
     expect(entry.sleepType).toBe('nap');
     expect(entryToDraft(entry).sleepType).toBe('nap');
+  });
+});
+
+describe('seedDraft', () => {
+  // Build an entry of `type` from a draft patch, so tests describe the entry in
+  // the same vocabulary the form uses.
+  function entry(
+    type: Entry['type'],
+    patch: Partial<ReturnType<typeof emptyDraft>> = {},
+  ): Entry {
+    return draftToEntry({ childId: 'c1', id: `seed-${type}`, creator: 'Sarah', type, draft: makeDraft(patch) });
+  }
+
+  it('falls back to empty defaults when there is no prior entry of the type', () => {
+    const d = seedDraft('diaper', [], NOW, 150);
+    expect(d.pee).toBe(true);
+    expect(d.poo).toBe(false);
+    expect(d.amount).toBe(150);
+  });
+
+  it('carries the last feed of the type forward as the default', () => {
+    const feed = entry('feeding', { kind: 'formula', method: 'bottle', amount: 95 });
+    const d = seedDraft('feeding', [feed], NOW, 120);
+    expect(d.kind).toBe('formula');
+    expect(d.amount).toBe(95);
+  });
+
+  it('carries the last diaper contents forward', () => {
+    const diaper = entry('diaper', { pee: false, poo: true, pooColor: 'green' });
+    const d = seedDraft('diaper', [diaper], NOW);
+    expect(d.pee).toBe(false);
+    expect(d.poo).toBe(true);
+    expect(d.pooColor).toBe('green');
+  });
+
+  it('resets the time, span, note and tags on the fresh entry', () => {
+    const older = new Date(NOW - 3 * 60 * 60 * 1000).toISOString();
+    const feed: Entry = {
+      ...(entry('feeding', { kind: 'formula', method: 'bottle', amount: 95 }) as FeedingEntry),
+      time: older,
+      endTime: older,
+      note: 'sleepy',
+      tags: [{ label: 'by Sarah', author: true }, { label: 'nap' }],
+    };
+    const d = seedDraft('feeding', [feed], NOW);
+    expect(d.time).toBe(new Date(NOW).toISOString());
+    expect(d.endTime).toBeNull();
+    expect(d.note).toBe('');
+    expect(d.tags).toEqual([]);
+  });
+
+  it('picks the most recent entry of the type', () => {
+    const old: Entry = {
+      ...(entry('diaper', { poo: true, diaperAmount: 3 }) as DiaperEntry),
+      id: 'd0',
+      time: new Date(NOW - 5 * 3600_000).toISOString(),
+    };
+    const recent: Entry = {
+      ...(entry('diaper', { poo: true, diaperAmount: 9 }) as DiaperEntry),
+      id: 'd1',
+      time: new Date(NOW - 1 * 3600_000).toISOString(),
+    };
+    expect(seedDraft('diaper', [old, recent], NOW).diaperAmount).toBe(9);
+    expect(mostRecentOfType([old, recent], 'diaper')?.id).toBe('d1');
+  });
+
+  it('re-captures the bottle baseline against the current default, not the old entry', () => {
+    // The old feed froze a 90ml baseline; a new feed today should gauge against
+    // the current 200ml default instead.
+    const feed: Entry = {
+      ...(entry('feeding', { kind: 'formula', method: 'bottle', amount: 95 }) as FeedingEntry),
+      defaultQtyAtEntry: 90,
+    };
+    expect(seedDraft('feeding', [feed], NOW, 200).defaultQtyAtEntry).toBe(200);
+  });
+
+  it('does not inherit a completed sleep as the new entry state', () => {
+    const done = entry('sleep', { stillSleeping: false, sleepType: 'night' });
+    const d = seedDraft('sleep', [done], NOW);
+    expect(d.stillSleeping).toBe(true);
+    expect(d.sleepType).toBe('night');
   });
 });

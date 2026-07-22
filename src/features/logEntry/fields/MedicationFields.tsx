@@ -32,7 +32,7 @@ import {
 } from '../../../lib/medication';
 import {
   REPEAT_HOURS,
-  isCustomRepeat,
+  isNoRepeat,
   medSuggestionPatch,
   repeatLabel,
   showsBodyArea,
@@ -52,6 +52,9 @@ interface MedicationFieldsProps {
 type RepeatChoice = string;
 
 const CUSTOM = 'custom';
+const ONCE = 'once';
+/** The value the custom stepper opens on when nothing custom was set yet. */
+const CUSTOM_SEED = 6.5;
 
 // RN-SVG has no `currentColor`, so the chip passes its text colour into the
 // render-prop — the unit glyph resolves to a named component drawn in that hue.
@@ -83,7 +86,10 @@ function UnitGlyph({ unit, size, color }: EntryGlyphProps & { unit: DosageUnit }
 export function MedicationFields({ draft, patch, entries }: MedicationFieldsProps) {
   const { t } = useTranslation();
   const suggestions = medicationSuggestions(entries);
-  const custom = isCustomRepeat(draft.repeatHours);
+  const noRepeat = isNoRepeat(draft.repeatHours);
+  // Custom mode is tracked on the draft, not derived from the value, so stepping
+  // the custom interval onto a preset number (6h, 8h) doesn't collapse the field.
+  const custom = draft.repeatCustom && !noRepeat;
   const spec = DOSE_UNITS[draft.doseUnit];
 
   const scheduleOptions: SegmentOption<MedicationSchedule>[] = [
@@ -103,17 +109,22 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
   ];
 
   const repeatOptions: ChipOption<RepeatChoice>[] = [
+    { value: ONCE, label: t('medForm.once') },
     ...REPEAT_HOURS.map((h) => ({ value: String(h), label: `${h}h` })),
     { value: CUSTOM, label: t('medForm.custom') },
   ];
 
+  const selectedRepeat = noRepeat ? ONCE : custom ? CUSTOM : String(draft.repeatHours);
+
   const chooseRepeat = (choice: RepeatChoice) => {
+    if (choice === ONCE) return patch({ repeatHours: 0, repeatCustom: false });
     if (choice === CUSTOM) {
-      // Seed the custom field just off-preset so the Custom chip stays selected.
-      if (!custom) patch({ repeatHours: 6.5 });
+      // Keep the current custom value if there is one; otherwise open just
+      // off-preset so the Custom chip stays selected.
+      patch({ repeatHours: custom ? draft.repeatHours : CUSTOM_SEED, repeatCustom: true });
       return;
     }
-    patch({ repeatHours: Number(choice) });
+    patch({ repeatHours: Number(choice), repeatCustom: false });
   };
 
   // A blank limit means "say nothing about the limit", which leaves the pair's
@@ -223,7 +234,7 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
         <ChipRow
           layout="wrap"
           options={repeatOptions}
-          value={custom ? CUSTOM : String(draft.repeatHours)}
+          value={selectedRepeat}
           onChange={chooseRepeat}
         />
         {custom ? (

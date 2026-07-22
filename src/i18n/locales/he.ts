@@ -220,6 +220,7 @@ export const he = {
     routeAnal: 'דרך פי הטבעת',
     bodyArea: 'אזור בגוף',
     bodyAreaPlaceholder: 'לדוגמה: חזה, גב',
+    once: 'פעם אחת',
     custom: 'מותאם',
     customSuffix: ' ש׳',
     maxDose: 'מינון מרבי ל-24 שעות (רשות)',
