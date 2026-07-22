@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { ActionButton, AppText, Card, Chip, Stepper } from '../../components';
+import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { avatarTint, colors, fontSize, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
@@ -30,6 +30,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setFoodWindow = useSettingsStore((s) => s.setFoodWindowHours);
   const defaults = useSettingsStore((s) => s.defaultFoodMl);
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
+  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
+  const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
   const activeLanguage = useEffectiveLanguage();
 
@@ -104,6 +106,23 @@ export function SettingsScreen({ navigation }: Props) {
                 onPress={() => setFoodWindow(h)}
               />
             ))}
+          </View>
+        </Card>
+
+        <Card style={styles.section}>
+          <AppText size={fontSize.bodySm} weight="800">
+            {t('settings.stats')}
+          </AppText>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <AppText size={fontSize.body} weight="700">
+                {t('settings.excludeInactiveDays')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('settings.excludeInactiveDaysHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch value={excludeInactiveDays} onValueChange={setExcludeInactiveDays} />
           </View>
         </Card>
 
@@ -237,5 +256,15 @@ const styles = StyleSheet.create({
   },
   stepperWrap: {
     width: 150,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  toggleText: {
+    flex: 1,
+    gap: spacing.xs,
   },
 });

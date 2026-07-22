@@ -4,6 +4,7 @@
  */
 import type { Entry, EntryType, FeedingEntry, FeedingMethod } from '../api/types';
 import i18n from '../i18n';
+import { activeDayCount } from './activeDays';
 import { dayHeader } from './dates';
 
 const HOUR = 60 * 60 * 1000;
@@ -120,6 +121,15 @@ export interface FoodTrend {
   up: boolean;
   /** 0–100 bar fill: today as a share of the baseline, clamped. */
   percent: number;
+  /** Active baseline days the average is over: 7, or the true 0–7 count when excluding. */
+  basisDays: number;
+  /** True when inactive days were dropped from the divisor. */
+  excluded: boolean;
+}
+
+export interface DayStatsOptions {
+  /** Divide day-averages by active days only, dropping days with no entries. */
+  excludeInactiveDays?: boolean;
 }
 
 /** Sum of feeding amounts in the window (startHoursAgo, endHoursAgo]. */
@@ -146,10 +156,22 @@ export function foodTotalRange(
  * mean that already contains today would drag the bar toward 100% and hide the
  * very deviation the card exists to show.
  */
-export function foodTrend(entries: Entry[], now: number = Date.now()): FoodTrend {
+export function foodTrend(
+  entries: Entry[],
+  now: number = Date.now(),
+  opts: DayStatsOptions = {},
+): FoodTrend {
   const last24 = foodTotalRange(entries, 24, 0, now);
   const prior7Days = foodTotalRange(entries, 192, 24, now);
-  const avgPerDay = Math.round(prior7Days / 7);
+  // The baseline spans 7 days. Excluding inactive ones averages over just the
+  // days that actually had entries (buckets 1..7, skipping today), so a logging
+  // gap stops dragging the norm toward zero. `basisDays` is the *true* count
+  // (0–7) — it drives the caption — while the divisor floors it at 1 so an empty
+  // baseline yields 0 rather than a divide-by-zero. (An empty baseline has no
+  // feeds either, so `prior7Days` is 0 and `avgPerDay` stays 0 regardless.)
+  const excluded = opts.excludeInactiveDays === true;
+  const basisDays = excluded ? Math.min(7, activeDayCount(entries, now, 7, 1)) : 7;
+  const avgPerDay = Math.round(prior7Days / Math.max(1, basisDays));
   // With no prior history the bar gauges today against itself, so it reads
   // full rather than empty. A fresh install has no norm to fall short of, and
   // an empty bar under "120ml today" looks like a bug.
@@ -163,12 +185,45 @@ export function foodTrend(entries: Entry[], now: number = Date.now()): FoodTrend
     avgPerDay,
     up: avgPerDay === 0 ? last24 > 0 : last24 >= avgPerDay,
     percent,
+    basisDays,
+    excluded,
   };
 }
 
-/** "120ml today vs 95ml/day (7d avg)" — the caption under the trend bar. */
+/**
+ * "120ml today vs 95ml/day (7d avg)" — the caption under the trend bar.
+ *
+ * When inactive days are excluded the average is no longer over a fixed 7-day
+ * span, so the caption names the active-day basis instead of claiming "7d avg".
+ */
 export function foodTrendLabel(trend: FoodTrend): string {
+  if (trend.excluded) {
+    return i18n.t('feeding.trendLabelActive', {
+      last24: trend.last24,
+      avg: trend.avgPerDay,
+      days: trend.basisDays,
+    });
+  }
   return i18n.t('feeding.trendLabel', { last24: trend.last24, avg: trend.avgPerDay });
+}
+
+/**
+ * The average daily feeding intake (ml) over the trailing 7 days, for the
+ * feed-card gauges. Includes today's bucket, and — when excluding inactive days
+ * — divides by the days that actually had entries. Returns 0 when there's no
+ * intake at all to average.
+ */
+export function dailyIntakeNorm(
+  entries: Entry[],
+  now: number = Date.now(),
+  opts: DayStatsOptions = {},
+): number {
+  const total = foodTotalRange(entries, 168, 0, now);
+  if (total <= 0) return 0;
+  const basisDays = opts.excludeInactiveDays
+    ? Math.min(7, Math.max(1, activeDayCount(entries, now, 7, 0)))
+    : 7;
+  return total / basisDays;
 }
 
 // --- Feed gauge -------------------------------------------------------------
@@ -184,9 +239,18 @@ const FALLBACK_AMOUNT_MAX = { solid: 60, liquid: 240 };
  * against `defaultTimeAtEntry`. Entries written before those baselines existed
  * fall back to a fixed reference for amounts, but get no gauge for duration —
  * there's no sensible universal "normal" number of minutes at the breast.
+ *
+ * When `dailyNorm` is supplied (the exclude-inactive-days feature is on), an
+ * amount feed is instead gauged as a share of the child's average *daily*
+ * intake — the only baseline that responds to dropping whole inactive days,
+ * since a per-feed average is invariant to removing days that held no feeds.
+ * Duration-only breast feeds keep their captured-baseline gauge either way.
  */
-export function feedingGaugePercent(entry: FeedingEntry): number | null {
+export function feedingGaugePercent(entry: FeedingEntry, dailyNorm?: number): number | null {
   if (entry.amount != null && entry.amount > 0) {
+    if (dailyNorm != null && dailyNorm > 0) {
+      return clampGauge((entry.amount / dailyNorm) * 100);
+    }
     const reference =
       entry.defaultQtyAtEntry ??
       (entry.kind === 'solidFood' ? FALLBACK_AMOUNT_MAX.solid : FALLBACK_AMOUNT_MAX.liquid);
