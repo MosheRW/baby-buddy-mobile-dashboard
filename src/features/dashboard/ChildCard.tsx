@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, StatTile } from '../../components';
 import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
-import { avatarTint, colors, fontSize, radii, spacing, tints } from '../../theme';
+import { accentColors, colors, fontSize, radii, resolveScheme, spacing, tints } from '../../theme';
+import { effectiveHue } from '../../lib/visibility';
 import { timeAgo } from '../../lib/dates';
 import { ageLabel } from '../../api/normalize';
 import type { Child, Entry, EntryType } from '../../api/types';
@@ -30,7 +31,7 @@ import {
 import { foodTrend, foodTrendLabel } from '../../lib/feed';
 import { DEFAULT_FOOD_INTERVAL_MINUTES } from '../../lib/notifications';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
-import { useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
+import { useKidsStore, useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
 
 interface ChildCardProps {
   child: Child;
@@ -76,7 +77,16 @@ export function ChildCard({
   const limits = medLimitSummaries(childEntries, now);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
   const trend = foodTrend(childEntries, now, { excludeInactiveDays });
-  const tint = avatarTint(child.hue);
+
+  // The child's accent (override → group → default hue) drives the avatar, the
+  // name, and the card's gradient background, all from one hue.
+  const childAccent = useKidsStore((s) => s.childAccent);
+  const childGroupId = useKidsStore((s) => s.childGroupId);
+  const groups = useKidsStore((s) => s.groups);
+  const accent = accentColors(
+    effectiveHue(child, { childAccent, childGroupId, groups }),
+    resolveScheme(),
+  );
 
   // Live mm:ss labels for this child's running timers, keyed by entry type.
   const timers = useTimerStore((s) => s.timers);
@@ -87,16 +97,19 @@ export function ChildCard({
   }
 
   return (
-    <Card style={[styles.card, width != null && { width }]}>
+    <Card
+      style={[styles.card, width != null && { width }]}
+      gradient={[accent.gradientFrom, accent.gradientTo]}
+    >
       <View style={styles.header}>
         <View style={styles.headerMain}>
-          <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-            <AppText size={fontSize.cardTitleLg} weight="800" color={tint.fg}>
+          <View style={[styles.avatar, { backgroundColor: accent.avatarBg }]}>
+            <AppText size={fontSize.cardTitleLg} weight="800" color={accent.avatarFg}>
               {child.initial}
             </AppText>
           </View>
           <View>
-            <AppText size={fontSize.cardTitle} weight="800">
+            <AppText size={fontSize.cardTitle} weight="800" color={accent.name}>
               {child.name}
             </AppText>
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
