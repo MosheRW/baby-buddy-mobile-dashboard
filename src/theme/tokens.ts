@@ -26,11 +26,13 @@ export const colors = {
   neutral: '#EDE9E6',
 
   /**
-   * The warmer, lighter cream the prototype uses for *informational* tiles —
-   * the "Food, Nh" total and a medication row that isn't urgent yet. Distinct
-   * from `neutral`, which reads as "disabled".
+   * The warmer cream used for *informational* tiles — the "Food, Nh" total and
+   * a medication row that isn't urgent yet. Distinct from `neutral`, which reads
+   * as "disabled". Deepened from the prototype's near-white so it stays a
+   * distinct surface on the pale accent-gradient child card instead of blending
+   * into it.
    */
-  tileNeutral: '#F6F3EE',
+  tileNeutral: '#EBE4D8',
 
   // Feeding-trend gauge: today at or above the 7-day norm, or below it.
   trendUp: '#5F9E62',
@@ -45,16 +47,19 @@ export const colors = {
  * bg is used for the card/pill fill, fg for text/icon on that fill.
  * Hex approximations of the handoff's OKLCH tint values.
  */
+// Tile background tints are deepened a notch from the prototype's near-white
+// pastels so they read as distinct surfaces on the pale accent-gradient child
+// card rather than washing into it. Foregrounds are unchanged and stay readable.
 export const tints = {
-  pee: { bg: '#EAF1F6', fg: '#3E6E86' }, // soft blue
-  poo: { bg: '#F5EEDD', fg: '#8A6A2E' }, // soft amber
+  pee: { bg: '#D8E6F1', fg: '#3E6E86' }, // soft blue
+  poo: { bg: '#EEE1C6', fg: '#8A6A2E' }, // soft amber
   // Warm peach. `track` is the unfilled part of the trend gauge drawn on top of
   // `bg`, so it has to be darker than the card-level neutral the other bars use.
-  feeding: { bg: '#F6DFD6', fg: '#9A4A34', track: '#E4D2CB' },
-  eligible: { bg: '#F9E7EE', fg: '#9A3560' }, // soft pink (medication eligible)
-  overdue: { bg: '#F7DFDA', fg: '#A63A24' }, // soft red (overdue/urgent)
-  sleep: { bg: '#E8E9F3' }, // soft lavender
-  tummy: { bg: '#E4EFE4' }, // soft green
+  feeding: { bg: '#F2D0C1', fg: '#9A4A34', track: '#DBC0B5' },
+  eligible: { bg: '#F4D8E4', fg: '#9A3560' }, // soft pink (medication eligible)
+  overdue: { bg: '#F3CFC7', fg: '#A63A24' }, // soft red (overdue/urgent)
+  sleep: { bg: '#DDDEF0' }, // soft lavender
+  tummy: { bg: '#D3E6D3' }, // soft green
   // Quick-action buttons: a soft peach wash with terracotta content, not a
   // solid accent fill — six saturated blocks would dominate the card.
   quickAction: { bg: '#F5EBE6', fg: '#9A4A34' },

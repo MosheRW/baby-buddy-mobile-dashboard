@@ -86,15 +86,23 @@ function TabsNav({
   const { t } = useTranslation();
   const active = childList[activeIndex] ?? childList[0];
   const translateX = useSharedValue(0);
+  // Measured card width, so a committed swipe slides the card exactly one full
+  // width off-screen rather than guessing a distance.
+  const cardWidth = useSharedValue(0);
 
   const goTo = (index: number) => {
-    if (index >= 0 && index < childList.length) onActiveChange(index);
+    const n = childList.length;
+    if (n === 0) return;
+    // Wrap around: swiping past either end loops to the other side instead of
+    // dead-ending, so the children form an endless carousel.
+    const wrapped = ((index % n) + n) % n;
+    onActiveChange(wrapped);
   };
 
-  // Horizontal drag follows the finger for feedback, then always snaps back to
-  // 0 — the index change (if any) swaps the card contents instead of sliding
-  // the view, so it works the same regardless of how many children flank the
-  // active one.
+  // Horizontal drag follows the finger for feedback. A committed swipe then
+  // slides the current card the rest of the way off in the swipe direction,
+  // swaps in the neighbour off-screen on the opposite side, and eases it to
+  // centre — a real slide instead of the old snap-back-and-pop.
   const pan = Gesture.Pan()
     .activeOffsetX([-10, 10])
     .failOffsetY([-10, 10])
@@ -104,10 +112,19 @@ function TabsNav({
     .onEnd((e) => {
       const swiped =
         Math.abs(e.translationX) > SWIPE_DISTANCE || Math.abs(e.velocityX) > SWIPE_VELOCITY;
-      if (swiped) {
-        runOnJS(goTo)(e.translationX < 0 ? activeIndex + 1 : activeIndex - 1);
+      if (!swiped) {
+        translateX.value = withTiming(0, { duration: 180 });
+        return;
       }
-      translateX.value = withTiming(0, { duration: 180 });
+      const dir = e.translationX < 0 ? 1 : -1; // 1 = next child, -1 = previous
+      const w = cardWidth.value || 320;
+      translateX.value = withTiming(-dir * w, { duration: 160 }, (finished) => {
+        if (!finished) return;
+        runOnJS(goTo)(activeIndex + dir);
+        // The swapped-in card starts off-screen on the far side, then slides in.
+        translateX.value = dir * w;
+        translateX.value = withTiming(0, { duration: 200 });
+      });
     });
 
   const cardStyle = useAnimatedStyle(() => ({
@@ -150,7 +167,12 @@ function TabsNav({
         <SettingsButton onPress={onOpenSettings} />
       </View>
       <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.tabCard, cardStyle]}>
+        <Animated.View
+          style={[styles.tabCard, cardStyle]}
+          onLayout={(e) => {
+            cardWidth.value = e.nativeEvent.layout.width;
+          }}
+        >
           <ChildCard
             child={active}
             entries={entries}

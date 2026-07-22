@@ -120,6 +120,25 @@ export function ChildCard({
         {onOpenSettings ? <SettingsButton onPress={onOpenSettings} /> : null}
       </View>
 
+      {/* The 24h intake summary belongs to this tile, not to the food total
+          below it — it's context for the feed that just happened. Feeding sits
+          above the diaper tiles. */}
+      <StatTile
+        label={t('childCard.lastFeeding')}
+        value={
+          feeding
+            ? t('childCard.lastFeedingValue', {
+                title: entryTitle(feeding),
+                ago: timeAgo(feeding.time, now),
+              })
+            : '—'
+        }
+        tint={tints.feeding}
+        glyph="feedingBottle"
+      >
+        <FoodTrend trend={trend} />
+      </StatTile>
+
       <View style={styles.statRow}>
         <StatTile
           label={t('childCard.lastPee')}
@@ -136,24 +155,6 @@ export function ChildCard({
           style={styles.stat}
         />
       </View>
-
-      {/* The 24h intake summary belongs to this tile, not to the food total
-          below it — it's context for the feed that just happened. */}
-      <StatTile
-        label={t('childCard.lastFeeding')}
-        value={
-          feeding
-            ? t('childCard.lastFeedingValue', {
-                title: entryTitle(feeding),
-                ago: timeAgo(feeding.time, now),
-              })
-            : '—'
-        }
-        tint={tints.feeding}
-        glyph="feedingBottle"
-      >
-        <FoodTrend trend={trend} />
-      </StatTile>
 
       <StatTile
         label={t('childCard.foodWindow', { window: countdownLabel(windowMinutes * 60_000) })}
