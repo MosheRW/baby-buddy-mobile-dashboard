@@ -1,5 +1,6 @@
 import {
   buildNotifications,
+  nextWeeklySlot,
   type NotificationSettings,
   type TimingPrefs,
   type NotificationBuildInput,
@@ -83,6 +84,9 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     forgottenTimer: { enabled: false, thresholdMinutes: 30 },
     diaperInterval: { enabled: false },
     foodMin: { enabled: false },
+    // Off in the shared helper so the existing exact-count assertions aren't
+    // perturbed; the weekly-summary block enables it explicitly.
+    weeklySummary: { enabled: false, weekday: 0, hour: 9 },
     perChild: {},
     ...over,
   };
@@ -370,6 +374,78 @@ describe('buildNotifications — localization', () => {
     );
     expect(plan[0].title).toBe('הגיע זמן התרופה');
     expect(plan[0].body).toBe('Amoxicillin עבור Emma אמורה להינתן עכשיו.');
+  });
+});
+
+describe('buildNotifications — weekly summary', () => {
+  const DAY = 24 * HOUR;
+  const weeklyOn = (over: Partial<{ weekday: number; hour: number }> = {}) =>
+    settings({ weeklySummary: { enabled: true, weekday: 0, hour: 9, ...over } });
+
+  it('schedules one weekly summary at the configured slot when I have activity', () => {
+    const entries: Entry[] = [diaper(iso(NOW - DAY)), feeding(iso(NOW - 2 * DAY))];
+    const plan = buildNotifications(input({ entries, settings: weeklyOn(), me: 'Sarah' }), NOW);
+    const weekly = plan.filter((n) => n.key === 'weekly');
+    expect(weekly).toHaveLength(1);
+    expect(weekly[0].fireAt).toBe(nextWeeklySlot(NOW, 0, 9));
+    expect(weekly[0].childId).toBeUndefined();
+    expect(weekly[0].title).toBeTruthy();
+  });
+
+  it('compares against the other caregivers when there are any', () => {
+    const entries: Entry[] = [
+      diaper(iso(NOW - DAY), { creator: 'Sarah' }),
+      diaper(iso(NOW - DAY), { creator: 'Alex', id: 'd-alex' }),
+      feeding(iso(NOW - DAY), { creator: 'Alex', id: 'f-alex' }),
+    ];
+    const plan = buildNotifications(input({ entries, settings: weeklyOn(), me: 'Sarah' }), NOW);
+    const weekly = plan.find((n) => n.key === 'weekly')!;
+    // I logged 1 of 3 → 33%.
+    expect(weekly.body).toContain('1 of 3');
+    expect(weekly.body).toContain('33%');
+  });
+
+  it('is exempt from the 48h horizon (fires up to a week out)', () => {
+    // ~4 days ahead of NOW's local weekday, guaranteed past the 48h horizon.
+    const weekday = (new Date(NOW).getDay() + 4) % 7;
+    const entries: Entry[] = [diaper(iso(NOW - DAY))];
+    const plan = buildNotifications(
+      input({ entries, settings: weeklyOn({ weekday }), me: 'Sarah' }),
+      NOW,
+    );
+    const weekly = plan.find((n) => n.key === 'weekly')!;
+    expect(weekly.fireAt).toBeGreaterThan(NOW + 48 * HOUR);
+  });
+
+  it('is silent when nothing was logged all week', () => {
+    const entries: Entry[] = [diaper(iso(NOW - 10 * DAY))]; // outside the 7-day window
+    const plan = buildNotifications(input({ entries, settings: weeklyOn(), me: 'Sarah' }), NOW);
+    expect(plan.some((n) => n.key === 'weekly')).toBe(false);
+  });
+
+  it('is silent when the signed-in caregiver is unknown', () => {
+    const entries: Entry[] = [diaper(iso(NOW - DAY))];
+    const plan = buildNotifications(input({ entries, settings: weeklyOn(), me: undefined }), NOW);
+    expect(plan.some((n) => n.key === 'weekly')).toBe(false);
+  });
+
+  it('is silent when the case is disabled', () => {
+    const entries: Entry[] = [diaper(iso(NOW - DAY))];
+    const plan = buildNotifications(input({ entries, me: 'Sarah' }), NOW);
+    expect(plan.some((n) => n.key === 'weekly')).toBe(false);
+  });
+});
+
+describe('nextWeeklySlot', () => {
+  it('lands on the requested local weekday and hour, strictly in the future', () => {
+    for (let weekday = 0; weekday < 7; weekday++) {
+      const slot = nextWeeklySlot(NOW, weekday, 9);
+      const d = new Date(slot);
+      expect(slot).toBeGreaterThan(NOW);
+      expect(d.getDay()).toBe(weekday);
+      expect(d.getHours()).toBe(9);
+      expect(slot - NOW).toBeLessThanOrEqual(7 * 24 * HOUR);
+    }
   });
 });
 

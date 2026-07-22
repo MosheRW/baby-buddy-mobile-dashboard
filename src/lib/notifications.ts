@@ -21,12 +21,20 @@
 import i18n from '../i18n';
 import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
+import { computeContribution, contributionBody } from './contribution';
 import type { RunningTimer } from './timers';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
 const HORIZON_MS = 48 * 60 * MINUTE;
+/**
+ * The weekly-summary slot can be up to a week out, so it's exempt from the 48h
+ * horizon (which exists for data-anchored reminders that shift on every refresh).
+ * Its body is a snapshot of the trailing week, re-taken every time the plan is
+ * rebuilt — accurate as of the last time the app was open before it fires.
+ */
+const WEEKLY_KEY = 'weekly';
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
 const MAX_PLANNED = 64;
 
@@ -69,6 +77,16 @@ export interface PerChildThresholds {
   foodMinIntervalHours?: number;
 }
 
+/**
+ * The weekly caregiver-contribution summary. `weekday` is 0=Sunday..6=Saturday
+ * and `hour` is a local 0–23 hour; together they pick the slot the recap fires.
+ */
+export interface WeeklySummarySettings {
+  enabled: boolean;
+  weekday: number;
+  hour: number;
+}
+
 /** The subset of notification settings the builder reads. */
 export interface NotificationSettings {
   masterEnabled: boolean;
@@ -77,6 +95,7 @@ export interface NotificationSettings {
   forgottenTimer: { enabled: boolean; thresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
+  weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
 }
 
@@ -100,6 +119,8 @@ export interface NotificationBuildInput {
   timers: RunningTimer[];
   children: Child[];
   settings: NotificationSettings;
+  /** Signed-in caregiver's display name, for the weekly-summary "you" tally. */
+  me?: string;
 }
 
 type OffsetKind = 'before' | 'at' | 'after';
@@ -167,6 +188,21 @@ function minutesFor(kind: OffsetKind, timing: TimingPrefs): number {
   return kind === 'before' ? timing.beforeMinutes : kind === 'after' ? timing.afterMinutes : 0;
 }
 
+/**
+ * Next local-time occurrence of `weekday` (0=Sun..6=Sat) at `hour`:00, strictly
+ * in the future relative to `now`. Uses local calendar fields so "Sunday 9am"
+ * means the user's Sunday 9am, not UTC's.
+ */
+export function nextWeeklySlot(now: number, weekday: number, hour: number): number {
+  const d = new Date(now);
+  d.setHours(hour, 0, 0, 0);
+  let daysAhead = (weekday - d.getDay() + 7) % 7;
+  // Same weekday but the hour has already passed today → jump a full week.
+  if (daysAhead === 0 && d.getTime() <= now) daysAhead = 7;
+  d.setDate(d.getDate() + daysAhead);
+  return d.getTime();
+}
+
 /** Epoch ms of the most recent entry of `type` for `childId`, or null if none. */
 function lastEntryOfType(entries: Entry[], childId: string, type: EntryType): number | null {
   let latest: number | null = null;
@@ -188,7 +224,7 @@ export function buildNotifications(
   input: NotificationBuildInput,
   now: number = Date.now(),
 ): PlannedNotification[] {
-  const { entries, timers, children, settings } = input;
+  const { entries, timers, children, settings, me } = input;
   if (!settings.masterEnabled) return [];
 
   const childName = new Map(children.map((c) => [c.id, c.name]));
@@ -324,8 +360,25 @@ export function buildNotifications(
     }
   }
 
+  // 6. Weekly caregiver-contribution summary --------------------------------
+  // Calendar-anchored (not data-anchored) and up to a week out, so it's built
+  // and horizon-exempted separately below. The body is a trailing-7-day snapshot
+  // computed now; with nothing logged all week there's nothing to recap, so it's
+  // skipped — the same "no data → no reminder" rule the other cases follow.
+  if (settings.weeklySummary.enabled && me) {
+    const summary = computeContribution(entries, me, now);
+    if (summary.allTotal > 0) {
+      out.push({
+        key: WEEKLY_KEY,
+        fireAt: nextWeeklySlot(now, settings.weeklySummary.weekday, settings.weeklySummary.hour),
+        title: i18n.t('notifications.titleWeekly'),
+        body: contributionBody(summary),
+      });
+    }
+  }
+
   return out
-    .filter((n) => n.fireAt > now && n.fireAt <= now + HORIZON_MS)
+    .filter((n) => n.fireAt > now && (n.key === WEEKLY_KEY || n.fireAt <= now + HORIZON_MS))
     .sort((a, b) => a.fireAt - b.fireAt)
     .slice(0, MAX_PLANNED);
 }

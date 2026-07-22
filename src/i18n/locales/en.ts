@@ -324,6 +324,20 @@ export const en = {
     diaperHint: "Remind me when it's been too long since the last change.",
     foodTitle: 'Feeding gaps',
     foodHint: "Remind me when it's been too long since the last feed.",
+    weeklyTitle: 'Weekly summary',
+    weeklyHint: 'A weekly recap of what you logged, and how it compares with the other caregivers.',
+    weeklyDay: 'Day',
+    weeklyTime: 'Time',
+    weeklyHourSuffix: ':00',
+    weekdayShort: {
+      0: 'Sun',
+      1: 'Mon',
+      2: 'Tue',
+      3: 'Wed',
+      4: 'Thu',
+      5: 'Fri',
+      6: 'Sat',
+    },
     maxGap: 'Max gap',
     targetAmount: 'Target amount',
     hourSuffix: ' h',
@@ -357,6 +371,10 @@ export const en = {
     diaperBody: "{{child}} hasn't had a diaper change in {{duration}}.",
     foodBody: "{{child}} hasn't been fed in {{duration}}.",
     foodBodyMin: "{{child}} hasn't been fed in {{duration}} — aim for at least {{min}}ml.",
+    titleWeekly: 'Your week in review',
+    weeklyBody:
+      "You logged {{mine}} of {{total}} entries this week — {{share}}% of the family's total. {{breakdown}}",
+    weeklyBodySolo: 'You logged {{mine}} entries this week. {{breakdown}}',
   },
 
   dates: {
