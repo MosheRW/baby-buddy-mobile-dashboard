@@ -156,7 +156,7 @@ export interface DeliveredNotification {
   title: string;
   body: string;
   childId?: string;
-  /** Epoch ms the OS delivered it, for soonest-first ordering. */
+  /** Epoch ms the OS delivered it, for newest-first ordering. */
   deliveredAt: number;
 }
 
@@ -192,6 +192,7 @@ export async function getDeliveredAsync(): Promise<DeliveredNotification[]> {
     return list
       .map(normalizeDelivered)
       .filter((n): n is DeliveredNotification => n != null)
+      // Newest first, so the most recently fired reminder leads the carousel.
       .sort((a, b) => b.deliveredAt - a.deliveredAt);
   } catch (err) {
     console.warn('[notifications] read delivered failed:', err);
