@@ -450,6 +450,16 @@ export const en = {
     dismissAll: 'Clear all',
   },
 
+  // User-facing failure titles, shown as error cards in the dashboard carousel.
+  // The body is the underlying `errorMessage(...)`, so these are just the "what
+  // failed" headline.
+  errors: {
+    loadTitle: "Couldn't load your data",
+    saveTitle: "Couldn't save your entry",
+    deleteTitle: "Couldn't delete your entry",
+    dismissOne: 'Dismiss error',
+  },
+
   dates: {
     now: 'now',
     minutesAgo: '{{m}}m ago',

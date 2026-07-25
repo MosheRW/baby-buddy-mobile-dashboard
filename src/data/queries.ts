@@ -16,6 +16,9 @@ import {
 import type { Child, Entry } from '../api/types';
 import type { RunningTimer, TimerType } from '../lib/timers';
 import { useAuthStore } from '../stores/authStore';
+import { useAppErrorStore } from '../stores/appErrorStore';
+import { errorMessage } from '../api/client';
+import i18n from '../i18n';
 import { dataSource } from './dataSource';
 
 export const queryKeys = {
@@ -97,19 +100,47 @@ function useInvalidateEntries() {
 
 export function useSaveEntry(): UseMutationResult<Entry, unknown, Entry> {
   const invalidate = useInvalidateEntries();
+  const pushError = useAppErrorStore((s) => s.pushError);
+  const dismissError = useAppErrorStore((s) => s.dismissError);
   return useMutation({
     mutationFn: (entry: Entry) =>
       // A namespaced id means the server already knows this entry.
       entry.id ? dataSource.updateEntry(entry) : dataSource.createEntry(entry),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      // A save that lands clears a lingering "couldn't save" card from an
+      // earlier attempt (the form shows the live error inline while open; this
+      // is the copy that outlives the modal on the dashboard carousel).
+      dismissError('save-entry');
+      invalidate();
+    },
+    onError: (err, entry) => {
+      pushError({
+        id: 'save-entry',
+        title: i18n.t('errors.saveTitle'),
+        message: errorMessage(err),
+        childId: entry.childId,
+      });
+    },
   });
 }
 
 export function useDeleteEntry(): UseMutationResult<void, unknown, string> {
   const invalidate = useInvalidateEntries();
+  const pushError = useAppErrorStore((s) => s.pushError);
+  const dismissError = useAppErrorStore((s) => s.dismissError);
   return useMutation({
     mutationFn: (id: string) => dataSource.deleteEntry(id),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      dismissError('delete-entry');
+      invalidate();
+    },
+    onError: (err) => {
+      pushError({
+        id: 'delete-entry',
+        title: i18n.t('errors.deleteTitle'),
+        message: errorMessage(err),
+      });
+    },
   });
 }
 

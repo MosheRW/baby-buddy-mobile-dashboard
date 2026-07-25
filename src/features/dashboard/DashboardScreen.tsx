@@ -20,7 +20,13 @@ import { isTimerType, type TimerType } from '../../lib/timers';
 import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
-import { useAuthStore, useKidsStore, useSettingsStore, useUiStore } from '../../stores';
+import {
+  useAppErrorStore,
+  useAuthStore,
+  useKidsStore,
+  useSettingsStore,
+  useUiStore,
+} from '../../stores';
 import { hiddenCount, visibleChildren } from '../../lib/visibility';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
@@ -32,7 +38,7 @@ import {
 } from '../../hooks/useDeliveredNotifications';
 import { ChildNav } from './ChildNav';
 import { TimerStrip } from './TimerStrip';
-import { NotificationCarousel } from './NotificationCarousel';
+import { NotificationCarousel, type CarouselItem } from './NotificationCarousel';
 import { ActivityFeed } from './ActivityFeed';
 import { entriesForChild } from './selectors';
 import { errorMessage } from '../../api/client';
@@ -53,6 +59,13 @@ export function DashboardScreen({ navigation }: Props) {
   const revealHiddenUntil = useUiStore((s) => s.revealHiddenUntil);
   const revealHidden = useUiStore((s) => s.revealHidden);
   const clearReveal = useUiStore((s) => s.clearReveal);
+
+  // App-wide event errors (failed save/delete) surfaced in the carousel. The
+  // dashboard *fetch* error stays reactive in React Query (`error` below) — it
+  // clears itself on a successful refetch, so it isn't kept here.
+  const appErrors = useAppErrorStore((s) => s.errors);
+  const dismissAppError = useAppErrorStore((s) => s.dismissError);
+  const clearAppErrors = useAppErrorStore((s) => s.clearErrors);
 
   // Visibility/appearance state (client-only). Selecting the fields individually
   // keeps each a stable reference, so the memo below only recomputes on a real
@@ -229,6 +242,52 @@ export function DashboardScreen({ navigation }: Props) {
     navigation.navigate('Settings');
   };
 
+  // Every dashboard alert in one stack: the reactive fetch error (with Retry)
+  // first, then event errors (failed save/delete, dismissable), then the
+  // OS-delivered reminders. Built inline — the list is tiny and rebuilding it on
+  // the minute tick is free. `notificationAction` decides which reminders are
+  // tappable (see `openNotification`).
+  const carouselItems: CarouselItem[] = [];
+  if (error) {
+    carouselItems.push({
+      kind: 'error',
+      id: 'dashboard-fetch',
+      title: t('errors.loadTitle'),
+      body: errorMessage(error),
+      onRetry: refetch,
+    });
+  }
+  for (const e of appErrors) {
+    carouselItems.push({
+      kind: 'error',
+      id: e.id,
+      title: e.title,
+      body: e.message,
+      childId: e.childId,
+      onDismiss: () => dismissAppError(e.id),
+    });
+  }
+  for (const n of deliveredNotifications) {
+    const tappable = !!n.childId && notificationAction(n.id).kind !== 'none';
+    carouselItems.push({
+      kind: 'reminder',
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      childId: n.childId,
+      onPress: tappable ? () => openNotification(n) : undefined,
+      onDismiss: () => dismissNotification(n.id),
+    });
+  }
+
+  // Clear every dismissable card at once: the OS reminders (tells the OS) and
+  // the event errors. The reactive fetch error has no ✕ and survives — it's
+  // cleared by a successful refetch, not a manual sweep.
+  const clearAllAlerts = () => {
+    dismissAllNotifications();
+    clearAppErrors();
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -256,19 +315,6 @@ export function DashboardScreen({ navigation }: Props) {
             </AppText>
           </View>
         )}
-
-        {error ? (
-          <View style={styles.banner}>
-            <AppText size={fontSize.bodySm} weight="700" color={colors.danger}>
-              {errorMessage(error)}
-            </AppText>
-            <Pressable accessibilityRole="button" onPress={refetch} style={styles.retry}>
-              <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
-                {t('common.retry')}
-              </AppText>
-            </Pressable>
-          </View>
-        ) : null}
 
         {isLoading ? (
           <View style={styles.loading}>
@@ -322,11 +368,9 @@ export function DashboardScreen({ navigation }: Props) {
         ) : null}
 
         <NotificationCarousel
-          items={deliveredNotifications}
+          items={carouselItems}
           childrenById={childrenById}
-          onDismiss={dismissNotification}
-          onDismissAll={dismissAllNotifications}
-          onPress={openNotification}
+          onClearAll={clearAllAlerts}
         />
 
         {activeChild ? (
@@ -369,21 +413,6 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing['2xl'],
     gap: spacing['5xl'],
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    padding: spacing['2xl'],
-  },
-  retry: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.chipSmall,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing['2xl'],
   },
   loading: {
     paddingVertical: spacing['7xl'],
