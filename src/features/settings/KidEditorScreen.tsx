@@ -44,7 +44,7 @@ export function KidEditorScreen({ navigation, route }: Props) {
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
-          <ChevronLeftGlyph size={24} />
+          <ChevronLeftGlyph size={24} color={colors.textPrimary} />
         </Pressable>
         <AppText size={fontSize.screenTitle} weight="800">
           {child?.name ?? t('advanced.kids')}

@@ -20,7 +20,7 @@
  * individual colour references.
  */
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useLayoutEffect, useMemo } from 'react';
 import { PALETTES, type Scheme, type ThemePalette } from './palette';
 import { setActiveScheme } from './scheme';
 
@@ -29,12 +29,23 @@ export type AppTheme = ThemePalette;
 const ThemeContext = createContext<AppTheme>(PALETTES.light);
 
 export function ThemeProvider({ scheme, children }: { scheme: Scheme; children: React.ReactNode }) {
-  // Mirrored into the module-level accessor during render, not in an effect:
-  // pure helpers and glyph default props read it in this same pass, and an
-  // effect would leave the first frame after a switch painted in the old
-  // scheme. Idempotent and derived purely from the prop, so a double render
-  // under StrictMode is harmless.
+  // Mirrored into the module-level accessor twice, deliberately.
+  //
+  // During render, because pure helpers and glyph default props read it in
+  // this same pass — an effect alone would paint the first frame after a
+  // switch in the *old* scheme, and since writing a module variable schedules
+  // no re-render, nothing would come along to correct it. The write is
+  // idempotent and derived purely from the prop, so a StrictMode double render
+  // is harmless.
+  //
+  // Then again after commit, so a render that React starts and abandons (a
+  // concurrent feature, or StrictMode) can't leave the global ahead of what is
+  // actually on screen: whichever render *commits* gets the last word.
   setActiveScheme(scheme);
+  useLayoutEffect(() => {
+    setActiveScheme(scheme);
+  }, [scheme]);
+
   return <ThemeContext.Provider value={PALETTES[scheme]}>{children}</ThemeContext.Provider>;
 }
 

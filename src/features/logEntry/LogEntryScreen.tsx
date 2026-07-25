@@ -271,7 +271,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
           onPress={() => navigation.goBack()}
           style={styles.close}
         >
-          <CloseGlyph size={18} />
+          <CloseGlyph size={18} color={colors.textPrimary} />
         </Pressable>
       </View>
 

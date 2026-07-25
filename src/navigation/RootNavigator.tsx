@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../theme';
@@ -24,20 +24,26 @@ const Stack = createNativeStackNavigator<MainStackParamList>();
 export function RootNavigator() {
   const session = useAuthStore((s) => s.session);
   const { scheme, colors } = useTheme();
+  // Memoized so `NavigationContainer` doesn't see a new `theme` identity on
+  // every unrelated re-render (this component re-renders on the minute tick via
+  // its sync hooks), which would make React Navigation redo work needlessly.
+  //
   // `dark: true` is what stops React Navigation painting a white flash behind
   // the scenes during a push/modal transition, so the base theme has to switch
   // too — overriding the colours alone isn't enough.
-  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
-  const navTheme = {
-    ...base,
-    colors: {
-      ...base.colors,
-      background: colors.background,
-      card: colors.background,
-      primary: colors.accent,
-      text: colors.textPrimary,
-    },
-  };
+  const navTheme = useMemo(() => {
+    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.background,
+        primary: colors.accent,
+        text: colors.textPrimary,
+      },
+    };
+  }, [scheme, colors]);
   // Above every screen, so a timer started elsewhere is already reconciled by
   // the time the dashboard or the form reads the store.
   useTimerSync();

@@ -69,7 +69,7 @@ export function SettingsScreen({ navigation }: Props) {
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
-          <ChevronLeftGlyph size={24} />
+          <ChevronLeftGlyph size={24} color={colors.textPrimary} />
         </Pressable>
         <AppText size={fontSize.screenTitle} weight="800">
           {t('settings.title')}
