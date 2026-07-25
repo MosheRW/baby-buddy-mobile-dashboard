@@ -343,7 +343,13 @@ function TabsNav({
         {incomingChild ? (
           <Animated.View
             style={[styles.overlay, incomingStyle]}
-            pointerEvents="none"
+            // Inert while it slides — a card mid-flight shouldn't take taps — but
+            // live once it lands. In 'settling' this overlay *is* the card at
+            // centre; the real one is parked off-screen waiting for the deferred
+            // index, so leaving this inert would make the visible card swallow
+            // every tap for the length of that wait. Its handlers already target
+            // `incomingChild`, which is the child now on screen.
+            pointerEvents={phase === 'settling' ? 'auto' : 'none'}
             onLayout={(e) => {
               // Grow the area to fit the arriving card *while* it slides, so the
               // feed eases down with it. Shrinking is left to the outgoing card's
