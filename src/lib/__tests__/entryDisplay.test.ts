@@ -1,6 +1,11 @@
 import { entryDurationLabel, entryGlyphKind, entryVisual, isFever } from '../entryDisplay';
-import { pooSwatch, tints } from '../../theme/tokens';
+import { themePooSwatch, themeTints } from '../../theme/scheme';
 import type { DiaperEntry, Entry, FeedingEntry, MedicationEntry } from '../../api/types';
+
+// The colour helpers default to the active scheme, which is light unless a
+// ThemeProvider says otherwise — and nothing mounts one here.
+const tints = themeTints();
+const pooSwatch = themePooSwatch();
 
 const base = {
   id: 'e1',
@@ -46,18 +51,14 @@ describe('entryGlyphKind', () => {
 
   it('treats breast milk from a bottle as a bottle, not a breast feed', () => {
     // The glyph follows the method, not the milk.
-    expect(entryGlyphKind(feeding({ kind: 'breastMilk', method: 'bottle' }))).toBe(
-      'feedingBottle',
-    );
+    expect(entryGlyphKind(feeding({ kind: 'breastMilk', method: 'bottle' }))).toBe('feedingBottle');
     expect(entryGlyphKind(feeding({ kind: 'breastMilk', method: 'leftBreast' }))).toBe(
       'feedingBreast',
     );
   });
 
   it('gives solid food its own glyph whatever the method', () => {
-    expect(entryGlyphKind(feeding({ kind: 'solidFood', method: 'selfFed' }))).toBe(
-      'feedingSolid',
-    );
+    expect(entryGlyphKind(feeding({ kind: 'solidFood', method: 'selfFed' }))).toBe('feedingSolid');
     expect(entryGlyphKind(feeding({ kind: 'solidFood', method: 'parentFed' }))).toBe(
       'feedingSolid',
     );
@@ -73,9 +74,7 @@ describe('entryGlyphKind', () => {
 
   it('separates nap from night', () => {
     expect(entryGlyphKind({ ...base, type: 'sleep', sleepType: 'nap' } as Entry)).toBe('nap');
-    expect(entryGlyphKind({ ...base, type: 'sleep', sleepType: 'night' } as Entry)).toBe(
-      'night',
-    );
+    expect(entryGlyphKind({ ...base, type: 'sleep', sleepType: 'night' } as Entry)).toBe('night');
   });
 });
 
@@ -118,28 +117,41 @@ describe('entryVisual', () => {
   });
 
   it('colours the temperature dot by fever', () => {
-    expect(entryVisual({ ...base, type: 'temperature', value: 39, method: 'oral' }).tempDotColor)
-      .not.toBe(
-        entryVisual({ ...base, type: 'temperature', value: 36.8, method: 'oral' }).tempDotColor,
-      );
+    expect(
+      entryVisual({ ...base, type: 'temperature', value: 39, method: 'oral' }).tempDotColor,
+    ).not.toBe(
+      entryVisual({ ...base, type: 'temperature', value: 36.8, method: 'oral' }).tempDotColor,
+    );
   });
 
-  it('gives every entry type a glyph and a swatch', () => {
-    const all: Entry[] = [
-      diaper({ pee: true }),
-      feeding({}),
-      med({}),
-      { ...base, type: 'temperature', value: 37, method: 'oral' },
-      { ...base, type: 'tummyTime' },
-      { ...base, type: 'sleep', sleepType: 'night' },
-      { ...base, type: 'note', note: 'hi' },
-    ];
-    for (const entry of all) {
-      const v = entryVisual(entry);
-      expect(v.glyph).toBeTruthy();
-      expect(v.accent).toMatch(/^#/);
-      expect(v.iconBg).toMatch(/^#/);
-    }
+  const everyType: Entry[] = [
+    diaper({ pee: true }),
+    feeding({}),
+    med({}),
+    { ...base, type: 'temperature', value: 37, method: 'oral' },
+    { ...base, type: 'tummyTime' },
+    { ...base, type: 'sleep', sleepType: 'night' },
+    { ...base, type: 'note', note: 'hi' },
+  ];
+
+  // Run in both schemes: a tint key missing from the dark palette would
+  // otherwise surface as an `undefined` colour only on a dark device.
+  it.each(['light', 'dark'] as const)(
+    'gives every entry type a glyph and a swatch (%s)',
+    (scheme) => {
+      for (const entry of everyType) {
+        const v = entryVisual(entry, scheme);
+        expect(v.glyph).toBeTruthy();
+        expect(v.accent).toMatch(/^#/);
+        expect(v.iconBg).toMatch(/^#/);
+      }
+    },
+  );
+
+  it('resolves different colours per scheme for the same entry', () => {
+    const light = entryVisual(diaper({ pee: true }), 'light');
+    const dark = entryVisual(diaper({ pee: true }), 'dark');
+    expect(dark.iconBg).not.toBe(light.iconBg);
   });
 });
 

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
 import { ActionGlyph, ENTRY_TYPE_CHIP_GLYPH } from '../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing, tints } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { EntryType, MedicationEntry } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
@@ -54,6 +54,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'LogEntry'>;
  */
 export function LogEntryScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { mode, type: initialType, entryId, childId, prefillMedEntryId } = route.params;
   const isEdit = mode === 'edit';
 
@@ -419,57 +421,58 @@ export function LogEntryScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  close: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.chipSmall,
-    backgroundColor: colors.neutral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['4xl'],
-  },
-  tagSuggestions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  tagSuggestion: {
-    // Dashed outline marks these as offers rather than applied tags.
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: tints.suggestion.border,
-    backgroundColor: tints.suggestion.bg,
-    borderRadius: radii.chipSmall,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  footerWrap: {
-    paddingHorizontal: spacing['2xl'],
-  },
-  saveError: {
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    paddingVertical: spacing['2xl'],
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing['2xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    close: {
+      width: 32,
+      height: 32,
+      borderRadius: radii.chipSmall,
+      backgroundColor: colors.neutral,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['4xl'],
+    },
+    tagSuggestions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    tagSuggestion: {
+      // Dashed outline marks these as offers rather than applied tags.
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: tints.suggestion.border,
+      backgroundColor: tints.suggestion.bg,
+      borderRadius: radii.chipSmall,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
+    footerWrap: {
+      paddingHorizontal: spacing['2xl'],
+    },
+    saveError: {
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+      paddingVertical: spacing['2xl'],
+    },
+  });

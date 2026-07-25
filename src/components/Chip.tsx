@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from './AppText';
-import { colors, fontSize, radii, spacing } from '../theme';
+import { fontSize, radii, spacing, useTheme } from '../theme';
 
 interface ChipProps {
   label: string;
@@ -29,12 +29,13 @@ export function Chip({
   active = false,
   onPress,
   disabled = false,
-  activeBg = colors.accent,
-  activeFg = colors.onAccent,
+  activeBg,
+  activeFg,
   glyph,
   style,
 }: ChipProps) {
-  const fg = active ? activeFg : colors.textPrimary;
+  const { colors } = useTheme();
+  const fg = active ? (activeFg ?? colors.onAccent) : colors.textPrimary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -43,7 +44,7 @@ export function Chip({
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        { backgroundColor: active ? activeBg : colors.card },
+        { backgroundColor: active ? (activeBg ?? colors.accent) : colors.card },
         pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
         style,

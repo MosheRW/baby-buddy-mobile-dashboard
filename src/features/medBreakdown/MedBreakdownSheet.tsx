@@ -7,7 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText } from '../../components';
 import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing, tints } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
 import { formatDose, medBreakdown24h, type MedBreakdownRow } from '../../lib/medication';
@@ -26,6 +26,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'MedBreakdown'>;
  */
 export function MedBreakdownSheet({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { childId, childName } = route.params;
   const { entries } = useDashboardData();
   const rows = medBreakdown24h(entriesForChild(entries, childId));
@@ -82,6 +84,8 @@ export function MedBreakdownSheet({ route, navigation }: Props) {
 
 function BreakdownRow({ row }: { row: MedBreakdownRow }) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const limited = row.limit != null;
   const fg = row.atLimit ? colors.danger : colors.textPrimary;
 
@@ -113,63 +117,64 @@ function BreakdownRow({ row }: { row: MedBreakdownRow }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  scrim: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheetWrap: {
-    width: '100%',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: radii.card,
-    borderTopRightRadius: radii.card,
-    paddingHorizontal: spacing['5xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing['5xl'],
-    gap: spacing.lg,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.neutral,
-    alignSelf: 'center',
-    marginBottom: spacing.sm,
-  },
-  empty: {
-    paddingVertical: spacing['4xl'],
-    textAlign: 'center',
-  },
-  rows: {
-    // Long lists scroll inside the sheet rather than pushing Close off-screen.
-    maxHeight: 300,
-  },
-  rowsContent: {
-    gap: spacing.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    backgroundColor: colors.background,
-    borderRadius: radii.tile,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-  },
-  rowIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: radii.chipSmall,
-    backgroundColor: tints.eligible.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowText: {
-    flex: 1,
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    scrim: {
+      backgroundColor: colors.scrim,
+    },
+    sheetWrap: {
+      width: '100%',
+    },
+    sheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: radii.card,
+      borderTopRightRadius: radii.card,
+      paddingHorizontal: spacing['5xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing['5xl'],
+      gap: spacing.lg,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.neutral,
+      alignSelf: 'center',
+      marginBottom: spacing.sm,
+    },
+    empty: {
+      paddingVertical: spacing['4xl'],
+      textAlign: 'center',
+    },
+    rows: {
+      // Long lists scroll inside the sheet rather than pushing Close off-screen.
+      maxHeight: 300,
+    },
+    rowsContent: {
+      gap: spacing.md,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      backgroundColor: colors.background,
+      borderRadius: radii.tile,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.xl,
+    },
+    rowIcon: {
+      width: 26,
+      height: 26,
+      borderRadius: radii.chipSmall,
+      backgroundColor: tints.eligible.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowText: {
+      flex: 1,
+    },
+  });

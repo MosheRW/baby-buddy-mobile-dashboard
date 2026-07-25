@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, CloseGlyph } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { Child } from '../../api/types';
 import { notificationAction } from '../../lib/notifications';
 import type { DeliveredNotification } from '../../hooks/useDeliveredNotifications';
@@ -48,6 +48,8 @@ export function NotificationCarousel({
   onPress,
 }: NotificationCarouselProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [width, setWidth] = useState(FALLBACK_WIDTH);
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -77,11 +79,7 @@ export function NotificationCarousel({
           {t('notifications.carouselHeading').toUpperCase()}
         </AppText>
         {items.length > 1 ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onDismissAll}
-            hitSlop={spacing.md}
-          >
+          <Pressable accessibilityRole="button" onPress={onDismissAll} hitSlop={spacing.md}>
             <AppText size={fontSize.metaSm} weight="800" color={colors.accent}>
               {t('notifications.dismissAll')}
             </AppText>
@@ -171,50 +169,51 @@ export function NotificationCarousel({
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  body: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  childChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.neutral,
-    borderRadius: radii.chipSmall,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 2,
-    marginTop: spacing.xs,
-  },
-  dismiss: {
-    padding: spacing.xs,
-    marginRight: -spacing.xs,
-    marginTop: -spacing.xs,
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.md,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  dotActive: {
-    backgroundColor: colors.accent,
-  },
-  dotInactive: {
-    backgroundColor: colors.neutral,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.md,
+    },
+    body: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    childChip: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.neutral,
+      borderRadius: radii.chipSmall,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 2,
+      marginTop: spacing.xs,
+    },
+    dismiss: {
+      padding: spacing.xs,
+      marginRight: -spacing.xs,
+      marginTop: -spacing.xs,
+    },
+    dots: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      marginTop: spacing.md,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    dotActive: {
+      backgroundColor: colors.accent,
+    },
+    dotInactive: {
+      backgroundColor: colors.neutral,
+    },
+  });

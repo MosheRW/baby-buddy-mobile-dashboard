@@ -5,7 +5,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
-import { accentColors, avatarTint, colors, fontSize, spacing } from '../../theme';
+import {
+  accentColors,
+  avatarTint,
+  fontSize,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  type AppTheme,
+} from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useKidsStore } from '../../stores';
 import { useDashboardData } from '../../data/queries';
@@ -14,6 +22,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'AdvancedSettings'>;
 
 export function AdvancedSettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { scheme, colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { children } = useDashboardData();
   const defaultVisibility = useKidsStore((s) => s.defaultVisibility);
   const setDefaultVisibility = useKidsStore((s) => s.setDefaultVisibility);
@@ -128,7 +138,7 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
                     {
                       backgroundColor:
                         group.accentHue != null
-                          ? accentColors(group.accentHue).name
+                          ? accentColors(group.accentHue, scheme).name
                           : colors.neutral,
                     },
                   ]}
@@ -156,7 +166,7 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
             {t('advanced.kidsHint')}
           </AppText>
           {children.map((child) => {
-            const tint = avatarTint(child.hue);
+            const tint = avatarTint(child.hue, scheme);
             return (
               <Pressable
                 key={child.id}
@@ -189,73 +199,74 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['2xl'],
-  },
-  section: {
-    gap: spacing.lg,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  toggleText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  durationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  durationLabel: {
-    flex: 1,
-  },
-  durationStepper: {
-    width: 150,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  rowLabel: {
-    flex: 1,
-  },
-  dot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chevron: {
-    // The only chevron glyph points left; flip it to point into the sub-screen.
-    transform: [{ rotate: '180deg' }],
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      paddingHorizontal: spacing['2xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['2xl'],
+    },
+    section: {
+      gap: spacing.lg,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    toggleText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    durationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    durationLabel: {
+      flex: 1,
+    },
+    durationStepper: {
+      width: 150,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+    },
+    rowLabel: {
+      flex: 1,
+    },
+    dot: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chevron: {
+      // The only chevron glyph points left; flip it to point into the sub-screen.
+      transform: [{ rotate: '180deg' }],
+    },
+  });

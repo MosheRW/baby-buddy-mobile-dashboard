@@ -23,13 +23,15 @@ import {
   ToggleSwitch,
   TummyGlyph,
 } from '../components';
-import { colors, fontSize, spacing, tints } from '../theme';
+import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../theme';
 
 /**
  * Visual QA surface for the design system. Not a shipped screen — a scrollable
  * gallery to compare each primitive against the prototype during Phase 1.
  */
 export function GalleryScreen() {
+  const { tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [loginMode, setLoginMode] = useState<'babybuddy' | 'homeassistant'>('babybuddy');
   const [feedType, setFeedType] = useState<string | null>('formula');
   const [filter, setFilter] = useState<string | null>('all');
@@ -113,7 +115,11 @@ export function GalleryScreen() {
             <StatTile label="Last pee" value="45m ago" tint={tints.pee} style={styles.tile} />
             <StatTile label="Last poo" value="3h ago" tint={tints.poo} style={styles.tile} />
           </View>
-          <StatTile label="Last feeding" value="Formula · 120ml · 1h 20m ago" tint={tints.feeding} />
+          <StatTile
+            label="Last feeding"
+            value="Formula · 120ml · 1h 20m ago"
+            tint={tints.feeding}
+          />
         </Section>
 
         <Section title="Steppers">
@@ -159,9 +165,16 @@ export function GalleryScreen() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Card elevation="none" style={styles.section}>
-      <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary} style={styles.secLabel}>
+      <AppText
+        size={fontSize.metaSm}
+        weight="700"
+        color={colors.textSecondary}
+        style={styles.secLabel}
+      >
         {title.toUpperCase()}
       </AppText>
       {children}
@@ -169,42 +182,43 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['2xl'],
-  },
-  section: {
-    gap: spacing.lg,
-    backgroundColor: colors.card,
-  },
-  secLabel: {
-    letterSpacing: 0.6,
-  },
-  glyphRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing['2xl'],
-    alignItems: 'center',
-  },
-  tileRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  tile: {
-    flex: 1,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['2xl'],
+    },
+    section: {
+      gap: spacing.lg,
+      backgroundColor: colors.card,
+    },
+    secLabel: {
+      letterSpacing: 0.6,
+    },
+    glyphRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing['2xl'],
+      alignItems: 'center',
+    },
+    tileRow: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    tile: {
+      flex: 1,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+  });

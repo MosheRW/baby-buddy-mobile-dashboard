@@ -3,11 +3,21 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, ChipRow } from '../../components';
 import { EntryGlyph, PencilGlyph, TrashGlyph } from '../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing, tints } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { timeAgo } from '../../lib/dates';
-import { dailyIntakeNorm, feedingGaugePercent, filterAndGroup, type FeedFilter } from '../../lib/feed';
+import {
+  dailyIntakeNorm,
+  feedingGaugePercent,
+  filterAndGroup,
+  type FeedFilter,
+} from '../../lib/feed';
 import { filterByTag, selectableTagLabels } from '../../lib/tags';
-import { entryDurationLabel, entryTitle, entryVisual, type EntryVisual } from '../../lib/entryDisplay';
+import {
+  entryDurationLabel,
+  entryTitle,
+  entryVisual,
+  type EntryVisual,
+} from '../../lib/entryDisplay';
 import { useSettingsStore } from '../../stores';
 import type { Entry } from '../../api/types';
 
@@ -23,6 +33,8 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: ActivityFeedProps) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [filter, setFilter] = useState<FeedFilter>('all');
   // The two filters stack: a type chip narrows the list, a tag narrows it
   // further. Tapping a tag on any row sets it; the chip below clears it.
@@ -47,7 +59,12 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
 
   return (
     <View style={styles.container}>
-      <AppText size={fontSize.bodySm} weight="800" color={colors.textSecondary} style={styles.title}>
+      <AppText
+        size={fontSize.bodySm}
+        weight="800"
+        color={colors.textSecondary}
+        style={styles.title}
+      >
         {t('dashboard.recentActivity')}
       </AppText>
 
@@ -123,7 +140,11 @@ function FeedRow({
   onTagPress: (tag: string) => void;
 }) {
   const { t } = useTranslation();
-  const visual = entryVisual(entry);
+  const { scheme, colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  // Scheme passed explicitly so the row's colours belong to the render that
+  // produced them, rather than to whatever `getScheme()` happens to hold.
+  const visual = entryVisual(entry, scheme);
   const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry, dailyNorm) : null;
   const tags = selectableTagLabels(entry);
   // The non-removable "by {creator}" author tag rides at the front of every
@@ -171,7 +192,9 @@ function FeedRow({
 
         {gauge != null ? (
           <View style={styles.gaugeTrack}>
-            <View style={[styles.gaugeFill, { width: `${gauge}%`, backgroundColor: visual.accent }]} />
+            <View
+              style={[styles.gaugeFill, { width: `${gauge}%`, backgroundColor: visual.accent }]}
+            />
           </View>
         ) : null}
       </Pressable>
@@ -215,6 +238,7 @@ function FeedRow({
 
 /** The poo swatch and `x/10` badge, which only diaper rows carry. */
 function DiaperAdornments({ visual }: { visual: EntryVisual }) {
+  const styles = useThemedStyles(makeStyles);
   if (!visual.pooSwatchColor && !visual.amountBadge) return null;
   return (
     <View style={styles.adornments}>
@@ -243,135 +267,141 @@ function RowButton({
   bg: string;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={6}
       onPress={onPress}
-      style={({ pressed }) => [styles.rowButton, { backgroundColor: bg }, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.rowButton,
+        { backgroundColor: bg },
+        pressed && styles.pressed,
+      ]}
     >
       {children}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.lg,
-  },
-  title: {
-    letterSpacing: 0.5,
-  },
-  tagFilterRow: {
-    flexDirection: 'row',
-  },
-  tagFilter: {
-    backgroundColor: tints.suggestion.bg,
-    borderRadius: radii.chipSmall,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-  },
-  empty: {
-    textAlign: 'center',
-    paddingVertical: spacing['6xl'],
-  },
-  group: {
-    gap: spacing.md,
-  },
-  dayHeader: {
-    letterSpacing: 0.6,
-    marginTop: spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    // Tags wrap onto their own line under the row's three columns.
-    flexWrap: 'wrap',
-    gap: spacing.lg,
-    borderLeftWidth: 4,
-  },
-  swatch: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.chipSmall,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowText: {
-    flex: 1,
-    gap: 2,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  tempDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  adornments: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: 4,
-  },
-  pooSwatch: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: colors.neutral,
-  },
-  amountBadge: {
-    borderRadius: radii.chipSmall,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.sm,
-  },
-  gaugeTrack: {
-    height: 4,
-    maxWidth: 120,
-    borderRadius: 2,
-    backgroundColor: colors.neutral,
-    overflow: 'hidden',
-    marginTop: spacing.xs,
-  },
-  gaugeFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  rowButton: {
-    width: 26,
-    height: 26,
-    borderRadius: radii.chipSmall,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    // Full-width so it wraps below the icon/text/actions row.
-    width: '100%',
-  },
-  tagChip: {
-    backgroundColor: colors.neutral,
-    borderRadius: radii.chipSmall,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.sm,
-  },
-  authorChip: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.neutral,
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      gap: spacing.lg,
+    },
+    title: {
+      letterSpacing: 0.5,
+    },
+    tagFilterRow: {
+      flexDirection: 'row',
+    },
+    tagFilter: {
+      backgroundColor: tints.suggestion.bg,
+      borderRadius: radii.chipSmall,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.md,
+    },
+    empty: {
+      textAlign: 'center',
+      paddingVertical: spacing['6xl'],
+    },
+    group: {
+      gap: spacing.md,
+    },
+    dayHeader: {
+      letterSpacing: 0.6,
+      marginTop: spacing.sm,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      // Tags wrap onto their own line under the row's three columns.
+      flexWrap: 'wrap',
+      gap: spacing.lg,
+      borderLeftWidth: 4,
+    },
+    swatch: {
+      width: 34,
+      height: 34,
+      borderRadius: radii.chipSmall,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowText: {
+      flex: 1,
+      gap: 2,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    tempDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    adornments: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: 4,
+    },
+    pooSwatch: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      borderWidth: 1,
+      borderColor: colors.neutral,
+    },
+    amountBadge: {
+      borderRadius: radii.chipSmall,
+      paddingVertical: 2,
+      paddingHorizontal: spacing.sm,
+    },
+    gaugeTrack: {
+      height: 4,
+      maxWidth: 120,
+      borderRadius: 2,
+      backgroundColor: colors.neutral,
+      overflow: 'hidden',
+      marginTop: spacing.xs,
+    },
+    gaugeFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    rowButton: {
+      width: 26,
+      height: 26,
+      borderRadius: radii.chipSmall,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+    tagRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      // Full-width so it wraps below the icon/text/actions row.
+      width: '100%',
+    },
+    tagChip: {
+      backgroundColor: colors.neutral,
+      borderRadius: radii.chipSmall,
+      paddingVertical: 2,
+      paddingHorizontal: spacing.sm,
+    },
+    authorChip: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.neutral,
+    },
+  });

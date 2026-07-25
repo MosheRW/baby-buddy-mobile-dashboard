@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radii, shadows, spacing } from '../theme';
+import { radii, spacing, useTheme } from '../theme';
 
 interface CardProps extends ViewProps {
   /** Padding preset. Defaults to the 20px main-card padding. */
@@ -28,14 +28,24 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
+  const { colors, shadows } = useTheme();
   return (
     <View
       style={[
-        styles.base,
+        // The gradient layer supplies the fill, so the base must not paint over it.
+        { backgroundColor: gradient != null ? 'transparent' : colors.card },
         { padding, borderRadius: radius },
         elevation === 'card' && shadows.card,
         elevation === 'feedRow' && shadows.feedRow,
-        gradient != null && styles.transparent,
+        // A drop shadow does nothing against a dark background, so the dark
+        // palette separates cards with a hairline edge instead. Applied only
+        // when the palette defines one — a transparent border would still inset
+        // the light layout by a hairline.
+        elevation !== 'none' &&
+          colors.cardBorder != null && {
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.cardBorder,
+          },
         style,
       ]}
       {...rest}
@@ -55,13 +65,3 @@ export function Card({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    backgroundColor: colors.card,
-  },
-  // The gradient layer supplies the fill, so the base must not paint over it.
-  transparent: {
-    backgroundColor: 'transparent',
-  },
-});

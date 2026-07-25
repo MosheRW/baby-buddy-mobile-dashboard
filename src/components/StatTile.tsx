@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from './AppText';
 import { EntryGlyph } from './glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing } from '../theme';
+import { fontSize, radii, spacing, useTheme } from '../theme';
 import type { GlyphKind } from '../lib/entryDisplay';
 
 interface StatTileProps {
@@ -25,6 +25,7 @@ interface StatTileProps {
  * left "46m ago" in pale blue and cost the number the contrast it exists for.
  */
 export function StatTile({ label, value, tint, glyph, children, style }: StatTileProps) {
+  const { colors } = useTheme();
   const bg = tint?.bg ?? colors.neutral;
   const fg = tint?.fg ?? colors.textSecondary;
   return (

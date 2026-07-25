@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDeleteEntry } from '../../data/queries';
 import { errorMessage } from '../../api/client';
@@ -19,6 +19,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'DeleteConfirm'>;
  */
 export function DeleteConfirmSheet({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { entryId, entryLabel } = route.params;
 
   const close = () => navigation.goBack();
@@ -56,7 +58,12 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
               {t('deleteSheet.body', { label: entryLabel })}
             </AppText>
             {deleteEntry.isError ? (
-              <AppText size={fontSize.metaSm} weight="700" color={colors.danger} style={styles.body}>
+              <AppText
+                size={fontSize.metaSm}
+                weight="700"
+                color={colors.danger}
+                style={styles.body}
+              >
                 {errorMessage(deleteEntry.error)}
               </AppText>
             ) : null}
@@ -83,43 +90,44 @@ export function DeleteConfirmSheet({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  scrim: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheetWrap: {
-    width: '100%',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: radii.card,
-    borderTopRightRadius: radii.card,
-    paddingHorizontal: spacing['5xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing['5xl'],
-    gap: spacing.lg,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.neutral,
-    alignSelf: 'center',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  body: {
-    textAlign: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    marginTop: spacing.sm,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    scrim: {
+      backgroundColor: colors.scrim,
+    },
+    sheetWrap: {
+      width: '100%',
+    },
+    sheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: radii.card,
+      borderTopRightRadius: radii.card,
+      paddingHorizontal: spacing['5xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing['5xl'],
+      gap: spacing.lg,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.neutral,
+      alignSelf: 'center',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      textAlign: 'center',
+    },
+    body: {
+      textAlign: 'center',
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+      marginTop: spacing.sm,
+    },
+  });

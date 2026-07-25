@@ -5,7 +5,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, Card, TextField, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
-import { avatarTint, colors, fontSize, spacing } from '../../theme';
+import {
+  avatarTint,
+  fontSize,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  type AppTheme,
+} from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useKidsStore } from '../../stores';
 import { useDashboardData } from '../../data/queries';
@@ -16,6 +23,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'GroupEditor'>;
 
 export function GroupEditorScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
+  const { scheme, colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { groupId } = route.params;
   const { children } = useDashboardData();
 
@@ -97,7 +106,7 @@ export function GroupEditorScreen({ navigation, route }: Props) {
               {t('advanced.members')}
             </AppText>
             {children.map((child) => {
-              const tint = avatarTint(child.hue);
+              const tint = avatarTint(child.hue, scheme);
               const inGroup = childGroupId[child.id] === groupId;
               return (
                 <View key={child.id} style={styles.memberRow}>
@@ -138,49 +147,50 @@ export function GroupEditorScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['2xl'],
-  },
-  section: {
-    gap: spacing.lg,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  toggleText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  memberName: {
-    flex: 1,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      paddingHorizontal: spacing['2xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['2xl'],
+    },
+    section: {
+      gap: spacing.lg,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    toggleText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    memberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+    },
+    memberName: {
+      flex: 1,
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });

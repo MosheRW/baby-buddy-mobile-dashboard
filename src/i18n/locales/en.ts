@@ -243,7 +243,7 @@ export const en = {
     customSuffix: ' h',
     maxDose: 'Max dose per 24h (optional)',
     maxDoseHint:
-      "Leave blank to keep whatever limit this medicine already has. We’ll warn before a dose would exceed it in a rolling 24h window.",
+      'Leave blank to keep whatever limit this medicine already has. We’ll warn before a dose would exceed it in a rolling 24h window.',
     noLimitPlaceholder: 'No limit ({{unit}})',
   },
 
@@ -309,8 +309,7 @@ export const en = {
     mlSuffix: ' ml',
     visibilityToggle: 'Show {{name}} on the dashboard',
     newChildren: 'New children',
-    newChildrenHint:
-      'Whether children added later start out shown or hidden on the dashboard.',
+    newChildrenHint: 'Whether children added later start out shown or hidden on the dashboard.',
     visibilityVisible: 'Shown',
     visibilityHidden: 'Hidden',
     serverHomeAssistant: 'Home Assistant server',
@@ -321,6 +320,11 @@ export const en = {
     language: 'Language',
     languageEnglish: 'English',
     languageHebrew: 'עברית',
+    appearance: 'Appearance',
+    appearanceSystem: 'System',
+    appearanceLight: 'Light',
+    appearanceDark: 'Dark',
+    appearanceSystemHint: 'Follows your device’s light or dark setting.',
   },
 
   advanced: {

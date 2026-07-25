@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText, FieldLabel, SegmentedToggle, ToggleSwitch } from '../../../components';
 import type { SegmentOption } from '../../../components';
 import { NapGlyph, NightGlyph } from '../../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing } from '../../../theme';
+import { fontSize, radii, spacing, useThemedStyles, type AppTheme } from '../../../theme';
 import type { SleepType } from '../../../api/types';
 import type { FormDraft } from '../../../lib/formDraft';
 import { useTimerStore } from '../../../stores';
@@ -29,6 +29,7 @@ interface SleepFieldsProps {
  */
 export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsProps) {
   const { t } = useTranslation();
+  const styles = useThemedStyles(makeStyles);
   const timerRunning = useTimerStore((s) =>
     s.timers.some((timer) => timer.type === 'sleep' && timer.childId === childId),
   );
@@ -74,7 +75,9 @@ export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsPro
             patch({
               stillSleeping,
               // Seed a sensible wake time the moment the sleep is ended.
-              endTime: stillSleeping ? draft.endTime : (draft.endTime ?? new Date(now).toISOString()),
+              endTime: stillSleeping
+                ? draft.endTime
+                : (draft.endTime ?? new Date(now).toISOString()),
             })
           }
         />
@@ -93,14 +96,15 @@ export function SleepFields({ draft, patch, childId, mode, now }: SleepFieldsPro
   );
 }
 
-const styles = StyleSheet.create({
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    paddingVertical: spacing['3xl'],
-    paddingHorizontal: spacing['2xl'],
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderRadius: radii.control,
+      paddingVertical: spacing['3xl'],
+      paddingHorizontal: spacing['2xl'],
+    },
+  });

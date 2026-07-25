@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from './AppText';
-import { colors, fontSize, radii, spacing } from '../theme';
+import { fontSize, radii, spacing, useTheme, type Palette } from '../theme';
 
 type Variant = 'accent' | 'danger' | 'neutral';
 
@@ -18,13 +18,11 @@ interface ActionButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const VARIANT_BG: Record<Variant, string> = {
-  accent: colors.accent,
-  danger: colors.danger,
-  neutral: colors.neutral,
-};
+function bgFor(variant: Variant, colors: Palette): string {
+  return { accent: colors.accent, danger: colors.danger, neutral: colors.neutral }[variant];
+}
 
-function fgFor(variant: Variant, disabled: boolean): string {
+function fgFor(variant: Variant, disabled: boolean, colors: Palette): string {
   if (disabled) return colors.textMuted;
   return variant === 'neutral' ? colors.textPrimary : colors.onAccent;
 }
@@ -40,6 +38,7 @@ export function ActionButton({
   fullWidth,
   style,
 }: ActionButtonProps) {
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -48,7 +47,7 @@ export function ActionButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: disabled ? colors.neutral : VARIANT_BG[variant] },
+        { backgroundColor: disabled ? colors.neutral : bgFor(variant, colors) },
         fullWidth && styles.fullWidth,
         flex != null && { flex },
         pressed && !disabled && styles.pressed,
@@ -56,7 +55,7 @@ export function ActionButton({
       ]}
     >
       {icon ? <View style={styles.icon}>{icon}</View> : null}
-      <AppText size={fontSize.body} weight="800" color={fgFor(variant, disabled)}>
+      <AppText size={fontSize.body} weight="800" color={fgFor(variant, disabled, colors)}>
         {label}
       </AppText>
     </Pressable>
