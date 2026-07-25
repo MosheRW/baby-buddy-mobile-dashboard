@@ -380,6 +380,8 @@ export const he = {
     eligibilityHint: 'הזכירו לי כשניתן לתת שוב תרופה לפי הצורך, או כשמתפנה מגבלת 24 השעות שלה.',
     forgottenTitle: 'טיימרים שנשכחו',
     forgottenHint: 'הזהירו אותי כשטיימר פועל זמן רב מהרגיל.',
+    forgottenGeneralLabel: 'האכלה וזמן בטן',
+    forgottenSleepLabel: 'שינה',
     diaperTitle: 'החלפות חיתול',
     diaperHint: 'הזכירו לי כשעבר יותר מדי זמן מאז ההחלפה האחרונה.',
     foodTitle: 'מרווחי האכלה',

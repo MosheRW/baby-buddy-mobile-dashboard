@@ -14,11 +14,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { asyncStorage } from './storage';
-import type {
-  CaseSettings,
-  PerChildThresholds,
-  TimingPrefs,
-  WeeklySummarySettings,
+import {
+  DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+  type CaseSettings,
+  type PerChildThresholds,
+  type TimingPrefs,
+  type WeeklySummarySettings,
 } from '../lib/notifications';
 
 export type { PerChildThresholds } from '../lib/notifications';
@@ -35,7 +36,7 @@ interface NotificationState {
   masterEnabled: boolean;
   scheduledMeds: CaseSettings;
   medEligibility: CaseSettings;
-  forgottenTimer: { enabled: boolean; thresholdMinutes: number };
+  forgottenTimer: { enabled: boolean; thresholdMinutes: number; sleepThresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
@@ -48,6 +49,7 @@ interface NotificationState {
   updateTiming: (id: TimingCaseId, patch: Partial<TimingPrefs>) => void;
   setForgottenTimerEnabled: (enabled: boolean) => void;
   setForgottenTimerMinutes: (minutes: number) => void;
+  setForgottenTimerSleepMinutes: (minutes: number) => void;
   setIntervalCaseEnabled: (id: IntervalCaseId, enabled: boolean) => void;
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
   updateWeeklySummary: (patch: Partial<WeeklySummarySettings>) => void;
@@ -69,7 +71,11 @@ export const useNotificationStore = create<NotificationState>()(
       masterEnabled: false,
       scheduledMeds: { enabled: true, timing: defaultTiming() },
       medEligibility: { enabled: true, timing: defaultTiming({ before: false, afterMinutes: 30 }) },
-      forgottenTimer: { enabled: true, thresholdMinutes: 30 },
+      forgottenTimer: {
+        enabled: true,
+        thresholdMinutes: 30,
+        sleepThresholdMinutes: DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+      },
       diaperInterval: { enabled: false },
       foodMin: { enabled: false },
       // On by default (it's the point of the feature); the toggle is the opt-out.
@@ -99,6 +105,11 @@ export const useNotificationStore = create<NotificationState>()(
       setForgottenTimerMinutes: (minutes) =>
         set((state) => ({ forgottenTimer: { ...state.forgottenTimer, thresholdMinutes: minutes } })),
 
+      setForgottenTimerSleepMinutes: (minutes) =>
+        set((state) => ({
+          forgottenTimer: { ...state.forgottenTimer, sleepThresholdMinutes: minutes },
+        })),
+
       setIntervalCaseEnabled: (id, enabled) =>
         set(() => ({ [id]: { enabled } }) as Pick<NotificationState, IntervalCaseId>),
 
@@ -114,14 +125,14 @@ export const useNotificationStore = create<NotificationState>()(
     }),
     {
       name: 'notifications',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => asyncStorage),
       // permissionStatus is live OS state, not a preference — never persist it.
       partialize: ({ permissionStatus: _permissionStatus, ...rest }) => rest,
       // v0 stored the diaper/food intervals in whole hours; v1 stores minutes so
       // the adaptive-step UI can offer 10-minute resolution. Convert per child.
       migrate: (persisted, version) => {
-        const state = persisted as NotificationState;
+        let state = persisted as NotificationState;
         if (version < 1 && state?.perChild) {
           const perChild: Record<string, PerChildThresholds> = {};
           for (const [id, t] of Object.entries(state.perChild)) {
@@ -140,7 +151,18 @@ export const useNotificationStore = create<NotificationState>()(
                 : {}),
             };
           }
-          return { ...state, perChild };
+          state = { ...state, perChild };
+        }
+        // v2 split the forgotten-timer threshold into feeding/tummy-time vs. sleep;
+        // pre-v2 state has no sleep threshold, so seed it with the default.
+        if (version < 2 && state?.forgottenTimer?.sleepThresholdMinutes == null) {
+          state = {
+            ...state,
+            forgottenTimer: {
+              ...state.forgottenTimer,
+              sleepThresholdMinutes: DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+            },
+          };
         }
         return state;
       },

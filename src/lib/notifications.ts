@@ -45,6 +45,15 @@ export const DEFAULT_DIAPER_INTERVAL_MINUTES = 180;
 export const DEFAULT_FOOD_INTERVAL_MINUTES = 240;
 
 /**
+ * Default forgotten-timer threshold for a *sleep* timer: a baby genuinely sleeps
+ * for hours, so the short "you forgot to stop the timer" threshold that's
+ * sensible for feeding/tummy-time would nag through every normal nap. Sleep gets
+ * its own, longer threshold (user-configurable — see `forgottenTimer`); this is
+ * just the default when the user hasn't changed it.
+ */
+export const DEFAULT_SLEEP_FORGOTTEN_MINUTES = 240;
+
+/**
  * Adaptive step size (minutes) for the time-interval steppers: single minutes
  * below 10, five up to an hour, ten beyond. Keeps fine control where the value
  * is small without making multi-hour intervals a tap marathon.
@@ -105,7 +114,12 @@ export interface NotificationSettings {
   masterEnabled: boolean;
   scheduledMeds: CaseSettings;
   medEligibility: CaseSettings;
-  forgottenTimer: { enabled: boolean; thresholdMinutes: number };
+  /**
+   * `thresholdMinutes` applies to feeding/tummy-time timers; sleep timers use
+   * `sleepThresholdMinutes` (typically much longer — a nap isn't a forgotten
+   * timer). Both are in minutes.
+   */
+  forgottenTimer: { enabled: boolean; thresholdMinutes: number; sleepThresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
@@ -305,18 +319,21 @@ export function buildNotifications(
 
   // 3. Forgotten timers -----------------------------------------------------
   if (settings.forgottenTimer.enabled) {
-    const threshold = settings.forgottenTimer.thresholdMinutes;
+    const { thresholdMinutes, sleepThresholdMinutes } = settings.forgottenTimer;
     for (const rt of timers) {
       const who = childName.get(rt.childId);
+      // Sleep gets its own (longer) threshold so a normal nap doesn't trip the
+      // "forgotten timer" alert; every other type uses the general one.
+      const effective = rt.type === 'sleep' ? sleepThresholdMinutes : thresholdMinutes;
       out.push({
         key: `timer:${rt.type}:${rt.childId}`,
-        fireAt: rt.startedAt + threshold * MINUTE,
+        fireAt: rt.startedAt + effective * MINUTE,
         title: i18n.t('notifications.titleTimerRunning'),
         body: i18n.t('notifications.timerBody', {
           context: childContext(who),
           activity: i18n.t(`timer.typeLabel.${rt.type}`),
           child: who,
-          duration: countdownLabel(threshold * MINUTE),
+          duration: countdownLabel(effective * MINUTE),
         }),
         childId: rt.childId,
       });
