@@ -442,6 +442,10 @@ export function buildOngoingTimerNotifications(
   const childName = new Map(children.map((c) => [c.id, c.name]));
   return timers.map((rt) => {
     const who = childName.get(rt.childId);
+    // Floor to whole minutes before formatting: countdownLabel rounds, so a raw
+    // elapsed of 31s would render "1m" and the timer would appear to run ahead of
+    // itself. Flooring keeps the label from ever overstating the elapsed time.
+    const elapsedMinutes = Math.floor(Math.max(0, now - rt.startedAt) / MINUTE);
     return {
       key: `ongoing:${rt.type}:${rt.childId}`,
       title: i18n.t('notifications.liveTimerTitle', {
@@ -450,7 +454,7 @@ export function buildOngoingTimerNotifications(
       body: i18n.t('notifications.liveTimerBody', {
         context: childContext(who),
         child: who,
-        duration: countdownLabel(Math.max(0, now - rt.startedAt)),
+        duration: countdownLabel(elapsedMinutes * MINUTE),
       }),
       childId: rt.childId,
     };

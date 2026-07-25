@@ -601,6 +601,21 @@ describe('buildOngoingTimerNotifications', () => {
     expect(note.body).toContain('5m');
   });
 
+  it('floors the elapsed label so it never runs ahead of the timer', () => {
+    // 5m31s elapsed — countdownLabel rounds, so without flooring this would
+    // render "6m" and appear to overstate the elapsed time.
+    const [note] = buildOngoingTimerNotifications(
+      {
+        timers: [runningTimer({ startedAt: NOW - (5 * MINUTE + 31_000) })],
+        children: CHILDREN,
+        settings: liveSettings(),
+      },
+      NOW,
+    );
+    expect(note.body).toContain('5m');
+    expect(note.body).not.toContain('6m');
+  });
+
   it('falls back to the no-child body when the child is unknown', () => {
     const [note] = buildOngoingTimerNotifications(
       { timers: [runningTimer({ childId: 'ghost' })], children: CHILDREN, settings: liveSettings() },
