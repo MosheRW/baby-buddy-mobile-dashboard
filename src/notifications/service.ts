@@ -22,7 +22,7 @@
  */
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import type { PlannedNotification } from '../lib/notifications';
+import type { OngoingNotification, PlannedNotification } from '../lib/notifications';
 import type { PermissionStatus } from '../stores/notificationStore';
 
 type NotificationsModule = typeof import('expo-notifications');
@@ -30,6 +30,15 @@ type NotificationsModule = typeof import('expo-notifications');
 const isExpoGo = Constants.appOwnership === 'expo';
 const SUPPORTED = Platform.OS !== 'web' && !isExpoGo;
 const CHANNEL_ID = 'reminders';
+/**
+ * A separate, LOW-importance channel for the ongoing running-timer notifications.
+ * LOW so the OS shows them silently in the shade with no heads-up or sound — they
+ * are re-issued roughly once a minute to refresh the elapsed label, and firing a
+ * sound each time would be intolerable.
+ */
+const ONGOING_CHANNEL_ID = 'ongoing';
+/** Every ongoing notification's identifier starts with this (see buildOngoing…). */
+const ONGOING_PREFIX = 'ongoing:';
 
 /** Lazily loaded native module — `undefined` = not tried, `null` = unavailable. */
 let cached: NotificationsModule | null | undefined;
@@ -78,6 +87,11 @@ export async function initAsync(): Promise<void> {
       await N.setNotificationChannelAsync(CHANNEL_ID, {
         name: 'Reminders',
         importance: N.AndroidImportance.DEFAULT,
+      });
+      await N.setNotificationChannelAsync(ONGOING_CHANNEL_ID, {
+        name: 'Running timers',
+        // LOW keeps the minute-by-minute refreshes silent and out of heads-up.
+        importance: N.AndroidImportance.LOW,
       });
     }
   } catch (err) {
@@ -147,6 +161,48 @@ export async function syncScheduledAsync(planned: PlannedNotification[]): Promis
 }
 
 /**
+ * Reconcile the presented ongoing running-timer notifications to exactly
+ * `planned`. Each is presented immediately (a channel-aware trigger, not a DATE
+ * one, so it never joins the *scheduled* set that `syncScheduledAsync` clears)
+ * and marked `sticky` so it can't be swiped away while its timer runs. Re-issuing
+ * the same identifier updates the notification in place, which is how the elapsed
+ * label refreshes. Passing `[]` clears every ongoing notification we presented.
+ */
+export async function syncOngoingAsync(planned: OngoingNotification[]): Promise<void> {
+  const N = nm();
+  if (!N) return;
+  try {
+    const wanted = new Set(planned.map((p) => p.key));
+    // Dismiss ours that are no longer running. Scoped to our prefix so we never
+    // touch a delivered reminder (those live on the other channel/track).
+    const presented = await N.getPresentedNotificationsAsync();
+    for (const n of presented) {
+      const id = (n as { request?: { identifier?: string } })?.request?.identifier;
+      if (id && id.startsWith(ONGOING_PREFIX) && !wanted.has(id)) {
+        await N.dismissNotificationAsync(id);
+      }
+    }
+    for (const p of planned) {
+      await N.scheduleNotificationAsync({
+        identifier: p.key,
+        content: {
+          title: p.title,
+          body: p.body,
+          sticky: true,
+          autoDismiss: false,
+          data: { ongoing: true, ...(p.childId ? { childId: p.childId } : {}) },
+        },
+        // A bare `channelId` trigger = present now on this channel (immediate,
+        // not pending), so cancel-all of *scheduled* notifications leaves it be.
+        trigger: { channelId: ONGOING_CHANNEL_ID },
+      });
+    }
+  } catch (err) {
+    console.warn('[notifications] ongoing sync failed:', err);
+  }
+}
+
+/**
  * A reminder the OS has already *delivered* (it's sitting in the tray / shade),
  * normalized away from the SDK's `Notification` shape. `id` is the OS identifier,
  * which for our own reminders equals the `PlannedNotification.key` we scheduled.
@@ -205,6 +261,9 @@ export async function getDeliveredAsync(): Promise<DeliveredNotification[]> {
     return list
       .map(normalizeDelivered)
       .filter((n): n is DeliveredNotification => n != null)
+      // The ongoing running-timer notifications share the tray but aren't
+      // "reminders that fired" — keep them out of the in-app carousel.
+      .filter((n) => !n.id.startsWith(ONGOING_PREFIX))
       // Newest first, so the most recently fired reminder leads the carousel.
       .sort((a, b) => b.deliveredAt - a.deliveredAt);
   } catch (err) {

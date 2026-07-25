@@ -1,5 +1,6 @@
 import {
   buildNotifications,
+  buildOngoingTimerNotifications,
   intervalStep,
   nextWeeklySlot,
   notificationAction,
@@ -86,6 +87,7 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     forgottenTimer: { enabled: false, thresholdMinutes: 30 },
     diaperInterval: { enabled: false },
     foodMin: { enabled: false },
+    liveTimer: { enabled: false },
     // Off in the shared helper so the existing exact-count assertions aren't
     // perturbed; the weekly-summary block enables it explicitly.
     weeklySummary: { enabled: false, weekday: 0, hour: 9 },
@@ -531,5 +533,80 @@ describe('notificationAction', () => {
     expect(notificationAction('weekly')).toEqual({ kind: 'none' });
     expect(notificationAction('timer:bogus:c1')).toEqual({ kind: 'none' });
     expect(notificationAction('something-else')).toEqual({ kind: 'none' });
+  });
+});
+
+describe('buildOngoingTimerNotifications', () => {
+  const runningTimer = (over: Partial<RunningTimer> = {}): RunningTimer => ({
+    type: 'feeding',
+    childId: 'c1',
+    startedAt: NOW - 5 * MINUTE,
+    ...over,
+  });
+
+  const liveSettings = (over: Partial<NotificationSettings> = {}) =>
+    settings({ liveTimer: { enabled: true }, ...over });
+
+  it('is empty when the master switch is off', () => {
+    const out = buildOngoingTimerNotifications(
+      {
+        timers: [runningTimer()],
+        children: CHILDREN,
+        settings: liveSettings({ masterEnabled: false }),
+      },
+      NOW,
+    );
+    expect(out).toEqual([]);
+  });
+
+  it('is empty when the live-timer case is off', () => {
+    const out = buildOngoingTimerNotifications(
+      { timers: [runningTimer()], children: CHILDREN, settings: settings() },
+      NOW,
+    );
+    expect(out).toEqual([]);
+  });
+
+  it('is empty when no timer is running', () => {
+    const out = buildOngoingTimerNotifications(
+      { timers: [], children: CHILDREN, settings: liveSettings() },
+      NOW,
+    );
+    expect(out).toEqual([]);
+  });
+
+  it('emits one notification per running timer, keyed by type + child', () => {
+    const out = buildOngoingTimerNotifications(
+      {
+        timers: [
+          runningTimer({ type: 'feeding', childId: 'c1' }),
+          runningTimer({ type: 'sleep', childId: 'c1' }),
+        ],
+        children: CHILDREN,
+        settings: liveSettings(),
+      },
+      NOW,
+    );
+    expect(out.map((o) => o.key)).toEqual(['ongoing:feeding:c1', 'ongoing:sleep:c1']);
+    expect(out.every((o) => o.childId === 'c1')).toBe(true);
+  });
+
+  it('names the child and the elapsed time in the body', () => {
+    const [note] = buildOngoingTimerNotifications(
+      { timers: [runningTimer({ startedAt: NOW - 5 * MINUTE })], children: CHILDREN, settings: liveSettings() },
+      NOW,
+    );
+    expect(note.title).toBe('Feeding timer running');
+    expect(note.body).toContain('Emma');
+    expect(note.body).toContain('5m');
+  });
+
+  it('falls back to the no-child body when the child is unknown', () => {
+    const [note] = buildOngoingTimerNotifications(
+      { timers: [runningTimer({ childId: 'ghost' })], children: CHILDREN, settings: liveSettings() },
+      NOW,
+    );
+    expect(note.body).not.toContain('·');
+    expect(note.body).toContain('Running for');
   });
 });

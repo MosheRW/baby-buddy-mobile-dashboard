@@ -387,6 +387,8 @@ export const en = {
       'Remind me when an as-needed medicine can be given again, or its 24h limit frees up.',
     forgottenTitle: 'Forgotten timers',
     forgottenHint: 'Warn me when a timer has been running unusually long.',
+    liveTitle: 'Running timers',
+    liveHint: 'Keep a live notification in the tray while a timer runs.',
     diaperTitle: 'Diaper changes',
     diaperHint: "Remind me when it's been too long since the last change.",
     foodTitle: 'Feeding gaps',
@@ -437,6 +439,9 @@ export const en = {
       '{{activity}} timer for {{child}} has been running over {{duration}} — did you forget to stop it?',
     timerBody_noChild:
       '{{activity}} timer has been running over {{duration}} — did you forget to stop it?',
+    liveTimerTitle: '{{activity}} timer running',
+    liveTimerBody: '{{child}} · running for {{duration}}',
+    liveTimerBody_noChild: 'Running for {{duration}}',
     diaperBody: "{{child}} hasn't had a diaper change in {{duration}}.",
     foodBody: "{{child}} hasn't been fed in {{duration}}.",
     foodBodyMin: "{{child}} hasn't been fed in {{duration}} — aim for at least {{min}}ml.",

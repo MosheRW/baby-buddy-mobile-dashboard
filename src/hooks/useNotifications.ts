@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useChildren, useEntries } from '../data/queries';
-import { buildNotifications } from '../lib/notifications';
+import { buildNotifications, buildOngoingTimerNotifications } from '../lib/notifications';
 import { useNotificationStore } from '../stores';
 import { useAuthStore } from '../stores/authStore';
 import { useTimerStore } from '../stores/timerStore';
@@ -32,6 +32,7 @@ export function useNotificationSync(): void {
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
+  const liveTimer = useNotificationStore((s) => s.liveTimer);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
@@ -73,6 +74,7 @@ export function useNotificationSync(): void {
         forgottenTimer,
         diaperInterval,
         foodMin,
+        liveTimer,
         weeklySummary,
         perChild,
       },
@@ -96,9 +98,51 @@ export function useNotificationSync(): void {
     forgottenTimer,
     diaperInterval,
     foodMin,
+    liveTimer,
     weeklySummary,
     perChild,
     me,
+    tick,
+  ]);
+
+  // Ongoing running-timer notifications live on their own track: they're
+  // presented *now* (not future-scheduled), so they can't share the plan above.
+  // The body carries a minute-granular elapsed label, which is why this rebuilds
+  // on the same foreground/60s `tick` — each minute it re-issues with fresh text.
+  const lastOngoingSig = useRef<string>('');
+  useEffect(() => {
+    const ongoing = buildOngoingTimerNotifications({
+      timers,
+      children: children ?? [],
+      settings: {
+        masterEnabled,
+        liveTimer,
+        // The rest are unread by the ongoing builder but required by the type.
+        scheduledMeds,
+        medEligibility,
+        forgottenTimer,
+        diaperInterval,
+        foodMin,
+        weeklySummary,
+        perChild,
+      },
+    });
+    const sig = JSON.stringify(ongoing.map((o) => [o.key, o.title, o.body]));
+    if (sig === lastOngoingSig.current) return;
+    lastOngoingSig.current = sig;
+    void service.syncOngoingAsync(ongoing);
+  }, [
+    children,
+    timers,
+    masterEnabled,
+    liveTimer,
+    scheduledMeds,
+    medEligibility,
+    forgottenTimer,
+    diaperInterval,
+    foodMin,
+    weeklySummary,
+    perChild,
     tick,
   ]);
 }
