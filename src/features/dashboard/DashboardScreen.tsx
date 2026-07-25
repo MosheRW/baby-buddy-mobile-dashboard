@@ -261,7 +261,7 @@ export function DashboardScreen({ navigation }: Props) {
     carouselItems.push({
       kind: 'error',
       id: e.id,
-      title: e.title,
+      title: t(e.titleKey),
       body: e.message,
       childId: e.childId,
       onDismiss: () => dismissAppError(e.id),

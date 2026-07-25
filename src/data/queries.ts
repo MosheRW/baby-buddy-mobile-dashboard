@@ -18,7 +18,6 @@ import type { RunningTimer, TimerType } from '../lib/timers';
 import { useAuthStore } from '../stores/authStore';
 import { useAppErrorStore } from '../stores/appErrorStore';
 import { errorMessage } from '../api/client';
-import i18n from '../i18n';
 import { dataSource } from './dataSource';
 
 export const queryKeys = {
@@ -116,7 +115,7 @@ export function useSaveEntry(): UseMutationResult<Entry, unknown, Entry> {
     onError: (err, entry) => {
       pushError({
         id: 'save-entry',
-        title: i18n.t('errors.saveTitle'),
+        titleKey: 'errors.saveTitle',
         message: errorMessage(err),
         childId: entry.childId,
       });
@@ -137,7 +136,7 @@ export function useDeleteEntry(): UseMutationResult<void, unknown, string> {
     onError: (err) => {
       pushError({
         id: 'delete-entry',
-        title: i18n.t('errors.deleteTitle'),
+        titleKey: 'errors.deleteTitle',
         message: errorMessage(err),
       });
     },

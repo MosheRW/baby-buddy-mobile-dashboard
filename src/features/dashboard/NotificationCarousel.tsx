@@ -277,9 +277,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   // A danger left-edge marks the error variant apart from cream reminders while
-  // reusing the same flat card shell.
+  // reusing the same flat card shell. Width matches the ActivityFeed row accent
+  // so the two left-edges read as one system.
   errorCard: {
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
     borderLeftColor: colors.danger,
   },
   body: {

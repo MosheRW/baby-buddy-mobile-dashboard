@@ -21,7 +21,13 @@ export interface AppError {
    * with the same id replaces the old one; a success dismisses by this id.
    */
   id: string;
-  title: string;
+  /**
+   * i18n key for the card title (e.g. `'errors.saveTitle'`) — stored unresolved
+   * and translated at render time, so a card already on screen relocalizes when
+   * the user switches language, like every other string in the tree. `message`
+   * is the underlying `errorMessage(...)`, which is not itself translatable.
+   */
+  titleKey: string;
   message: string;
   /** The child the failed action was about, if any — drives the card's chip. */
   childId?: string;
