@@ -14,12 +14,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { asyncStorage } from './storage';
-import {
-  DEFAULT_SLEEP_FORGOTTEN_MINUTES,
-  type CaseSettings,
-  type PerChildThresholds,
-  type TimingPrefs,
-  type WeeklySummarySettings,
+import { DEFAULT_SLEEP_FORGOTTEN_MINUTES } from '../lib/notificationDefaults';
+import type {
+  CaseSettings,
+  PerChildThresholds,
+  TimingPrefs,
+  WeeklySummarySettings,
 } from '../lib/notifications';
 
 export type { PerChildThresholds } from '../lib/notifications';

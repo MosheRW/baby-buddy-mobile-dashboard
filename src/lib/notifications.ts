@@ -23,6 +23,19 @@ import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
 import { computeContribution, contributionBody } from './contribution';
 import { TIMER_TYPES, type RunningTimer, type TimerType } from './timers';
+import {
+  DEFAULT_DIAPER_INTERVAL_MINUTES,
+  DEFAULT_FOOD_INTERVAL_MINUTES,
+  DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+} from './notificationDefaults';
+
+// Re-exported so existing importers (components) keep their `./notifications`
+// path; the canonical, side-effect-free home is `./notificationDefaults`.
+export {
+  DEFAULT_DIAPER_INTERVAL_MINUTES,
+  DEFAULT_FOOD_INTERVAL_MINUTES,
+  DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+};
 
 const MINUTE = 60_000;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
@@ -37,21 +50,6 @@ const WEEKLY_KEY = 'weekly';
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
 const MAX_PLANNED = 64;
 
-/**
- * Applied to every child once the diaper/food case is on, unless that child
- * carries its own threshold (in minutes). A per-child value of 0 opts out.
- */
-export const DEFAULT_DIAPER_INTERVAL_MINUTES = 180;
-export const DEFAULT_FOOD_INTERVAL_MINUTES = 240;
-
-/**
- * Default forgotten-timer threshold for a *sleep* timer: a baby genuinely sleeps
- * for hours, so the short "you forgot to stop the timer" threshold that's
- * sensible for feeding/tummy-time would nag through every normal nap. Sleep gets
- * its own, longer threshold (user-configurable — see `forgottenTimer`); this is
- * just the default when the user hasn't changed it.
- */
-export const DEFAULT_SLEEP_FORGOTTEN_MINUTES = 240;
 
 /**
  * Adaptive step size (minutes) for the time-interval steppers: single minutes
