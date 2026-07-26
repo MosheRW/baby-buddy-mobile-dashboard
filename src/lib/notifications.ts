@@ -108,6 +108,15 @@ export interface NotificationSettings {
   forgottenTimer: { enabled: boolean; thresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
+  /**
+   * The persistent "a timer is running right now" notification — one ongoing
+   * (non-dismissable) notification per running timer, presented immediately and
+   * refreshed as the elapsed time grows. Unlike every other case this is not a
+   * future-scheduled reminder, so it lives on its own track (see
+   * `buildOngoingTimerNotifications` / `syncOngoingAsync`), not in
+   * `buildNotifications`.
+   */
+  liveTimer: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
 }
@@ -395,6 +404,61 @@ export function buildNotifications(
     .filter((n) => n.fireAt > now && (n.key === WEEKLY_KEY || n.fireAt <= now + HORIZON_MS))
     .sort((a, b) => a.fireAt - b.fireAt)
     .slice(0, MAX_PLANNED);
+}
+
+/**
+ * A persistent, presented-*now* notification — one per running timer — that sits
+ * in the tray for as long as the timer runs. It has no `fireAt`: the OS shows it
+ * immediately and keeps it (Android `setOngoing`), and the sync hook re-issues it
+ * as the elapsed label changes. The native reconcile (`syncOngoingAsync`) diffs
+ * this list against what's presented, so a stopped timer's notification clears.
+ *
+ * True second-by-second ticking is not possible in the managed Expo workflow
+ * (no chronometer field on the notification, and a live-updating clock needs an
+ * Android foreground service). The elapsed label is therefore minute-granular,
+ * refreshed by the hook's foreground/60s re-evaluation — the closest honest
+ * approximation without leaving the managed workflow.
+ */
+export interface OngoingNotification {
+  /** `ongoing:${type}:${childId}` — the OS identifier, so re-issues update it. */
+  key: string;
+  title: string;
+  body: string;
+  childId?: string;
+}
+
+/**
+ * The ongoing notifications that should currently be presented — one per running
+ * timer, or none when the case (or the master switch) is off. Pure; `now` feeds
+ * the elapsed label so the caller controls the clock.
+ */
+export function buildOngoingTimerNotifications(
+  input: Pick<NotificationBuildInput, 'timers' | 'children' | 'settings'>,
+  now: number = Date.now(),
+): OngoingNotification[] {
+  const { timers, children, settings } = input;
+  if (!settings.masterEnabled || !settings.liveTimer.enabled) return [];
+
+  const childName = new Map(children.map((c) => [c.id, c.name]));
+  return timers.map((rt) => {
+    const who = childName.get(rt.childId);
+    // Floor to whole minutes before formatting: countdownLabel rounds, so a raw
+    // elapsed of 31s would render "1m" and the timer would appear to run ahead of
+    // itself. Flooring keeps the label from ever overstating the elapsed time.
+    const elapsedMinutes = Math.floor(Math.max(0, now - rt.startedAt) / MINUTE);
+    return {
+      key: `ongoing:${rt.type}:${rt.childId}`,
+      title: i18n.t('notifications.liveTimerTitle', {
+        activity: i18n.t(`timer.typeLabel.${rt.type}`),
+      }),
+      body: i18n.t('notifications.liveTimerBody', {
+        context: childContext(who),
+        child: who,
+        duration: countdownLabel(elapsedMinutes * MINUTE),
+      }),
+      childId: rt.childId,
+    };
+  });
 }
 
 /**

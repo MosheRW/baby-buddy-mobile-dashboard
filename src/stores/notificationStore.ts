@@ -38,6 +38,7 @@ interface NotificationState {
   forgottenTimer: { enabled: boolean; thresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
+  liveTimer: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
   /** Live OS permission state — not persisted. */
@@ -48,6 +49,7 @@ interface NotificationState {
   updateTiming: (id: TimingCaseId, patch: Partial<TimingPrefs>) => void;
   setForgottenTimerEnabled: (enabled: boolean) => void;
   setForgottenTimerMinutes: (minutes: number) => void;
+  setLiveTimerEnabled: (enabled: boolean) => void;
   setIntervalCaseEnabled: (id: IntervalCaseId, enabled: boolean) => void;
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
   updateWeeklySummary: (patch: Partial<WeeklySummarySettings>) => void;
@@ -72,6 +74,8 @@ export const useNotificationStore = create<NotificationState>()(
       forgottenTimer: { enabled: true, thresholdMinutes: 30 },
       diaperInterval: { enabled: false },
       foodMin: { enabled: false },
+      // On by default — it's the point of this feature; the toggle is the opt-out.
+      liveTimer: { enabled: true },
       // On by default (it's the point of the feature); the toggle is the opt-out.
       // Sunday 9am is a natural "week in review" slot and the start of the week
       // in the he locale too.
@@ -98,6 +102,8 @@ export const useNotificationStore = create<NotificationState>()(
 
       setForgottenTimerMinutes: (minutes) =>
         set((state) => ({ forgottenTimer: { ...state.forgottenTimer, thresholdMinutes: minutes } })),
+
+      setLiveTimerEnabled: (enabled) => set({ liveTimer: { enabled } }),
 
       setIntervalCaseEnabled: (id, enabled) =>
         set(() => ({ [id]: { enabled } }) as Pick<NotificationState, IntervalCaseId>),
