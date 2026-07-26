@@ -47,8 +47,10 @@ interface StepperProps {
   disabled?: boolean;
   /**
    * Manual entry (default). Tap the number to type an exact value; long-press
-   * it to reset to the value it had before editing began. Set `false` where the
-   * affordance adds nothing, e.g. the 1–10 diaper amount.
+   * it to reset to `defaultValue` — the `value` this stepper was mounted with,
+   * not the one it held when the editor opened, and the same target an
+   * out-of-range entry falls back to. Set `false` where the affordance adds
+   * nothing, e.g. the 1–10 diaper amount.
    */
   enhanced?: boolean;
 }
