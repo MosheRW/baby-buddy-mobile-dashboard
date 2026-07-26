@@ -44,6 +44,9 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const updateTiming = useNotificationStore((s) => s.updateTiming);
   const setForgottenTimerEnabled = useNotificationStore((s) => s.setForgottenTimerEnabled);
   const setForgottenTimerMinutes = useNotificationStore((s) => s.setForgottenTimerMinutes);
+  const setForgottenTimerSleepMinutes = useNotificationStore(
+    (s) => s.setForgottenTimerSleepMinutes,
+  );
   const setLiveTimerEnabled = useNotificationStore((s) => s.setLiveTimerEnabled);
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
   const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
@@ -144,17 +147,31 @@ export function NotificationSettingsScreen({ navigation }: Props) {
             />
           </View>
           {masterEnabled && forgottenTimer.enabled ? (
-            <View style={styles.field}>
-              <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                {t('notifications.after')}
-              </AppText>
-              <Stepper
-                value={forgottenTimer.thresholdMinutes}
-                onChange={setForgottenTimerMinutes}
-                step={1}
-                min={5}
-                suffix={t('notifications.minSuffix')}
-              />
+            <View style={styles.childBlock}>
+              <View style={styles.field}>
+                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                  {t('notifications.forgottenGeneralLabel')}
+                </AppText>
+                <Stepper
+                  value={forgottenTimer.thresholdMinutes}
+                  onChange={setForgottenTimerMinutes}
+                  step={1}
+                  min={5}
+                  format={formatMinutes}
+                />
+              </View>
+              <View style={styles.field}>
+                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                  {t('notifications.forgottenSleepLabel')}
+                </AppText>
+                <Stepper
+                  value={forgottenTimer.sleepThresholdMinutes}
+                  onChange={setForgottenTimerSleepMinutes}
+                  step={1}
+                  min={5}
+                  format={formatMinutes}
+                />
+              </View>
             </View>
           ) : null}
         </Card>

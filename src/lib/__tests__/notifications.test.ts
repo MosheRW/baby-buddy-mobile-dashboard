@@ -84,7 +84,7 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     masterEnabled: true,
     scheduledMeds: { enabled: false, timing: timing() },
     medEligibility: { enabled: false, timing: timing() },
-    forgottenTimer: { enabled: false, thresholdMinutes: 30 },
+    forgottenTimer: { enabled: false, thresholdMinutes: 30, sleepThresholdMinutes: 240 },
     diaperInterval: { enabled: false },
     foodMin: { enabled: false },
     liveTimer: { enabled: false },
@@ -218,8 +218,8 @@ describe('buildNotifications — medication eligibility', () => {
 });
 
 describe('buildNotifications — forgotten timers', () => {
-  const timerOn = (thresholdMinutes = 30) =>
-    settings({ forgottenTimer: { enabled: true, thresholdMinutes } });
+  const timerOn = (thresholdMinutes = 30, sleepThresholdMinutes = 240) =>
+    settings({ forgottenTimer: { enabled: true, thresholdMinutes, sleepThresholdMinutes } });
 
   const runningTimer = (over: Partial<RunningTimer> = {}): RunningTimer => ({
     type: 'feeding',
@@ -242,6 +242,44 @@ describe('buildNotifications — forgotten timers', () => {
       NOW,
     );
     expect(plan).toEqual([]);
+  });
+
+  it('uses the separate sleep threshold, not the general one, for a sleep timer', () => {
+    // A sleep timer running 30m with a 30m general threshold would fire now for
+    // any other type; sleep uses its own (240m) threshold, so it's 4h out.
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer({ type: 'sleep', startedAt: NOW - 30 * MINUTE })],
+        settings: timerOn(30, 240),
+      }),
+      NOW,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].key).toBe('timer:sleep:c1');
+    expect(plan[0].fireAt).toBe(NOW - 30 * MINUTE + 240 * MINUTE);
+  });
+
+  it('honors a configured sleep threshold independent of the general one', () => {
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer({ type: 'sleep', startedAt: NOW })],
+        settings: timerOn(30, 300),
+      }),
+      NOW,
+    );
+    expect(plan[0].fireAt).toBe(NOW + 300 * MINUTE);
+  });
+
+  it('leaves the general threshold applying to non-sleep timers', () => {
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer({ type: 'tummyTime', startedAt: NOW })],
+        settings: timerOn(45, 300),
+      }),
+      NOW,
+    );
+    expect(plan[0].key).toBe('timer:tummyTime:c1');
+    expect(plan[0].fireAt).toBe(NOW + 45 * MINUTE);
   });
 });
 
@@ -473,10 +511,10 @@ describe('buildNotifications — horizon + ordering', () => {
     const plan = buildNotifications(
       input({
         entries,
-        timers: [{ type: 'sleep', childId: 'c1', startedAt: NOW - 5 * MINUTE }],
+        timers: [{ type: 'feeding', childId: 'c1', startedAt: NOW - 5 * MINUTE }],
         settings: settings({
           scheduledMeds: { enabled: true, timing: timing({ at: true }) },
-          forgottenTimer: { enabled: true, thresholdMinutes: 30 },
+          forgottenTimer: { enabled: true, thresholdMinutes: 30, sleepThresholdMinutes: 240 },
         }),
       }),
       NOW,

@@ -391,6 +391,8 @@ export const en = {
       'Remind me when an as-needed medicine can be given again, or its 24h limit frees up.',
     forgottenTitle: 'Forgotten timers',
     forgottenHint: 'Warn me when a timer has been running unusually long.',
+    forgottenGeneralLabel: 'Feeding & tummy time',
+    forgottenSleepLabel: 'Sleep',
     liveTitle: 'Running timers',
     liveHint: 'Keep a live notification in the tray while a timer runs.',
     diaperTitle: 'Diaper changes',

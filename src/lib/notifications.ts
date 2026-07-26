@@ -23,6 +23,19 @@ import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
 import { computeContribution, contributionBody } from './contribution';
 import { TIMER_TYPES, type RunningTimer, type TimerType } from './timers';
+import {
+  DEFAULT_DIAPER_INTERVAL_MINUTES,
+  DEFAULT_FOOD_INTERVAL_MINUTES,
+  DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+} from './notificationDefaults';
+
+// Re-exported so existing importers (components) keep their `./notifications`
+// path; the canonical, side-effect-free home is `./notificationDefaults`.
+export {
+  DEFAULT_DIAPER_INTERVAL_MINUTES,
+  DEFAULT_FOOD_INTERVAL_MINUTES,
+  DEFAULT_SLEEP_FORGOTTEN_MINUTES,
+};
 
 const MINUTE = 60_000;
 /** Don't schedule further out than this — the plan is rebuilt on every refresh. */
@@ -37,12 +50,6 @@ const WEEKLY_KEY = 'weekly';
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
 const MAX_PLANNED = 64;
 
-/**
- * Applied to every child once the diaper/food case is on, unless that child
- * carries its own threshold (in minutes). A per-child value of 0 opts out.
- */
-export const DEFAULT_DIAPER_INTERVAL_MINUTES = 180;
-export const DEFAULT_FOOD_INTERVAL_MINUTES = 240;
 
 /**
  * Adaptive step size (minutes) for the time-interval steppers: single minutes
@@ -105,7 +112,12 @@ export interface NotificationSettings {
   masterEnabled: boolean;
   scheduledMeds: CaseSettings;
   medEligibility: CaseSettings;
-  forgottenTimer: { enabled: boolean; thresholdMinutes: number };
+  /**
+   * `thresholdMinutes` applies to feeding/tummy-time timers; sleep timers use
+   * `sleepThresholdMinutes` (typically much longer — a nap isn't a forgotten
+   * timer). Both are in minutes.
+   */
+  forgottenTimer: { enabled: boolean; thresholdMinutes: number; sleepThresholdMinutes: number };
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
   /**
@@ -314,18 +326,21 @@ export function buildNotifications(
 
   // 3. Forgotten timers -----------------------------------------------------
   if (settings.forgottenTimer.enabled) {
-    const threshold = settings.forgottenTimer.thresholdMinutes;
+    const { thresholdMinutes, sleepThresholdMinutes } = settings.forgottenTimer;
     for (const rt of timers) {
       const who = childName.get(rt.childId);
+      // Sleep gets its own (longer) threshold so a normal nap doesn't trip the
+      // "forgotten timer" alert; every other type uses the general one.
+      const effective = rt.type === 'sleep' ? sleepThresholdMinutes : thresholdMinutes;
       out.push({
         key: `timer:${rt.type}:${rt.childId}`,
-        fireAt: rt.startedAt + threshold * MINUTE,
+        fireAt: rt.startedAt + effective * MINUTE,
         title: i18n.t('notifications.titleTimerRunning'),
         body: i18n.t('notifications.timerBody', {
           context: childContext(who),
           activity: i18n.t(`timer.typeLabel.${rt.type}`),
           child: who,
-          duration: countdownLabel(threshold * MINUTE),
+          duration: countdownLabel(effective * MINUTE),
         }),
         childId: rt.childId,
       });
