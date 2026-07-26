@@ -21,8 +21,14 @@
 import i18n from '../i18n';
 import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
-import { computeContribution, contributionBody } from './contribution';
+import {
+  computeContribution,
+  computeGroupContributions,
+  contributionBody,
+  entriesForChildren,
+} from './contribution';
 import { TIMER_TYPES, type RunningTimer, type TimerType } from './timers';
+import type { KidsVisibilityState } from './visibility';
 import {
   DEFAULT_DIAPER_INTERVAL_MINUTES,
   DEFAULT_FOOD_INTERVAL_MINUTES,
@@ -155,6 +161,21 @@ export interface NotificationBuildInput {
   settings: NotificationSettings;
   /** Signed-in caregiver's display name, for the weekly-summary "you" tally. */
   me?: string;
+  /**
+   * Children currently visible on the dashboard. **Only the weekly summary
+   * respects this** — it recaps what the caregiver sees, so a hidden child (or a
+   * hidden group) is left out of its counts. The reminder cases deliberately
+   * ignore it: hiding a child from the dashboard is a display choice and must
+   * not silently cancel that child's medication or feeding reminders.
+   * Undefined means "no filtering".
+   */
+  visibleChildIds?: string[];
+  /**
+   * Kid grouping, for the weekly summary's per-group line. Undefined means "no
+   * groups", which makes every child its own bucket — what the in-app sheet
+   * shows for an account that never created a group.
+   */
+  kidGroups?: Pick<KidsVisibilityState, 'childGroupId' | 'groups'>;
 }
 
 type OffsetKind = 'before' | 'at' | 'after';
@@ -258,7 +279,7 @@ export function buildNotifications(
   input: NotificationBuildInput,
   now: number = Date.now(),
 ): PlannedNotification[] {
-  const { entries, timers, children, settings, me } = input;
+  const { entries, timers, children, settings, me, visibleChildIds, kidGroups } = input;
   if (!settings.masterEnabled) return [];
 
   const childName = new Map(children.map((c) => [c.id, c.name]));
@@ -404,13 +425,29 @@ export function buildNotifications(
   // computed now; with nothing logged all week there's nothing to recap, so it's
   // skipped — the same "no data → no reminder" rule the other cases follow.
   if (settings.weeklySummary.enabled && me) {
-    const summary = computeContribution(entries, me, now);
+    // Scoped to the children the caregiver actually sees — the recap should
+    // match what the in-app summary shows for the same week.
+    const visibleSet = visibleChildIds == null ? null : new Set(visibleChildIds);
+    const visible = visibleSet == null ? children : children.filter((c) => visibleSet.has(c.id));
+    const weeklyEntries =
+      visibleChildIds == null ? entries : entriesForChildren(entries, visibleChildIds);
+    const summary = computeContribution(weeklyEntries, me, now);
     if (summary.allTotal > 0) {
+      // Second line of the body, dropped by `contributionBody` when there's only
+      // one bucket. With no `kidGroups` every child is its own bucket, which is
+      // the same thing the sheet shows for an account with no groups.
+      const buckets = computeGroupContributions(
+        weeklyEntries,
+        visible,
+        kidGroups ?? { childGroupId: {}, groups: {} },
+        me,
+        now,
+      );
       out.push({
         key: WEEKLY_KEY,
         fireAt: nextWeeklySlot(now, settings.weeklySummary.weekday, settings.weeklySummary.hour),
         title: i18n.t('notifications.titleWeekly'),
-        body: contributionBody(summary),
+        body: contributionBody(summary, buckets),
       });
     }
   }

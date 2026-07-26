@@ -18,6 +18,7 @@ import { KidEditorScreen } from '../features/settings/KidEditorScreen';
 import { GroupEditorScreen } from '../features/settings/GroupEditorScreen';
 import { DeleteConfirmSheet } from '../features/deleteSheet/DeleteConfirmSheet';
 import { MedBreakdownSheet } from '../features/medBreakdown/MedBreakdownSheet';
+import { ContributionSheet } from '../features/contribution/ContributionSheet';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -82,6 +83,15 @@ export function RootNavigator() {
             <Stack.Screen
               name="MedBreakdown"
               component={MedBreakdownSheet}
+              options={{
+                presentation: 'transparentModal',
+                animation: 'fade',
+                contentStyle: { backgroundColor: 'transparent' },
+              }}
+            />
+            <Stack.Screen
+              name="Contribution"
+              component={ContributionSheet}
               options={{
                 presentation: 'transparentModal',
                 animation: 'fade',

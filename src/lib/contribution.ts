@@ -12,8 +12,9 @@
  * server — there is no cross-server aggregation, so this never leaves the device.
  */
 import i18n from '../i18n';
-import type { Entry, EntryType } from '../api/types';
+import type { Child, Entry, EntryType } from '../api/types';
 import { entryTypeLabel } from './entryDisplay';
+import { groupForChild, type KidsVisibilityState } from './visibility';
 
 const DAY = 24 * 60 * 60_000;
 
@@ -112,33 +113,134 @@ export function computeContribution(
 }
 
 /**
+ * One bucket of the grouped breakdown: a kid group, or a single ungrouped
+ * child standing in for itself.
+ */
+export interface GroupContribution {
+  /** Group id, or the child id when this bucket is one ungrouped child. */
+  id: string;
+  /** Group name, or the child's name. */
+  label: string;
+  /** True when `id`/`label` came from a `KidGroup` rather than a lone child. */
+  isGroup: boolean;
+  /** Children in this bucket, in input order. */
+  childIds: string[];
+  summary: ContributionSummary;
+}
+
+/** Only the entries logged for one of `childIds`. */
+export function entriesForChildren(entries: Entry[], childIds: string[]): Entry[] {
+  const wanted = new Set(childIds);
+  return entries.filter((e) => wanted.has(e.childId));
+}
+
+/**
+ * The same tally, split by kid group.
+ *
+ * `children` is expected to be **already visibility-filtered** by the caller
+ * (`visibleChildren`), so a hidden child — or a child in a hidden group —
+ * contributes to neither the buckets nor the totals. That filtering stays with
+ * the caller because visibility depends on `now` + reveal state, which is a UI
+ * concern; this function only needs the surviving children and their grouping.
+ *
+ * A child that belongs to no group becomes a bucket of its own rather than
+ * being pooled into an "ungrouped" catch-all: with no groups configured at all
+ * (the common case) that reads as a plain per-child breakdown, which is the
+ * useful thing to show, not a single bucket labelled "other".
+ */
+export function computeGroupContributions(
+  entries: Entry[],
+  children: Child[],
+  state: Pick<KidsVisibilityState, 'childGroupId' | 'groups'>,
+  me: string,
+  now: number = Date.now(),
+  windowDays: number = SUMMARY_WINDOW_DAYS,
+): GroupContribution[] {
+  const buckets: GroupContribution[] = [];
+  const byId = new Map<string, GroupContribution>();
+
+  for (const child of children) {
+    const group = groupForChild(child.id, state);
+    const id = group?.id ?? child.id;
+    const existing = byId.get(id);
+    if (existing) {
+      existing.childIds.push(child.id);
+      continue;
+    }
+    const bucket: GroupContribution = {
+      id,
+      label: group?.name ?? child.name,
+      isGroup: group != null,
+      childIds: [child.id],
+      // Filled in below, once every member of the bucket is known.
+      summary: computeContribution([], me, now, windowDays),
+    };
+    byId.set(id, bucket);
+    buckets.push(bucket);
+  }
+
+  for (const bucket of buckets) {
+    bucket.summary = computeContribution(
+      entriesForChildren(entries, bucket.childIds),
+      me,
+      now,
+      windowDays,
+    );
+  }
+
+  return buckets;
+}
+
+/** `mine/total` pairs joined with a middot, or bare `mine` counts when solo. */
+function joinCounts(parts: { label: string; mine: number; total: number }[], solo: boolean): string {
+  return parts
+    .map((p) => (solo ? `${p.label} ${p.mine}` : `${p.label} ${p.mine}/${p.total}`))
+    .join(' · ');
+}
+
+/**
  * Localized notification body for a summary. When I'm the only caregiver who
  * logged anything, the "% of the family's total" comparison is meaningless, so a
  * solo variant drops it and just recaps my own counts. Categories are joined
  * with a middot into one line the OS can expand.
+ *
+ * `groups` adds a second line splitting the same week by kid group. It's dropped
+ * below two buckets, where it would only restate the total the first line
+ * already gives — the same rule the in-app sheet applies to its group section.
  */
-export function contributionBody(summary: ContributionSummary): string {
+export function contributionBody(
+  summary: ContributionSummary,
+  groups: GroupContribution[] = [],
+): string {
   const solo = summary.caregivers <= 1;
 
-  const breakdown = summary.categories
-    .map((c) =>
-      solo
-        ? `${entryTypeLabel(c.type)} ${c.mine}`
-        : `${entryTypeLabel(c.type)} ${c.mine}/${c.total}`,
-    )
-    .join(' · ');
+  const breakdown = joinCounts(
+    summary.categories.map((c) => ({ label: entryTypeLabel(c.type), mine: c.mine, total: c.total })),
+    solo,
+  );
 
-  if (solo) {
-    return i18n.t('notifications.weeklyBodySolo', {
-      mine: summary.myTotal,
-      breakdown,
-    });
-  }
+  const head = solo
+    ? i18n.t('notifications.weeklyBodySolo', {
+        mine: summary.myTotal,
+        breakdown,
+      })
+    : i18n.t('notifications.weeklyBody', {
+        mine: summary.myTotal,
+        total: summary.allTotal,
+        share: Math.round(summary.overallShare * 100),
+        breakdown,
+      });
 
-  return i18n.t('notifications.weeklyBody', {
-    mine: summary.myTotal,
-    total: summary.allTotal,
-    share: Math.round(summary.overallShare * 100),
-    breakdown,
-  });
+  if (groups.length < 2) return head;
+
+  const byGroup = joinCounts(
+    groups.map((g) => ({
+      label: g.label,
+      mine: g.summary.myTotal,
+      total: g.summary.allTotal,
+    })),
+    solo,
+  );
+
+  return `${head}\n${i18n.t('notifications.weeklyGroups', { breakdown: byGroup })}`;
 }

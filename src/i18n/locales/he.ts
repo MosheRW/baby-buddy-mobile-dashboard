@@ -446,10 +446,28 @@ export const he = {
     weeklyBody:
       'תיעדתם {{mine}} מתוך {{total}} רשומות השבוע — {{share}}% מסך הכול של המשפחה. {{breakdown}}',
     weeklyBodySolo: 'תיעדתם {{mine}} רשומות השבוע. {{breakdown}}',
+    weeklyGroups: 'לפי קבוצה: {{breakdown}}',
     // In-app carousel of already-delivered reminders, shown above the child card.
     carouselHeading: 'התראות',
     dismissOne: 'סגירת התראה',
     dismissAll: 'נקה הכול',
+  },
+
+  contribution: {
+    title: 'השבוע שלכם במבט',
+    viewNow: 'צפייה בסיכום השבוע',
+    window: '{{days}} הימים האחרונים',
+    youLogged: 'תיעדתם',
+    shareCaption: 'מתוך {{total}} רישומים — {{share}}% מסך המשפחה',
+    soloCaption: 'רישומים — אף אחד אחר לא תיעד השבוע',
+    byCategory: 'לפי קטגוריה',
+    byGroup: 'לפי קבוצה',
+    empty: 'לא תועד דבר ב-{{days}} הימים האחרונים.',
+    noUser: 'שם המשתמש שלכם אינו זמין, ולכן לא ניתן לחשב את החלק שלכם.',
+    hiddenNote_one: 'ילד מוסתר אחד אינו נספר.',
+    hiddenNote_two: 'שני ילדים מוסתרים אינם נספרים.',
+    hiddenNote_many: '{{count}} ילדים מוסתרים אינם נספרים.',
+    hiddenNote_other: '{{count}} ילדים מוסתרים אינם נספרים.',
   },
 
   errors: {

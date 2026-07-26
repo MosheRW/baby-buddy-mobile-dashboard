@@ -476,6 +476,73 @@ describe('buildNotifications — weekly summary', () => {
     const plan = buildNotifications(input({ entries, me: 'Sarah' }), NOW);
     expect(plan.some((n) => n.key === 'weekly')).toBe(false);
   });
+
+  it('counts only the visible children when a visibility scope is given', () => {
+    const entries: Entry[] = [
+      diaper(iso(NOW - DAY), { creator: 'Sarah' }),
+      diaper(iso(NOW - DAY), { creator: 'Alex', id: 'd-alex', childId: 'hidden-kid' }),
+      feeding(iso(NOW - DAY), { creator: 'Alex', id: 'f-alex', childId: 'hidden-kid' }),
+    ];
+    const plan = buildNotifications(
+      input({ entries, settings: weeklyOn(), me: 'Sarah', visibleChildIds: ['c1'] }),
+      NOW,
+    );
+    const weekly = plan.find((n) => n.key === 'weekly')!;
+    // Alex's entries were all logged for the hidden child, so this reads solo.
+    expect(weekly.body).not.toContain('%');
+    expect(weekly.body).toContain('Diaper 1');
+  });
+
+  it('drops the summary entirely when every visible child was idle', () => {
+    const entries: Entry[] = [diaper(iso(NOW - DAY), { childId: 'hidden-kid' })];
+    const plan = buildNotifications(
+      input({ entries, settings: weeklyOn(), me: 'Sarah', visibleChildIds: ['c1'] }),
+      NOW,
+    );
+    expect(plan.some((n) => n.key === 'weekly')).toBe(false);
+  });
+
+  it('splits the body by kid group when there is more than one bucket', () => {
+    const children = [child('c1', 'Emma'), child('c2', 'Noah')];
+    const entries: Entry[] = [
+      diaper(iso(NOW - DAY)),
+      feeding(iso(NOW - DAY), { id: 'f-noah', childId: 'c2' }),
+    ];
+    const plan = buildNotifications(
+      input({
+        entries,
+        children,
+        settings: weeklyOn(),
+        me: 'Sarah',
+        kidGroups: { childGroupId: { c1: 'g1' }, groups: { g1: { id: 'g1', name: 'Twins', order: 0 } } },
+      }),
+      NOW,
+    );
+    const weekly = plan.find((n) => n.key === 'weekly')!;
+    expect(weekly.body.split('\n')[1]).toBe('By group: Twins 1 · Noah 1');
+  });
+
+  it('leaves a single-child account with a one-line body', () => {
+    const entries: Entry[] = [diaper(iso(NOW - DAY))];
+    const plan = buildNotifications(input({ entries, settings: weeklyOn(), me: 'Sarah' }), NOW);
+    expect(plan.find((n) => n.key === 'weekly')!.body).not.toContain('\n');
+  });
+
+  it('leaves the reminder cases outside the visibility scope', () => {
+    // A hidden child's medication is still due — hiding is a display choice.
+    const entries: Entry[] = [
+      med({ name: 'Amoxicillin', time: iso(NOW - HOUR), repeatHours: 2, childId: 'c1' }),
+    ];
+    const plan = buildNotifications(
+      input({
+        entries,
+        settings: settings({ scheduledMeds: { enabled: true, timing: timing() } }),
+        visibleChildIds: [],
+      }),
+      NOW,
+    );
+    expect(plan.some((n) => n.key.startsWith('sched:'))).toBe(true);
+  });
 });
 
 describe('nextWeeklySlot', () => {
