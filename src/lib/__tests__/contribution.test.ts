@@ -1,5 +1,10 @@
-import { computeContribution, contributionBody } from '../contribution';
-import type { DiaperEntry, Entry, FeedingEntry, MedicationEntry } from '../../api/types';
+import {
+  computeContribution,
+  computeGroupContributions,
+  contributionBody,
+  entriesForChildren,
+} from '../contribution';
+import type { Child, DiaperEntry, Entry, FeedingEntry, MedicationEntry } from '../../api/types';
 import i18n from '../../i18n';
 
 const DAY = 24 * 60 * 60_000;
@@ -144,5 +149,87 @@ describe('contributionBody', () => {
     } finally {
       await i18n.changeLanguage('en');
     }
+  });
+});
+
+// --- Grouped breakdown ------------------------------------------------------
+
+function child(id: string, name: string): Child {
+  return {
+    id,
+    name,
+    initial: name[0],
+    hue: 200,
+    birthDate: '2026-01-01',
+    age: '6 months old',
+    defaultFoodMl: 120,
+  };
+}
+
+/** Same entry, reassigned to another child. */
+function forChild<T extends Entry>(entry: T, childId: string): T {
+  return { ...entry, childId };
+}
+
+describe('entriesForChildren', () => {
+  it('keeps only entries logged for the given children', () => {
+    const entries: Entry[] = [
+      diaper(NOW - DAY, 'Sarah'),
+      forChild(diaper(NOW - DAY, 'Sarah'), 'c2'),
+      forChild(diaper(NOW - DAY, 'Sarah'), 'c3'),
+    ];
+    expect(entriesForChildren(entries, ['c1', 'c3'])).toHaveLength(2);
+    expect(entriesForChildren(entries, [])).toEqual([]);
+  });
+});
+
+describe('computeGroupContributions', () => {
+  const twins = { id: 'g1', name: 'Twins', order: 0 };
+
+  it('pools grouped children and leaves an ungrouped child as its own bucket', () => {
+    const children = [child('c1', 'Ada'), child('c2', 'Ben'), child('c3', 'Cleo')];
+    const state = { childGroupId: { c1: 'g1', c2: 'g1' }, groups: { g1: twins } };
+    const entries: Entry[] = [
+      diaper(NOW - DAY, 'Sarah'), // c1
+      forChild(feeding(NOW - DAY, 'Alex'), 'c2'),
+      forChild(diaper(NOW - DAY, 'Alex'), 'c3'),
+    ];
+
+    const buckets = computeGroupContributions(entries, children, state, 'Sarah', NOW);
+
+    expect(buckets.map((b) => [b.id, b.label, b.isGroup])).toEqual([
+      ['g1', 'Twins', true],
+      ['c3', 'Cleo', false],
+    ]);
+    expect(buckets[0].childIds).toEqual(['c1', 'c2']);
+    expect(buckets[0].summary).toMatchObject({ myTotal: 1, allTotal: 2 });
+    expect(buckets[1].summary).toMatchObject({ myTotal: 0, allTotal: 1 });
+  });
+
+  it('counts only the children it is given, so hidden ones drop out entirely', () => {
+    // The caller passes visibility-filtered children; Ben (c2) is hidden here.
+    const state = { childGroupId: {}, groups: {} };
+    const entries: Entry[] = [
+      diaper(NOW - DAY, 'Sarah'),
+      forChild(diaper(NOW - DAY, 'Sarah'), 'c2'),
+    ];
+
+    const buckets = computeGroupContributions(
+      entries,
+      [child('c1', 'Ada')],
+      state,
+      'Sarah',
+      NOW,
+    );
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0].summary).toMatchObject({ myTotal: 1, allTotal: 1 });
+  });
+
+  it('reports an empty summary for a bucket with no activity', () => {
+    const state = { childGroupId: {}, groups: {} };
+    const buckets = computeGroupContributions([], [child('c1', 'Ada')], state, 'Sarah', NOW);
+    expect(buckets[0].summary).toMatchObject({ myTotal: 0, allTotal: 0, caregivers: 0 });
+    expect(buckets[0].summary.categories).toEqual([]);
   });
 });

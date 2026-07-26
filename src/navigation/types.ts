@@ -48,4 +48,6 @@ export type MainStackParamList = {
   GroupEditor: GroupEditorParams;
   DeleteConfirm: DeleteConfirmParams;
   MedBreakdown: MedBreakdownParams;
+  /** On-demand weekly contribution recap; reads everything it needs from stores. */
+  Contribution: undefined;
 };

@@ -15,7 +15,9 @@ import { useChildren, useEntries } from '../data/queries';
 import { buildNotifications, buildOngoingTimerNotifications } from '../lib/notifications';
 import { useNotificationStore } from '../stores';
 import { useAuthStore } from '../stores/authStore';
+import { useKidsStore } from '../stores/kidsStore';
 import { useTimerStore } from '../stores/timerStore';
+import { visibleChildren } from '../lib/visibility';
 import * as service from '../notifications/service';
 
 /** How often to re-evaluate while the app is foregrounded and enabled. */
@@ -37,6 +39,13 @@ export function useNotificationSync(): void {
   const perChild = useNotificationStore((s) => s.perChild);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
   const me = useAuthStore((s) => s.session?.userName);
+
+  // Visibility slices, subscribed individually so the plan doesn't rebuild on
+  // every unrelated kids-store change. Only the weekly summary reads them.
+  const hidden = useKidsStore((s) => s.hidden);
+  const childGroupId = useKidsStore((s) => s.childGroupId);
+  const groups = useKidsStore((s) => s.groups);
+  const childSchedule = useKidsStore((s) => s.childSchedule);
 
   const [tick, setTick] = useState(0);
 
@@ -63,10 +72,20 @@ export function useNotificationSync(): void {
   // check keeps the interval/foreground ticks from re-issuing identical schedules.
   const lastSig = useRef<string>('');
   useEffect(() => {
+    // Reveal is deliberately not applied: a shake-to-peek shouldn't widen the
+    // week's recap. Recomputed here rather than memoized because a schedule
+    // window can open or close between ticks.
+    const visible = visibleChildren(
+      children ?? [],
+      { hidden, childGroupId, groups, childSchedule },
+      Date.now(),
+      false,
+    );
     const plan = buildNotifications({
       entries: entries ?? [],
       timers,
       children: children ?? [],
+      visibleChildIds: visible.map((c) => c.id),
       settings: {
         masterEnabled,
         scheduledMeds,
@@ -102,6 +121,10 @@ export function useNotificationSync(): void {
     weeklySummary,
     perChild,
     me,
+    hidden,
+    childGroupId,
+    groups,
+    childSchedule,
     tick,
   ]);
 

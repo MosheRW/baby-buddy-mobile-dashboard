@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
+import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
@@ -357,6 +357,14 @@ export function NotificationSettingsScreen({ navigation }: Props) {
               </View>
             </View>
           ) : null}
+          {/* Outside the enabled/master gates on purpose: reading the recap is a
+              local calculation, so it stays available even with notifications
+              off or permission denied. */}
+          <ActionButton
+            label={t('contribution.viewNow')}
+            variant="neutral"
+            onPress={() => navigation.navigate('Contribution')}
+          />
         </Card>
       </ScrollView>
     </SafeAreaView>

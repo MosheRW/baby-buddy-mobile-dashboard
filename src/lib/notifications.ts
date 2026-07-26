@@ -21,7 +21,7 @@
 import i18n from '../i18n';
 import type { Child, Entry, EntryType } from '../api/types';
 import { eligibleMeds, medLimitSummaries, neededMeds, countdownLabel } from './medication';
-import { computeContribution, contributionBody } from './contribution';
+import { computeContribution, contributionBody, entriesForChildren } from './contribution';
 import { TIMER_TYPES, type RunningTimer, type TimerType } from './timers';
 import {
   DEFAULT_DIAPER_INTERVAL_MINUTES,
@@ -155,6 +155,15 @@ export interface NotificationBuildInput {
   settings: NotificationSettings;
   /** Signed-in caregiver's display name, for the weekly-summary "you" tally. */
   me?: string;
+  /**
+   * Children currently visible on the dashboard. **Only the weekly summary
+   * respects this** — it recaps what the caregiver sees, so a hidden child (or a
+   * hidden group) is left out of its counts. The reminder cases deliberately
+   * ignore it: hiding a child from the dashboard is a display choice and must
+   * not silently cancel that child's medication or feeding reminders.
+   * Undefined means "no filtering".
+   */
+  visibleChildIds?: string[];
 }
 
 type OffsetKind = 'before' | 'at' | 'after';
@@ -258,7 +267,7 @@ export function buildNotifications(
   input: NotificationBuildInput,
   now: number = Date.now(),
 ): PlannedNotification[] {
-  const { entries, timers, children, settings, me } = input;
+  const { entries, timers, children, settings, me, visibleChildIds } = input;
   if (!settings.masterEnabled) return [];
 
   const childName = new Map(children.map((c) => [c.id, c.name]));
@@ -404,7 +413,11 @@ export function buildNotifications(
   // computed now; with nothing logged all week there's nothing to recap, so it's
   // skipped — the same "no data → no reminder" rule the other cases follow.
   if (settings.weeklySummary.enabled && me) {
-    const summary = computeContribution(entries, me, now);
+    // Scoped to the children the caregiver actually sees — the recap should
+    // match what the in-app summary shows for the same week.
+    const weeklyEntries =
+      visibleChildIds == null ? entries : entriesForChildren(entries, visibleChildIds);
+    const summary = computeContribution(weeklyEntries, me, now);
     if (summary.allTotal > 0) {
       out.push({
         key: WEEKLY_KEY,

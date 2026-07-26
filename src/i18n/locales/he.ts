@@ -452,6 +452,23 @@ export const he = {
     dismissAll: 'נקה הכול',
   },
 
+  contribution: {
+    title: 'השבוע שלכם במבט',
+    viewNow: 'צפייה בסיכום השבוע',
+    window: '{{days}} הימים האחרונים',
+    youLogged: 'תיעדתם',
+    shareCaption: 'מתוך {{total}} רישומים — {{share}}% מסך המשפחה',
+    soloCaption: 'רישומים — אף אחד אחר לא תיעד השבוע',
+    byCategory: 'לפי קטגוריה',
+    byGroup: 'לפי קבוצה',
+    empty: 'לא תועד דבר ב-{{days}} הימים האחרונים.',
+    noUser: 'שם המשתמש שלכם אינו זמין, ולכן לא ניתן לחשב את החלק שלכם.',
+    hiddenNote_one: 'ילד מוסתר אחד אינו נספר.',
+    hiddenNote_two: 'שני ילדים מוסתרים אינם נספרים.',
+    hiddenNote_many: '{{count}} ילדים מוסתרים אינם נספרים.',
+    hiddenNote_other: '{{count}} ילדים מוסתרים אינם נספרים.',
+  },
+
   errors: {
     loadTitle: 'לא ניתן לטעון את הנתונים',
     saveTitle: 'לא ניתן לשמור את הרשומה',

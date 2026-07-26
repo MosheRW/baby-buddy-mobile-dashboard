@@ -461,6 +461,23 @@ export const en = {
     dismissAll: 'Clear all',
   },
 
+  // The on-demand caregiver-contribution recap (the weekly summary, readable at
+  // any time from notification settings).
+  contribution: {
+    title: 'Your week in review',
+    viewNow: "View this week's summary",
+    window: 'Last {{days}} days',
+    youLogged: 'You logged',
+    shareCaption: "of {{total}} entries — {{share}}% of the family's total",
+    soloCaption: 'entries — nobody else logged anything this week',
+    byCategory: 'By category',
+    byGroup: 'By group',
+    empty: 'Nothing was logged in the last {{days}} days.',
+    noUser: "Your account name isn't available, so your share can't be worked out.",
+    hiddenNote_one: '{{count}} hidden child is not counted.',
+    hiddenNote_other: '{{count}} hidden children are not counted.',
+  },
+
   // User-facing failure titles, shown as error cards in the dashboard carousel.
   // The body is the underlying `errorMessage(...)`, so these are just the "what
   // failed" headline.
