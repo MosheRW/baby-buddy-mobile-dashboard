@@ -22,6 +22,7 @@
  */
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { withDisclaimer } from '../lib/notifications';
 import type { OngoingNotification, PlannedNotification } from '../lib/notifications';
 import type { PermissionStatus } from '../stores/notificationStore';
 
@@ -59,6 +60,151 @@ function nm(): NotificationsModule | null {
 
 let initialized = false;
 
+// --- Delivery-time server validation ----------------------------------------
+
+/**
+ * What to do with a notification the OS is about to show: suppress it, or show it
+ * — optionally with a `body` rebuilt from fresh server data (which is also how the
+ * "couldn't confirm" disclaimer gets added, since notification content is fixed at
+ * schedule time and can only be changed by re-presenting).
+ */
+export interface DeliveryDecision {
+  show: boolean;
+  body?: string;
+}
+
+export type DeliveryValidator = (notification: {
+  id: string;
+  title: string;
+  body: string;
+}) => Promise<DeliveryDecision>;
+
+/**
+ * The gate every delivered reminder passes through. Registered by
+ * `useNotificationSync` (it needs the data layer, which this module must not
+ * import) and read at delivery time, so registration order doesn't matter.
+ *
+ * **Foreground only.** `handleNotification` is the sole interception point for a
+ * local notification, and the OS only routes through it while the app is running.
+ * A reminder that fires with the app killed is displayed by the OS directly — no
+ * JS runs, so it can't be validated then; it carries whatever the last successful
+ * plan-time validation produced. That gap is inherent to local scheduling without
+ * a push backend, which a self-hosted Baby Buddy can't provide.
+ */
+let validator: DeliveryValidator | null = null;
+
+export function setDeliveryValidator(v: DeliveryValidator | null): void {
+  validator = v;
+}
+
+/**
+ * How long to let validation run before giving up and showing the reminder anyway.
+ * Well under the API client's own 15s timeout: a banner that arrives 15 seconds
+ * late is its own bug, and timing out here is not a failure — it lands on the
+ * fail-open path (show it, disclaimed), which is the intended behaviour when the
+ * server can't be reached.
+ */
+const VALIDATE_TIMEOUT_MS = 6_000;
+
+/** Presentation verdicts, in the SDK's shape. */
+const SHOW = {
+  shouldShowBanner: true,
+  shouldShowList: true,
+  shouldPlaySound: true,
+  shouldSetBadge: false,
+} as const;
+const SUPPRESS = {
+  shouldShowBanner: false,
+  shouldShowList: false,
+  shouldPlaySound: false,
+  shouldSetBadge: false,
+} as const;
+
+/** Marker on the content we re-present, so it bypasses the gate second time round. */
+const REVALIDATED = 'revalidated';
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('validation timed out')), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
+/**
+ * Re-present a notification with corrected copy, under the **same identifier** —
+ * which both keeps the key parseable by `notificationAction`/the carousel and makes
+ * a visible duplicate structurally impossible (same id updates in place). The
+ * `revalidated` flag stops the new delivery from re-entering the gate.
+ */
+async function repostAsync(
+  id: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  const N = nm();
+  if (!N) return;
+  try {
+    await N.scheduleNotificationAsync({
+      identifier: id,
+      content: { title, body, data: { ...data, [REVALIDATED]: true } },
+      // Bare `channelId` = present now (see syncOngoingAsync), so this never joins
+      // the pending set that syncScheduledAsync clears.
+      trigger: { channelId: CHANNEL_ID },
+    });
+  } catch (err) {
+    console.warn('[notifications] re-present failed:', err);
+  }
+}
+
+/**
+ * Decide how to present one incoming notification. Fails **open** at every step: a
+ * missing validator, a thrown error, or a timeout all end with the reminder shown,
+ * because silently dropping a medication reminder is worse than showing one we
+ * couldn't confirm. Everything we show unconfirmed says so in its body.
+ */
+async function decidePresentationAsync(raw: unknown): Promise<typeof SHOW | typeof SUPPRESS> {
+  const req = (raw as { request?: { identifier?: string; content?: Record<string, unknown> } })
+    ?.request;
+  const id = req?.identifier ?? '';
+  const content = req?.content ?? {};
+  const data = (content.data ?? {}) as Record<string, unknown>;
+  const title = typeof content.title === 'string' ? content.title : '';
+  const body = typeof content.body === 'string' ? content.body : '';
+
+  // Bypass the gate for: the ongoing running-timer notifications (presented by us
+  // from live state each minute — nothing to validate, and validating would fight
+  // its own refresh loop), and the corrected copy `repostAsync` puts back, which
+  // would otherwise loop through here forever.
+  if (!validator || !id || data[REVALIDATED] === true || id.startsWith(ONGOING_PREFIX)) return SHOW;
+
+  let decision: DeliveryDecision;
+  try {
+    decision = await withTimeout(validator({ id, title, body }), VALIDATE_TIMEOUT_MS);
+  } catch (err) {
+    console.warn('[notifications] delivery validation failed:', err);
+    decision = { show: true, body: withDisclaimer(body) };
+  }
+
+  if (!decision.show) return SUPPRESS;
+  if (decision.body && decision.body !== body) {
+    // Content is immutable at delivery, so the only way to change the copy is to
+    // hide this one and immediately put back an amended copy under the same id.
+    void repostAsync(id, title, decision.body, data);
+    return SUPPRESS;
+  }
+  return SHOW;
+}
+
 /** Map the SDK's permission string to our store union. */
 function mapStatus(status: string): PermissionStatus {
   if (status === 'granted') return 'granted';
@@ -75,13 +221,10 @@ export async function initAsync(): Promise<void> {
   if (!N || initialized) return;
   initialized = true;
   try {
+    // Every foreground delivery is gated on the server still backing it — see
+    // `decidePresentationAsync` / `setDeliveryValidator`.
     N.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-      }),
+      handleNotification: (notification) => decidePresentationAsync(notification),
     });
     if (Platform.OS === 'android') {
       await N.setNotificationChannelAsync(CHANNEL_ID, {

@@ -457,6 +457,10 @@ export const en = {
     weeklyBodySolo: 'You logged {{mine}} entries this week. {{breakdown}}',
     // Second line of the weekly body, listing the same week split by kid group.
     weeklyGroups: 'By group: {{breakdown}}',
+    // Wraps any body above when the reminder couldn't be confirmed against the
+    // server before being shown. A whole-sentence template, not a bare suffix, so
+    // a locale can place the caveat wherever it reads naturally.
+    unverified: "{{body}} (Couldn't check with the server — this may be out of date.)",
     // In-app carousel of already-delivered reminders, shown above the child card.
     carouselHeading: 'Notifications',
     dismissOne: 'Dismiss notification',

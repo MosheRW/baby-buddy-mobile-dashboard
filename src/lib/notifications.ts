@@ -51,8 +51,11 @@ const HORIZON_MS = 48 * 60 * MINUTE;
  * horizon (which exists for data-anchored reminders that shift on every refresh).
  * Its body is a snapshot of the trailing week, re-taken every time the plan is
  * rebuilt — accurate as of the last time the app was open before it fires.
+ *
+ * Exported because it is also the one key `validateNotification` must special-case:
+ * it's calendar-anchored, so it has no server premise that can go stale.
  */
-const WEEKLY_KEY = 'weekly';
+export const WEEKLY_KEY = 'weekly';
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
 const MAX_PLANNED = 64;
 
@@ -162,6 +165,15 @@ export interface NotificationBuildInput {
   /** Signed-in caregiver's display name, for the weekly-summary "you" tally. */
   me?: string;
   /**
+   * True when this plan was built from data we could **not** confirm against the
+   * server (the pre-plan refetch failed — offline, VPN down, server restarting).
+   * Every reminder is supposed to be server-validated before the user sees it; a
+   * reminder we can't validate is still delivered rather than silently dropped
+   * (dropping a medication reminder is the worse failure), but it says so in its
+   * body. See `withDisclaimer`.
+   */
+  unverified?: boolean;
+  /**
    * Children currently visible on the dashboard. **Only the weekly summary
    * respects this** — it recaps what the caregiver sees, so a hidden child (or a
    * hidden group) is left out of its counts. The reminder cases deliberately
@@ -176,6 +188,20 @@ export interface NotificationBuildInput {
    * shows for an account that never created a group.
    */
   kidGroups?: Pick<KidsVisibilityState, 'childGroupId' | 'groups'>;
+}
+
+/**
+ * Mark a body as not-confirmed-with-the-server. **Idempotent** — the same body can
+ * pass through here twice (planned while offline, then delivered while still
+ * offline) and must not accumulate two disclaimers.
+ */
+export function withDisclaimer(body: string): string {
+  // Render the template with an empty body to recover just the marker text, so the
+  // already-marked check works in any locale — and whether the locale places the
+  // disclaimer after the body (en) or anywhere else (an RTL sentence may not).
+  const marker = i18n.t('notifications.unverified', { body: '' }).trim();
+  if (marker && body.includes(marker)) return body;
+  return i18n.t('notifications.unverified', { body });
 }
 
 type OffsetKind = 'before' | 'at' | 'after';
@@ -270,12 +296,17 @@ function lastEntryOfType(entries: Entry[], childId: string, type: EntryType): nu
 }
 
 /**
- * Build the full set of reminders that should currently be scheduled. Returns
- * strictly-future notifications within the planning horizon, soonest first, and
- * capped — a past `at`/`before` is silently dropped so an overdue dose only ever
- * surfaces through its "after" reminder.
+ * Every reminder the current data justifies, **unfiltered** — no future/horizon
+ * cut and no ordering. `buildNotifications` filters this into the schedulable
+ * plan; `validateNotification` (src/lib/notificationValidation.ts) re-derives it
+ * from fresh server data to decide whether a notification about to be shown still
+ * has a premise.
+ *
+ * Keeping validation on top of this one function is deliberate: a new reminder
+ * case added here is validated automatically, whereas a hand-written per-case
+ * validator would silently drift out of sync with the planner it guards.
  */
-export function buildNotifications(
+export function buildCandidates(
   input: NotificationBuildInput,
   now: number = Date.now(),
 ): PlannedNotification[] {
@@ -452,10 +483,29 @@ export function buildNotifications(
     }
   }
 
-  return out
+  return out;
+}
+
+/**
+ * Build the full set of reminders that should currently be scheduled. Returns
+ * strictly-future notifications within the planning horizon, soonest first, and
+ * capped — a past `at`/`before` is silently dropped so an overdue dose only ever
+ * surfaces through its "after" reminder.
+ *
+ * When `input.unverified` is set, every body carries the "couldn't confirm with
+ * the server" disclaimer: these reminders were planned from cached data, and one
+ * of them may fire while the app is closed, with no chance to re-check first.
+ */
+export function buildNotifications(
+  input: NotificationBuildInput,
+  now: number = Date.now(),
+): PlannedNotification[] {
+  const planned = buildCandidates(input, now)
     .filter((n) => n.fireAt > now && (n.key === WEEKLY_KEY || n.fireAt <= now + HORIZON_MS))
     .sort((a, b) => a.fireAt - b.fireAt)
     .slice(0, MAX_PLANNED);
+  if (!input.unverified) return planned;
+  return planned.map((n) => ({ ...n, body: withDisclaimer(n.body) }));
 }
 
 /**
