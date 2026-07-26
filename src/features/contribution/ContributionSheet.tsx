@@ -35,7 +35,10 @@ type Props = NativeStackScreenProps<MainStackParamList, 'Contribution'>;
  */
 export function ContributionSheet({ navigation }: Props) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  // `scheme` is passed to `entryTint` explicitly: this component already holds a
+  // theme, so the category colours should come from the same render rather than
+  // from the module-level active scheme.
+  const { colors, scheme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { children, entries } = useDashboardData();
   const me = useAuthStore((s) => s.session?.userName) ?? '';
@@ -132,7 +135,7 @@ export function ContributionSheet({ navigation }: Props) {
                     mine={c.mine}
                     total={c.total}
                     solo={solo}
-                    color={entryTint(c.type).fg}
+                    color={entryTint(c.type, scheme).fg}
                   />
                 ))}
 

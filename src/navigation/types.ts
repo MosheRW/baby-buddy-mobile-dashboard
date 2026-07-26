@@ -48,6 +48,9 @@ export type MainStackParamList = {
   GroupEditor: GroupEditorParams;
   DeleteConfirm: DeleteConfirmParams;
   MedBreakdown: MedBreakdownParams;
-  /** On-demand weekly contribution recap; reads everything it needs from stores. */
+  /**
+   * On-demand weekly contribution recap. Takes no params: it reads the timeline
+   * from React Query and the caregiver + visibility/grouping from the stores.
+   */
   Contribution: undefined;
 };
