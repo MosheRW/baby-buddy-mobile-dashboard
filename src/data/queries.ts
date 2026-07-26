@@ -11,6 +11,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type QueryClient,
   type UseMutationResult,
 } from '@tanstack/react-query';
 import type { Child, Entry } from '../api/types';
@@ -31,25 +32,63 @@ function useEnabled(): boolean {
   return useAuthStore((s) => s.session !== null);
 }
 
+/**
+ * Query definitions live as standalone objects because they have two callers: the
+ * hooks below, and `refreshServerData`, which fetches the same three imperatively
+ * for notification validation. Sharing the object keeps the fetch the validator
+ * performs identical to the one the UI performs.
+ */
+const childrenQuery = {
+  queryKey: queryKeys.children,
+  queryFn: ({ signal }: { signal: AbortSignal }) => dataSource.getChildren(signal),
+  // Children change rarely; entries are what actually move.
+  staleTime: 5 * 60_000,
+};
+
+const entriesQuery = {
+  queryKey: queryKeys.entries,
+  queryFn: ({ signal }: { signal: AbortSignal }) => dataSource.getEntries(signal),
+  staleTime: 30_000,
+};
+
+const timersQuery = {
+  queryKey: queryKeys.timers,
+  queryFn: ({ signal }: { signal: AbortSignal }) => dataSource.getTimers(signal),
+  staleTime: 30_000,
+};
+
 export function useChildren() {
   const enabled = useEnabled();
-  return useQuery({
-    queryKey: queryKeys.children,
-    queryFn: ({ signal }) => dataSource.getChildren(signal),
-    enabled,
-    // Children change rarely; entries are what actually move.
-    staleTime: 5 * 60_000,
-  });
+  return useQuery({ ...childrenQuery, enabled });
 }
 
 export function useEntries() {
   const enabled = useEnabled();
-  return useQuery({
-    queryKey: queryKeys.entries,
-    queryFn: ({ signal }) => dataSource.getEntries(signal),
-    enabled,
-    staleTime: 30_000,
-  });
+  return useQuery({ ...entriesQuery, enabled });
+}
+
+/**
+ * Fetch entries, children and timers straight from the server, bypassing staleness
+ * (`staleTime: 0` forces a real request), and report whether the server actually
+ * answered. Used by the notification layer, which must not build or deliver a
+ * reminder from cached data it hasn't confirmed.
+ *
+ * Returns `false` — never throws — on any failure, including a signed-out session:
+ * the caller's job is to decide what to do without confirmation, not to handle a
+ * network error. Results land in the normal cache, so the UI benefits too.
+ */
+export async function refreshServerData(client: QueryClient): Promise<boolean> {
+  if (useAuthStore.getState().session === null) return false;
+  try {
+    await Promise.all([
+      client.fetchQuery({ ...entriesQuery, staleTime: 0 }),
+      client.fetchQuery({ ...childrenQuery, staleTime: 0 }),
+      client.fetchQuery({ ...timersQuery, staleTime: 0 }),
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export interface DashboardData {
@@ -151,10 +190,8 @@ export function useDeleteEntry(): UseMutationResult<void, unknown, string> {
 export function useServerTimers() {
   const enabled = useEnabled();
   return useQuery({
-    queryKey: queryKeys.timers,
-    queryFn: ({ signal }) => dataSource.getTimers(signal),
+    ...timersQuery,
     enabled,
-    staleTime: 30_000,
     refetchInterval: 60_000,
     // A timer failing to load must not surface as a dashboard error — the
     // local copy keeps running and `reconcileTimers` simply has nothing to add.

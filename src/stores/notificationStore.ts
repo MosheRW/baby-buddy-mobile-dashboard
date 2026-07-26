@@ -17,6 +17,7 @@ import { asyncStorage } from './storage';
 import { DEFAULT_SLEEP_FORGOTTEN_MINUTES } from '../lib/notificationDefaults';
 import type {
   CaseSettings,
+  NotificationSettings,
   PerChildThresholds,
   TimingPrefs,
   WeeklySummarySettings,
@@ -175,3 +176,26 @@ export const useNotificationStore = create<NotificationState>()(
     },
   ),
 );
+
+/**
+ * The slice the pure planner and validator read, picked out of the store state.
+ * For imperative reads (`selectNotificationSettings(useNotificationStore.getState())`)
+ * from code that runs outside render — notably the delivery-time validator, which
+ * fires when the OS hands us a notification, long after any render.
+ *
+ * Not for use as a zustand selector: it builds a new object each call, which as a
+ * subscription would re-render on every store write.
+ */
+export function selectNotificationSettings(s: NotificationState): NotificationSettings {
+  return {
+    masterEnabled: s.masterEnabled,
+    scheduledMeds: s.scheduledMeds,
+    medEligibility: s.medEligibility,
+    forgottenTimer: s.forgottenTimer,
+    diaperInterval: s.diaperInterval,
+    foodMin: s.foodMin,
+    liveTimer: s.liveTimer,
+    weeklySummary: s.weeklySummary,
+    perChild: s.perChild,
+  };
+}

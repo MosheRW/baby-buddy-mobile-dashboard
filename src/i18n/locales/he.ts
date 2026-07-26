@@ -446,6 +446,10 @@ export const he = {
     weeklyBody:
       'תיעדתם {{mine}} מתוך {{total}} רשומות השבוע — {{share}}% מסך הכול של המשפחה. {{breakdown}}',
     weeklyBodySolo: 'תיעדתם {{mine}} רשומות השבוע. {{breakdown}}',
+    // Wraps any body above when the reminder couldn't be confirmed against the
+    // server before being shown. A whole-sentence template, not a bare suffix, so
+    // a locale can place the caveat wherever it reads naturally.
+    unverified: '{{body}} (לא הצלחנו לבדוק מול השרת — ייתכן שהמידע אינו מעודכן.)',
     // In-app carousel of already-delivered reminders, shown above the child card.
     carouselHeading: 'התראות',
     dismissOne: 'סגירת התראה',

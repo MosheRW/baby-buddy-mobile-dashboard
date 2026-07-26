@@ -8,15 +8,35 @@
  * — on app foreground and on a slow interval, so a timer crossing its threshold
  * or a dose newly falling inside the horizon gets scheduled without a manual
  * refresh.
+ *
+ * **No reminder reaches the user on a premise the server no longer backs.** Baby
+ * Buddy is multi-caregiver, so cached data goes wrong without us doing anything —
+ * another parent logs the change and our "diaper check" is a lie. Two gates:
+ *
+ *  1. *Plan time* — the rebuild refetches from the server first
+ *     (`refreshServerData`) instead of trusting React Query's cache. If that fetch
+ *     fails, the plan is still built (offline must not mean no reminders) but every
+ *     body carries the `withDisclaimer` caveat, because one of those may fire while
+ *     the app is dead, where nothing can re-check it.
+ *  2. *Delivery time* — `setDeliveryValidator` gives the native service a gate that
+ *     re-fetches and re-derives the reminder as it arrives, suppressing it if the
+ *     premise is gone. Foreground only; see the note on `setDeliveryValidator`.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { useChildren, useEntries } from '../data/queries';
-import { buildNotifications, buildOngoingTimerNotifications } from '../lib/notifications';
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshServerData, useChildren, useEntries } from '../data/queries';
+import {
+  buildNotifications,
+  buildOngoingTimerNotifications,
+  withDisclaimer,
+  type NotificationSettings,
+} from '../lib/notifications';
 import { useNotificationStore } from '../stores';
 import { useAuthStore } from '../stores/authStore';
 import { useTimerStore } from '../stores/timerStore';
 import * as service from '../notifications/service';
+import { useNotificationValidator } from './useNotificationValidator';
 
 /** How often to re-evaluate while the app is foregrounded and enabled. */
 const RESYNC_INTERVAL_MS = 60_000;
@@ -25,6 +45,8 @@ export function useNotificationSync(): void {
   const entries = useEntries().data;
   const children = useChildren().data;
   const timers = useTimerStore((s) => s.timers);
+  const queryClient = useQueryClient();
+  const validate = useNotificationValidator();
 
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);
@@ -37,6 +59,35 @@ export function useNotificationSync(): void {
   const perChild = useNotificationStore((s) => s.perChild);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
   const me = useAuthStore((s) => s.session?.userName);
+
+  // One settings object, memoized on the individual store slices and shared by the
+  // scheduled plan, the ongoing-timer plan and the delivery validator — the three
+  // must agree on what's enabled or a reminder could be planned and then rejected
+  // at the gate (or vice versa).
+  const settings: NotificationSettings = useMemo(
+    () => ({
+      masterEnabled,
+      scheduledMeds,
+      medEligibility,
+      forgottenTimer,
+      diaperInterval,
+      foodMin,
+      liveTimer,
+      weeklySummary,
+      perChild,
+    }),
+    [
+      masterEnabled,
+      scheduledMeds,
+      medEligibility,
+      forgottenTimer,
+      diaperInterval,
+      foodMin,
+      liveTimer,
+      weeklySummary,
+      perChild,
+    ],
+  );
 
   const [tick, setTick] = useState(0);
 
@@ -59,6 +110,25 @@ export function useNotificationSync(): void {
     };
   }, [masterEnabled]);
 
+  // Plan-time validation: pull fresh data from the server before each rebuild, and
+  // record whether it answered. `null` = nothing confirmed yet this launch, which
+  // counts as unverified — the plan built on mount comes from the persisted cache.
+  // Runs on the same tick as the rebuild, so every plan is at most one tick behind
+  // the server rather than however stale React Query's cache happens to be.
+  const [serverConfirmed, setServerConfirmed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!masterEnabled) return;
+    let cancelled = false;
+    void refreshServerData(queryClient).then((ok) => {
+      // Same-value updates are skipped so the steady state doesn't re-render every
+      // minute purely to say "still reachable".
+      if (!cancelled) setServerConfirmed((prev) => (prev === ok ? prev : ok));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [masterEnabled, queryClient, tick]);
+
   // Rebuild and push to the OS whenever the plan actually changes. The signature
   // check keeps the interval/foreground ticks from re-issuing identical schedules.
   const lastSig = useRef<string>('');
@@ -67,18 +137,11 @@ export function useNotificationSync(): void {
       entries: entries ?? [],
       timers,
       children: children ?? [],
-      settings: {
-        masterEnabled,
-        scheduledMeds,
-        medEligibility,
-        forgottenTimer,
-        diaperInterval,
-        foodMin,
-        liveTimer,
-        weeklySummary,
-        perChild,
-      },
+      settings,
       me,
+      // Anything planned without a confirmed fetch is disclaimed: it may fire with
+      // the app dead, where the delivery gate can't run.
+      unverified: serverConfirmed !== true,
     });
     // Body is part of the signature so the weekly summary re-syncs when its
     // trailing-week counts change — its fireAt stays fixed all week, but the
@@ -88,22 +151,25 @@ export function useNotificationSync(): void {
     if (sig === lastSig.current) return;
     lastSig.current = sig;
     void service.syncScheduledAsync(plan);
-  }, [
-    entries,
-    children,
-    timers,
-    masterEnabled,
-    scheduledMeds,
-    medEligibility,
-    forgottenTimer,
-    diaperInterval,
-    foodMin,
-    liveTimer,
-    weeklySummary,
-    perChild,
-    me,
-    tick,
-  ]);
+  }, [entries, children, timers, settings, me, serverConfirmed, tick]);
+
+  // Delivery-time validation: hand the native service a gate it can call as each
+  // reminder arrives. Registered once — the validator reads live state at call time,
+  // so it never needs re-registering (and a closure over this render's values would
+  // be stale by the time a reminder actually fires).
+  useEffect(() => {
+    service.setDeliveryValidator(async ({ id, body }) => {
+      const { verdict, body: fresh } = await validate(id, body);
+      // Fail open: show it, but say we couldn't confirm it. Suppressing here would
+      // silently swallow a medication reminder whenever the server is unreachable.
+      if (verdict === 'unknown') return { show: true, body: withDisclaimer(body) };
+      if (verdict === 'stale') return { show: false };
+      // `fresh` also clears a disclaimer baked in at plan time — this delivery *was*
+      // confirmed, so the caveat no longer applies.
+      return { show: true, body: fresh };
+    });
+    return () => service.setDeliveryValidator(null);
+  }, [validate]);
 
   // Ongoing running-timer notifications live on their own track: they're
   // presented *now* (not future-scheduled), so they can't share the plan above.
@@ -114,35 +180,11 @@ export function useNotificationSync(): void {
     const ongoing = buildOngoingTimerNotifications({
       timers,
       children: children ?? [],
-      settings: {
-        masterEnabled,
-        liveTimer,
-        // The rest are unread by the ongoing builder but required by the type.
-        scheduledMeds,
-        medEligibility,
-        forgottenTimer,
-        diaperInterval,
-        foodMin,
-        weeklySummary,
-        perChild,
-      },
+      settings,
     });
     const sig = JSON.stringify(ongoing.map((o) => [o.key, o.title, o.body]));
     if (sig === lastOngoingSig.current) return;
     lastOngoingSig.current = sig;
     void service.syncOngoingAsync(ongoing);
-  }, [
-    children,
-    timers,
-    masterEnabled,
-    liveTimer,
-    scheduledMeds,
-    medEligibility,
-    forgottenTimer,
-    diaperInterval,
-    foodMin,
-    weeklySummary,
-    perChild,
-    tick,
-  ]);
+  }, [children, timers, settings, tick]);
 }

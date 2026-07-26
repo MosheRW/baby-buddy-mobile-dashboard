@@ -10,12 +10,20 @@
  *
  * Gated on `masterEnabled`: with notifications off nothing is scheduled and
  * nothing can be in the tray, so we skip the native reads entirely.
+ *
+ * **Every item is re-validated against the server before it's shown.** This is the
+ * one place a reminder that fired while the app was *dead* can be caught: no JS ran
+ * then, so the delivery gate never saw it, and by the time the app opens another
+ * caregiver may have made it false. A stale one is dropped from the carousel *and*
+ * dismissed from the tray, since it isn't true there either.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { useNotificationStore } from '../stores';
 import * as service from '../notifications/service';
 import type { DeliveredNotification } from '../notifications/service';
+import { withDisclaimer } from '../lib/notifications';
+import { useNotificationRefresh, useNotificationValidator } from './useNotificationValidator';
 
 export type { DeliveredNotification } from '../notifications/service';
 
@@ -31,6 +39,37 @@ export interface DeliveredNotifications {
 export function useDeliveredNotifications(): DeliveredNotifications {
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const [items, setItems] = useState<DeliveredNotification[]>([]);
+  const validate = useNotificationValidator();
+  const refresh = useNotificationRefresh();
+
+  /**
+   * Drop the tray items the server no longer backs, and refresh the copy of the
+   * ones it does. One refetch for the whole batch (`skipRefresh` on each item), so
+   * a tray with five reminders doesn't fire five rounds of requests.
+   */
+  const validateAll = useCallback(
+    async (delivered: DeliveredNotification[]): Promise<DeliveredNotification[]> => {
+      if (delivered.length === 0) return delivered;
+      const confirmed = await refresh();
+      // Offline: keep everything — the same fail-open rule the delivery gate uses —
+      // but mark the copy, since we can't stand behind it.
+      if (!confirmed) return delivered.map((n) => ({ ...n, body: withDisclaimer(n.body) }));
+
+      const checked = await Promise.all(
+        delivered.map(async (n) => {
+          const { verdict, body } = await validate(n.id, n.body, { skipRefresh: true });
+          if (verdict === 'stale') {
+            // False in the tray too, not just in here.
+            void service.dismissDeliveredAsync(n.id);
+            return null;
+          }
+          return body ? { ...n, body } : n;
+        }),
+      );
+      return checked.filter((n): n is DeliveredNotification => n != null);
+    },
+    [refresh, validate],
+  );
 
   useEffect(() => {
     if (!masterEnabled) {
@@ -46,9 +85,12 @@ export function useDeliveredNotifications(): DeliveredNotifications {
     // off, defeating the masterEnabled gate.
     let cancelled = false;
     const load = () => {
-      void service.getDeliveredAsync().then((next) => {
-        if (!cancelled) setItems(next);
-      });
+      void service
+        .getDeliveredAsync()
+        .then((next) => validateAll(next))
+        .then((next) => {
+          if (!cancelled) setItems(next);
+        });
     };
     load();
     const appState = AppState.addEventListener('change', (s) => {
@@ -62,7 +104,7 @@ export function useDeliveredNotifications(): DeliveredNotifications {
       unsubscribe();
       clearInterval(id);
     };
-  }, [masterEnabled]);
+  }, [masterEnabled, validateAll]);
 
   // Optimistically drop the card so the tap feels instant, then tell the OS.
   const dismiss = useCallback((id: string) => {
