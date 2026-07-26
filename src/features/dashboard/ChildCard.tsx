@@ -50,7 +50,12 @@ interface ChildCardProps {
   width?: number;
 }
 
-export function ChildCard({
+/**
+ * Memoized: it rescans the whole entry list several times over (last-of-type,
+ * med windows, 7-day food trend), so it has to be skippable on the render that
+ * only flipped which pill is highlighted. Callers pass stable callbacks.
+ */
+export const ChildCard = React.memo(function ChildCard({
   child,
   entries,
   now,
@@ -175,7 +180,7 @@ export function ChildCard({
       <QuickActions onAction={onQuickAction} runningTimers={runningTimers} />
     </Card>
   );
-}
+});
 
 /**
  * A medicine this child is on: what it is, when it was last given, and where
