@@ -85,6 +85,11 @@ export function useDeliveredNotifications(): DeliveredNotifications {
     // off, defeating the masterEnabled gate.
     let cancelled = false;
     const load = () => {
+      // Skip while backgrounded: the interval below keeps firing there, and validating
+      // the tray costs a server round-trip for a carousel nobody can see. Returning
+      // early (rather than loading unvalidated) also means the carousel can never flash
+      // a stale card on resume — the AppState listener re-runs this the moment we're back.
+      if (AppState.currentState !== 'active') return;
       void service
         .getDeliveredAsync()
         .then((next) => validateAll(next))

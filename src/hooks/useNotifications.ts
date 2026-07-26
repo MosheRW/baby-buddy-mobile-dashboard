@@ -118,6 +118,13 @@ export function useNotificationSync(): void {
   const [serverConfirmed, setServerConfirmed] = useState<boolean | null>(null);
   useEffect(() => {
     if (!masterEnabled) return;
+    // Foreground only. The tick's interval keeps firing while backgrounded (Android
+    // leaves the JS context alive for a while), and a per-minute fan-out across seven
+    // endpoints behind the user's back is real battery and data. It costs no freshness
+    // either: with no refetch, none of the planner's inputs change while backgrounded,
+    // so a background tick rebuilds the same plan already validated at the last
+    // foreground — and the AppState listener above bumps `tick` the instant we return.
+    if (AppState.currentState !== 'active') return;
     let cancelled = false;
     void refreshServerData(queryClient).then((ok) => {
       // Same-value updates are skipped so the steady state doesn't re-render every
