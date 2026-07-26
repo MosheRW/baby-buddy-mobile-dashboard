@@ -5,7 +5,15 @@ import type { TFunction } from 'i18next';
 import { AppText } from './AppText';
 import { ActionButton } from './ActionButton';
 import { MinusGlyph, PlusGlyph } from './glyphs';
-import { colors, fontSize, radii, spacing, weightFamily } from '../theme';
+import {
+  fontSize,
+  radii,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  weightFamily,
+  type AppTheme,
+} from '../theme';
 import { parseNumericInput, rampStep } from '../lib/stepper';
 
 // Press-and-hold: after this delay the button starts auto-repeating, one step
@@ -74,6 +82,8 @@ export function Stepper({
   enhanced = true,
 }: StepperProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   // The value "before we started changing it": captured once at mount, this is
   // the target for both the long-press reset and the reset-on-invalid-entry.
   const defaultValue = useRef(value).current;
@@ -239,6 +249,8 @@ function StepButton({
   kind: 'plus' | 'minus';
   label: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   // The latest step handler, read by the repeat timer so it always steps from
   // the current value rather than a value captured when the hold began.
   const stepRef = useRef(onStep);
@@ -315,60 +327,61 @@ function countDecimals(n: number): number {
   return i === -1 ? 0 : s.length - i - 1;
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    padding: spacing.xs,
-    gap: spacing.sm,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  valueBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'stretch',
-  },
-  btn: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.chipSmall,
-    backgroundColor: colors.neutral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    paddingHorizontal: spacing['5xl'],
-  },
-  dialog: {
-    backgroundColor: colors.card,
-    borderRadius: radii.card,
-    padding: spacing['4xl'],
-    gap: spacing.lg,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderRadius: radii.control,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing['2xl'],
-    fontFamily: weightFamily['800'],
-    fontSize: fontSize.cardTitle,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  dialogButtons: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderRadius: radii.control,
+      padding: spacing.xs,
+      gap: spacing.sm,
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+    valueBox: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'stretch',
+    },
+    btn: {
+      width: 40,
+      height: 40,
+      borderRadius: radii.chipSmall,
+      backgroundColor: colors.neutral,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.scrim,
+      justifyContent: 'center',
+      paddingHorizontal: spacing['5xl'],
+    },
+    dialog: {
+      backgroundColor: colors.card,
+      borderRadius: radii.card,
+      padding: spacing['4xl'],
+      gap: spacing.lg,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: radii.control,
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing['2xl'],
+      fontFamily: weightFamily['800'],
+      fontSize: fontSize.cardTitle,
+      color: colors.textPrimary,
+      textAlign: 'center',
+    },
+    dialogButtons: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+  });

@@ -7,7 +7,15 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Chip } from '../../components';
-import { ACCENT_SWATCHES, accentColors, colors, radii, spacing } from '../../theme';
+import {
+  ACCENT_SWATCHES,
+  accentColors,
+  radii,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  type AppTheme,
+} from '../../theme';
 
 interface AccentPickerProps {
   /** Selected hue, or null for "auto" (no override). */
@@ -18,12 +26,14 @@ interface AccentPickerProps {
 }
 
 export function AccentPicker({ value, onChange, autoLabel }: AccentPickerProps) {
+  const { scheme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.wrap}>
       <Chip label={autoLabel} active={value == null} onPress={() => onChange(null)} />
       {ACCENT_SWATCHES.map(({ id, hue }) => {
         const selected = value === hue;
-        const accent = accentColors(hue);
+        const accent = accentColors(hue, scheme);
         return (
           <Pressable
             key={id}
@@ -45,22 +55,23 @@ export function AccentPicker({ value, onChange, autoLabel }: AccentPickerProps) 
 
 const SWATCH = 34;
 
-const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  swatch: {
-    width: SWATCH,
-    height: SWATCH,
-    borderRadius: SWATCH / 2,
-    borderWidth: 3,
-    borderColor: colors.card,
-  },
-  swatchSelected: {
-    borderColor: colors.textPrimary,
-    borderRadius: radii.pill,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    wrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    swatch: {
+      width: SWATCH,
+      height: SWATCH,
+      borderRadius: SWATCH / 2,
+      borderWidth: 3,
+      borderColor: colors.card,
+    },
+    swatchSelected: {
+      borderColor: colors.textPrimary,
+      borderRadius: radii.pill,
+    },
+  });

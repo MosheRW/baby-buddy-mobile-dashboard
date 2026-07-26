@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, CloseGlyph } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { Child } from '../../api/types';
 
 /**
@@ -75,6 +75,9 @@ export function NotificationCarousel({
   onClearAll,
 }: NotificationCarouselProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const { colors } = theme;
+  const styles = useThemedStyles(makeStyles);
   const [width, setWidth] = useState(FALLBACK_WIDTH);
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -133,8 +136,8 @@ export function NotificationCarousel({
           return (
             <View key={n.id} style={{ width }}>
               {n.kind === 'error'
-                ? renderErrorCard(n, child, t)
-                : renderReminderCard(n, child, t)}
+                ? renderErrorCard(n, child, t, theme, styles)
+                : renderReminderCard(n, child, t, theme, styles)}
             </View>
           );
         })}
@@ -155,8 +158,11 @@ export function NotificationCarousel({
 }
 
 type Translate = ReturnType<typeof useTranslation>['t'];
+type Styles = ReturnType<typeof makeStyles>;
 
 function ChildChip({ child }: { child: Child | undefined }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   if (!child) return null;
   return (
     <View style={styles.childChip}>
@@ -167,10 +173,15 @@ function ChildChip({ child }: { child: Child | undefined }) {
   );
 }
 
+// `theme`/`styles` are threaded in rather than read from a hook because these
+// are plain functions called from the render body, not components — the same
+// reason `t` is already a parameter here.
 function renderReminderCard(
   n: Extract<CarouselItem, { kind: 'reminder' }>,
   child: Child | undefined,
   t: Translate,
+  { colors }: AppTheme,
+  styles: Styles,
 ) {
   const tappable = !!n.onPress;
   return (
@@ -215,6 +226,8 @@ function renderErrorCard(
   n: Extract<CarouselItem, { kind: 'error' }>,
   child: Child | undefined,
   t: Translate,
+  { colors }: AppTheme,
+  styles: Styles,
 ) {
   return (
     <Card
@@ -264,8 +277,9 @@ function renderErrorCard(
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

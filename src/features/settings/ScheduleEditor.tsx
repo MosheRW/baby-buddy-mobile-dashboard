@@ -11,7 +11,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Chip, Stepper, ToggleSwitch } from '../../components';
-import { colors, fontSize, spacing } from '../../theme';
+import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { VisibilitySchedule, Weekday } from '../../lib/visibility';
 
 interface ScheduleEditorProps {
@@ -30,6 +30,8 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export function ScheduleEditor({ value, onChange }: ScheduleEditorProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const enabled = value != null;
   const schedule = value ?? DEFAULT_SCHEDULE;
 
@@ -98,6 +100,7 @@ function TimeRow({
   minute: number;
   onChange: (minute: number) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   const hours = Math.floor(minute / 60);
   const mins = minute % 60;
   return (
@@ -129,34 +132,35 @@ function TimeRow({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    gap: spacing.lg,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  toggleText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  timeLabel: {
-    flex: 1,
-  },
-  timeStepper: {
-    width: 108,
-  },
-  dayRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    wrap: {
+      gap: spacing.lg,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    toggleText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    timeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    timeLabel: {
+      flex: 1,
+    },
+    timeStepper: {
+      width: 108,
+    },
+    dayRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+  });

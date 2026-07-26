@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { AppText } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { Child, Entry, EntryType } from '../../api/types';
 import type { MedStatus } from '../../lib/medication';
 import { ChildCard } from './ChildCard';
@@ -104,6 +104,8 @@ function TabsNav({
   onOpenSettings,
 }: ChildNavProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const active = childList[cardIndex] ?? childList[activeIndex] ?? childList[0];
   const translateX = useSharedValue(0);
   // Measured card width, so a committed swipe slides the card exactly one full
@@ -374,41 +376,42 @@ function TabsNav({
   );
 }
 
-const styles = StyleSheet.create({
-  tabsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  tabsScroll: {
-    flex: 1,
-  },
-  tabs: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  tab: {
-    borderRadius: radii.pill,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing['2xl'],
-    backgroundColor: colors.card,
-  },
-  tabActive: {
-    backgroundColor: colors.accent,
-  },
-  // Relative anchor for the card + the sliding neighbour overlay. Height is set
-  // by the current (relative) card; the overlay is absolute so it can't stretch
-  // the layout while it slides through.
-  cardArea: {
-    marginTop: spacing.xs,
-    position: 'relative',
-  },
-  overlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    tabsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      paddingBottom: spacing.xl,
+    },
+    tabsScroll: {
+      flex: 1,
+    },
+    tabs: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    tab: {
+      borderRadius: radii.pill,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing['2xl'],
+      backgroundColor: colors.card,
+    },
+    tabActive: {
+      backgroundColor: colors.accent,
+    },
+    // Relative anchor for the card + the sliding neighbour overlay. Height is set
+    // by the current (relative) card; the overlay is absolute so it can't stretch
+    // the layout while it slides through.
+    cardArea: {
+      marginTop: spacing.xs,
+      position: 'relative',
+    },
+    overlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+    },
+  });

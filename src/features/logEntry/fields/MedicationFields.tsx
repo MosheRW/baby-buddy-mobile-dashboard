@@ -20,7 +20,7 @@ import {
   ScheduledGlyph,
   type EntryGlyphProps,
 } from '../../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing, tints } from '../../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../../theme';
 import type { DosageUnit, Entry, MedicationRoute, MedicationSchedule } from '../../../api/types';
 import {
   DOSE_UNITS,
@@ -73,7 +73,6 @@ function UnitGlyph({ unit, size, color }: EntryGlyphProps & { unit: DosageUnit }
   return <Glyph size={size} color={color} />;
 }
 
-
 /**
  * Medication fields. The unit drives most of the group: it sets the dose
  * stepper's step/precision/label, and reveals a route toggle (tablets) or a
@@ -85,6 +84,8 @@ function UnitGlyph({ unit, size, color }: EntryGlyphProps & { unit: DosageUnit }
  */
 export function MedicationFields({ draft, patch, entries }: MedicationFieldsProps) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const suggestions = medicationSuggestions(entries);
   const noRepeat = isNoRepeat(draft.repeatHours);
   // Custom mode is tracked on the draft, not derived from the value, so stepping
@@ -93,8 +94,16 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
   const spec = DOSE_UNITS[draft.doseUnit];
 
   const scheduleOptions: SegmentOption<MedicationSchedule>[] = [
-    { value: 'scheduled', label: t('medForm.scheduled'), glyph: (c) => <ScheduledGlyph size={15} color={c} /> },
-    { value: 'asNeeded', label: t('medForm.asNeeded'), glyph: (c) => <AsNeededGlyph size={13} color={c} /> },
+    {
+      value: 'scheduled',
+      label: t('medForm.scheduled'),
+      glyph: (c) => <ScheduledGlyph size={15} color={c} />,
+    },
+    {
+      value: 'asNeeded',
+      label: t('medForm.asNeeded'),
+      glyph: (c) => <AsNeededGlyph size={13} color={c} />,
+    },
   ];
 
   const unitOptions: ChipOption<DosageUnit>[] = DOSE_UNIT_ORDER.map((u) => ({
@@ -264,12 +273,7 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
             unitLabel={doseUnitLabel(draft.doseUnit)}
             onChange={changeMaxDose}
           />
-          <AppText
-            size={fontSize.metaSm}
-            weight="600"
-            color={colors.textMuted}
-            style={styles.hint}
-          >
+          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted} style={styles.hint}>
             {t('medForm.maxDoseHint')}
           </AppText>
         </View>
@@ -322,38 +326,39 @@ function MaxDoseField({
   );
 }
 
-const styles = StyleSheet.create({
-  suggestions: {
-    // Handoff: the list scrolls rather than pushing the form down.
-    maxHeight: 140,
-  },
-  suggestion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radii.tile,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    marginBottom: spacing.sm,
-  },
-  suggestionIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.iconButton,
-    backgroundColor: tints.eligible.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  suggestionText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  customField: {
-    marginTop: spacing.lg,
-  },
-  hint: {
-    marginTop: spacing.sm,
-    lineHeight: 15,
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    suggestions: {
+      // Handoff: the list scrolls rather than pushing the form down.
+      maxHeight: 140,
+    },
+    suggestion: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: radii.tile,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing['2xl'],
+      marginBottom: spacing.sm,
+    },
+    suggestionIcon: {
+      width: 22,
+      height: 22,
+      borderRadius: radii.iconButton,
+      backgroundColor: tints.eligible.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    suggestionText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    customField: {
+      marginTop: spacing.lg,
+    },
+    hint: {
+      marginTop: spacing.sm,
+      lineHeight: 15,
+    },
+  });

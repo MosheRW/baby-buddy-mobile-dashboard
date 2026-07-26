@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText, FieldLabel, Stepper } from '../../../components';
 import { EntryGlyph } from '../../../components/glyphs/entryGlyphs';
 import type { GlyphKind } from '../../../lib/entryDisplay';
-import { colors, fontSize, pooSwatch, radii, spacing, tints } from '../../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../../theme';
 import type { PooColor } from '../../../api/types';
 import { diaperAmountLabel, type FormDraft } from '../../../lib/formDraft';
 
@@ -12,8 +12,6 @@ interface FieldProps {
   draft: FormDraft;
   patch: (patch: Partial<FormDraft>) => void;
 }
-
-const POO_COLORS = Object.keys(pooSwatch) as PooColor[];
 
 /**
  * Pee and Poo are two independent toggles — a diaper can be pee-only, poo-only,
@@ -23,6 +21,12 @@ const POO_COLORS = Object.keys(pooSwatch) as PooColor[];
  */
 export function DiaperFields({ draft, patch }: FieldProps) {
   const { t } = useTranslation();
+  const { tints, pooSwatch } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  // Derived in render rather than at module scope: the swatch *values* are
+  // scheme-dependent now, and reading the map at import time would pin them to
+  // whichever scheme loaded first. The key order is the server's enum order.
+  const pooColors = Object.keys(pooSwatch) as PooColor[];
   return (
     <>
       <View>
@@ -49,7 +53,7 @@ export function DiaperFields({ draft, patch }: FieldProps) {
         <View>
           <FieldLabel>{t('diaper.pooColor')}</FieldLabel>
           <View style={styles.swatches}>
-            {POO_COLORS.map((color) => (
+            {pooColors.map((color) => (
               <Pressable
                 key={color}
                 accessibilityRole="button"
@@ -96,6 +100,8 @@ function TogglePill({
   tint: { bg: string; fg: string };
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const fg = active ? tint.fg : colors.textMuted;
   return (
     <Pressable
@@ -112,34 +118,35 @@ function TogglePill({
   );
 }
 
-const styles = StyleSheet.create({
-  toggles: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  pill: {
-    flex: 1,
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing['3xl'],
-    borderRadius: radii.control,
-  },
-  swatches: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  swatchRing: {
-    padding: spacing.xs,
-    borderRadius: radii.pill,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  swatchRingActive: {
-    borderColor: colors.accent,
-  },
-  swatch: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    toggles: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    pill: {
+      flex: 1,
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing['3xl'],
+      borderRadius: radii.control,
+    },
+    swatches: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    swatchRing: {
+      padding: spacing.xs,
+      borderRadius: radii.pill,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    swatchRingActive: {
+      borderColor: colors.accent,
+    },
+    swatch: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+    },
+  });

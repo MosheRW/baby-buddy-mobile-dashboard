@@ -12,7 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { AppText, Chip } from '../../components';
 import { SettingsButton } from './SettingsButton';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { greeting, longDate } from '../../lib/dates';
 import { hasInactiveBaselineDays } from '../../lib/activeDays';
 import type { Child, Entry, EntryType } from '../../api/types';
@@ -47,6 +47,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'Dashboard'>;
 
 export function DashboardScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { children, entries, isLoading, isRefreshing, error, refetch } = useDashboardData();
   const [activeIndex, setActiveIndex] = useState(0);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
@@ -99,7 +101,8 @@ export function DashboardScreen({ navigation }: Props) {
   // so a schedule boundary passing re-filters within a minute.
   const revealActive = revealHiddenUntil != null && revealHiddenUntil > now;
   const visible = useMemo(
-    () => visibleChildren(children, { hidden, childGroupId, childSchedule, groups }, now, revealActive),
+    () =>
+      visibleChildren(children, { hidden, childGroupId, childSchedule, groups }, now, revealActive),
     [children, hidden, childGroupId, childSchedule, groups, now, revealActive],
   );
 
@@ -148,9 +151,7 @@ export function DashboardScreen({ navigation }: Props) {
   // actually diluting the active child's food-trend baseline — not before there
   // is anything to fix, and not again once the user has answered.
   const showInactiveDaysPrompt =
-    !inactiveDaysPromptSeen &&
-    !excludeInactiveDays &&
-    hasInactiveBaselineDays(feedEntries, now);
+    !inactiveDaysPromptSeen && !excludeInactiveDays && hasInactiveBaselineDays(feedEntries, now);
 
   /**
    * The greeting is a welcome, not a fixture: once the user does anything on
@@ -449,46 +450,47 @@ export function DashboardScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['5xl'],
-  },
-  loading: {
-    paddingVertical: spacing['7xl'],
-  },
-  inactivePrompt: {
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    padding: spacing['2xl'],
-  },
-  inactiveActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.md,
-    marginTop: spacing.xs,
-  },
-  inactiveDismiss: {
-    borderRadius: radii.chipSmall,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing['2xl'],
-    backgroundColor: colors.neutral,
-  },
-  inactiveConfirm: {
-    borderRadius: radii.chipSmall,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing['2xl'],
-    backgroundColor: colors.accent,
-  },
-  settingsFallback: {
-    alignItems: 'flex-end',
-  },
-  revealRow: {
-    alignItems: 'flex-start',
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['5xl'],
+    },
+    loading: {
+      paddingVertical: spacing['7xl'],
+    },
+    inactivePrompt: {
+      gap: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: radii.control,
+      padding: spacing['2xl'],
+    },
+    inactiveActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing.md,
+      marginTop: spacing.xs,
+    },
+    inactiveDismiss: {
+      borderRadius: radii.chipSmall,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing['2xl'],
+      backgroundColor: colors.neutral,
+    },
+    inactiveConfirm: {
+      borderRadius: radii.chipSmall,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing['2xl'],
+      backgroundColor: colors.accent,
+    },
+    settingsFallback: {
+      alignItems: 'flex-end',
+    },
+    revealRow: {
+      alignItems: 'flex-start',
+    },
+  });

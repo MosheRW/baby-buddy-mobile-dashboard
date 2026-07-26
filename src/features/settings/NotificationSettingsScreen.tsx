@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
-import { colors, fontSize, spacing } from '../../theme';
+import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useNotificationStore } from '../../stores';
 import {
@@ -24,6 +24,8 @@ type Props = NativeStackScreenProps<MainStackParamList, 'Notifications'>;
 
 export function NotificationSettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { children } = useDashboardData();
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const permissionStatus = useNotificationStore((s) => s.permissionStatus);
@@ -71,7 +73,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
-          <ChevronLeftGlyph size={24} />
+          <ChevronLeftGlyph size={24} color={colors.textPrimary} />
         </Pressable>
         <AppText size={fontSize.screenTitle} weight="800">
           {t('notifications.title')}
@@ -237,7 +239,9 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                   {t('notifications.feedingInterval')}
                 </AppText>
                 <Stepper
-                  value={perChild[child.id]?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES}
+                  value={
+                    perChild[child.id]?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES
+                  }
                   onChange={(v) => setPerChildThreshold(child.id, { foodMinIntervalMinutes: v })}
                   step={1}
                   min={30}
@@ -376,6 +380,8 @@ function CaseCard({
   onToggle,
   onTiming,
 }: CaseCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Card style={styles.section}>
       <View style={styles.row}>
@@ -405,6 +411,7 @@ function TimingControls({
   labels: TimingLabels;
   onChange: (patch: Partial<TimingPrefs>) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.timing}>
       <ToggleRow
@@ -453,6 +460,7 @@ function ToggleRow({
   value: boolean;
   onValueChange: (value: boolean) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.row}>
       <AppText size={fontSize.body} weight="700">
@@ -463,57 +471,58 @@ function ToggleRow({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['2xl'],
-  },
-  section: {
-    gap: spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  rowText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  timing: {
-    gap: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.neutral,
-    paddingTop: spacing.lg,
-  },
-  field: {
-    gap: spacing.sm,
-  },
-  childBlock: {
-    gap: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.neutral,
-    paddingTop: spacing.lg,
-  },
-  dayRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  dayChip: {
-    paddingHorizontal: spacing.lg,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      paddingHorizontal: spacing['2xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['2xl'],
+    },
+    section: {
+      gap: spacing.lg,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    rowText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    timing: {
+      gap: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.neutral,
+      paddingTop: spacing.lg,
+    },
+    field: {
+      gap: spacing.sm,
+    },
+    childBlock: {
+      gap: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.neutral,
+      paddingTop: spacing.lg,
+    },
+    dayRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    dayChip: {
+      paddingHorizontal: spacing.lg,
+    },
+  });

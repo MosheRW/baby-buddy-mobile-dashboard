@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, SegmentedToggle, TextField } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { LoginMode } from '../../api/types';
 import { useAuthStore } from '../../stores';
 import { PasswordLoginUnavailable, signInWithPassword, signInWithToken } from '../../api/auth';
@@ -19,6 +19,8 @@ import { USE_MOCK_DATA } from '../../data/dataSource';
  */
 export function LoginScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const signIn = useAuthStore((s) => s.signIn);
   const [mode, setMode] = useState<LoginMode>('babybuddy');
 
@@ -106,9 +108,7 @@ export function LoginScreen() {
           <View style={styles.fields}>
             <TextField
               label={isHa ? t('login.addOnUrl') : t('login.serverUrl')}
-              placeholder={
-                isHa ? t('login.addOnUrlPlaceholder') : t('login.serverUrlPlaceholder')
-              }
+              placeholder={isHa ? t('login.addOnUrlPlaceholder') : t('login.serverUrlPlaceholder')}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
@@ -190,52 +190,53 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  content: {
-    paddingTop: 44,
-    paddingHorizontal: 22,
-    paddingBottom: spacing['7xl'],
-    alignItems: 'stretch',
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    alignSelf: 'center',
-    marginBottom: spacing['5xl'],
-  },
-  title: {
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginTop: spacing.xs,
-    marginBottom: spacing['6xl'],
-  },
-  toggle: {
-    marginBottom: spacing['5xl'],
-  },
-  fields: {
-    gap: spacing['2xl'],
-  },
-  error: {
-    marginTop: spacing['2xl'],
-    padding: spacing['2xl'],
-    borderRadius: radii.control,
-    backgroundColor: colors.card,
-  },
-  cta: {
-    marginTop: spacing['6xl'],
-  },
-  switcher: {
-    marginTop: spacing.lg,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    content: {
+      paddingTop: 44,
+      paddingHorizontal: 22,
+      paddingBottom: spacing['7xl'],
+      alignItems: 'stretch',
+    },
+    logo: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: colors.accent,
+      alignSelf: 'center',
+      marginBottom: spacing['5xl'],
+    },
+    title: {
+      textAlign: 'center',
+    },
+    subtitle: {
+      textAlign: 'center',
+      marginTop: spacing.xs,
+      marginBottom: spacing['6xl'],
+    },
+    toggle: {
+      marginBottom: spacing['5xl'],
+    },
+    fields: {
+      gap: spacing['2xl'],
+    },
+    error: {
+      marginTop: spacing['2xl'],
+      padding: spacing['2xl'],
+      borderRadius: radii.control,
+      backgroundColor: colors.card,
+    },
+    cta: {
+      marginTop: spacing['6xl'],
+    },
+    switcher: {
+      marginTop: spacing.lg,
+    },
+  });

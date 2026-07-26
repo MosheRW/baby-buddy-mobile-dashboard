@@ -16,7 +16,11 @@
  */
 import React from 'react';
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
-import { colors } from '../../theme';
+// `themeColors()` rather than `useTheme()`: `color` is a *default parameter*,
+// evaluated on every call, so it already picks up the active scheme — and that
+// keeps ~25 tiny glyph functions hook-free. Call sites almost always pass an
+// explicit colour anyway.
+import { themeColors } from '../../theme';
 import type { EntryType } from '../../api/types';
 import type { GlyphKind } from '../../lib/entryDisplay';
 import { circlePath, dropPath, fitToGrid, roundedRect as rr } from '../../lib/glyphPaths';
@@ -51,7 +55,7 @@ function GlyphFrame({
 
 // --- Diaper -----------------------------------------------------------------
 
-export function DiaperPeeGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function DiaperPeeGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={9} h={13}>
       <Path d={dropPath(9, 13)} fill={color} />
@@ -59,7 +63,7 @@ export function DiaperPeeGlyph({ size, color = colors.textPrimary }: EntryGlyphP
   );
 }
 
-export function DiaperPooGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function DiaperPooGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={16} h={11}>
       <Path d={rr(0, 0, 16, 11, 6, 6, 8, 8)} fill={color} />
@@ -67,7 +71,7 @@ export function DiaperPooGlyph({ size, color = colors.textPrimary }: EntryGlyphP
   );
 }
 
-export function DiaperBothGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function DiaperBothGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Droplet + mound side by side, bottoms aligned, 3px gap.
   return (
     <GlyphFrame size={size} w={21} h={10}>
@@ -83,7 +87,7 @@ export function DiaperBothGlyph({ size, color = colors.textPrimary }: EntryGlyph
 
 // --- Feeding ----------------------------------------------------------------
 
-export function FeedingBottleGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingBottleGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={16} h={18}>
       <Path d={rr(5, 0, 6, 3, 2, 2, 1, 1)} fill={color} />
@@ -93,7 +97,7 @@ export function FeedingBottleGlyph({ size, color = colors.textPrimary }: EntryGl
   );
 }
 
-export function FeedingBreastGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingBreastGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // border-radius: 20% 75% 75% 20% / 30% 70% 70% 30% on an 11x15 box — square
   // on the left, strongly rounded on the right.
   const d = [
@@ -115,7 +119,7 @@ export function FeedingBreastGlyph({ size, color = colors.textPrimary }: EntryGl
   );
 }
 
-export function FeedingSolidGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingSolidGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Bowl + a single utensil stem.
   return (
     <GlyphFrame size={size} w={16} h={12}>
@@ -125,7 +129,10 @@ export function FeedingSolidGlyph({ size, color = colors.textPrimary }: EntryGly
   );
 }
 
-export function FeedingFortifiedGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingFortifiedGlyph({
+  size,
+  color = themeColors().textPrimary,
+}: EntryGlyphProps) {
   // The formula bottle with a small ring at the shoulder — the prototype's mark
   // for fortified breast milk (a bottle "plus something extra").
   return (
@@ -146,7 +153,7 @@ export function FeedingFortifiedGlyph({ size, color = colors.textPrimary }: Entr
  */
 function BreastGlyph({
   size,
-  color = colors.textPrimary,
+  color = themeColors().textPrimary,
   side,
 }: EntryGlyphProps & { side: 'left' | 'right' }) {
   const W = 8;
@@ -172,7 +179,10 @@ export function FeedingRightBreastGlyph(props: EntryGlyphProps) {
   return <BreastGlyph {...props} side="right" />;
 }
 
-export function FeedingBothBreastsGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingBothBreastsGlyph({
+  size,
+  color = themeColors().textPrimary,
+}: EntryGlyphProps) {
   // Left- and right-facing breasts side by side.
   const H = 10;
   const big = 4.5;
@@ -187,7 +197,7 @@ export function FeedingBothBreastsGlyph({ size, color = colors.textPrimary }: En
   );
 }
 
-export function FeedingSelfFedGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingSelfFedGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // A single dot — the prototype's mark for self-feeding.
   return (
     <GlyphFrame size={size} w={12} h={12}>
@@ -196,7 +206,10 @@ export function FeedingSelfFedGlyph({ size, color = colors.textPrimary }: EntryG
   );
 }
 
-export function FeedingParentFedGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function FeedingParentFedGlyph({
+  size,
+  color = themeColors().textPrimary,
+}: EntryGlyphProps) {
   // A spoon: oval bowl over a stem.
   return (
     <GlyphFrame size={size} w={13} h={14}>
@@ -208,7 +221,7 @@ export function FeedingParentFedGlyph({ size, color = colors.textPrimary }: Entr
 
 // --- Medication (one per dose unit) -----------------------------------------
 
-export function MedMlGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function MedMlGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Dropper bottle: conical top over a round body.
   return (
     <GlyphFrame size={size} w={9} h={13}>
@@ -218,7 +231,7 @@ export function MedMlGlyph({ size, color = colors.textPrimary }: EntryGlyphProps
   );
 }
 
-export function MedMgGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function MedMgGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Powder heap with grains above it.
   return (
     <GlyphFrame size={size} w={14} h={12}>
@@ -230,7 +243,7 @@ export function MedMgGlyph({ size, color = colors.textPrimary }: EntryGlyphProps
   );
 }
 
-export function MedTabletsGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function MedTabletsGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Two overlapping tablets. In the prototype each 11px disc carries a 1.5px
   // white ring inside its own box, so the coloured disc is r=4 and the ring is
   // what separates them. Reproduced here as an even-odd bite out of the rear
@@ -245,7 +258,7 @@ export function MedTabletsGlyph({ size, color = colors.textPrimary }: EntryGlyph
   );
 }
 
-export function MedDropsGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function MedDropsGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Dropper with a falling drop beneath it.
   return (
     <GlyphFrame size={size} w={10} h={16}>
@@ -258,7 +271,7 @@ export function MedDropsGlyph({ size, color = colors.textPrimary }: EntryGlyphPr
   );
 }
 
-export function MedPasteGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function MedPasteGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Tube with a squeeze of paste above the nozzle. Authored on a box extended
   // upward by 3px so the blob isn't clipped.
   return (
@@ -275,7 +288,7 @@ export function MedPasteGlyph({ size, color = colors.textPrimary }: EntryGlyphPr
 
 // --- Medication schedule (the Scheduled / As-needed toggle) -----------------
 
-export function ScheduledGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function ScheduledGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Clock face: outline circle with an hour and minute hand.
   return (
     <GlyphFrame size={size} w={13} h={13}>
@@ -286,7 +299,7 @@ export function ScheduledGlyph({ size, color = colors.textPrimary }: EntryGlyphP
   );
 }
 
-export function AsNeededGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function AsNeededGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Solid upward triangle — the prototype's "as-needed" mark.
   return (
     <GlyphFrame size={size} w={13} h={11}>
@@ -297,7 +310,7 @@ export function AsNeededGlyph({ size, color = colors.textPrimary }: EntryGlyphPr
 
 // --- Temperature ------------------------------------------------------------
 
-export function TemperatureGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function TemperatureGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={10} h={18}>
       <Path d={rr(2, 0, 6, 14, 3, 3, 3, 3)} fill={color} />
@@ -309,7 +322,7 @@ export function TemperatureGlyph({ size, color = colors.textPrimary }: EntryGlyp
 // Temperature-method sub-glyphs (oral reuses the thermometer above). Transcribed
 // from the prototype's method row: an outlined egg for the ear probe, an
 // open-bottomed dome for the forehead scanner.
-export function TempEarGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function TempEarGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={11} h={13}>
       <Ellipse cx={5.5} cy={6.5} rx={4.75} ry={5.75} fill="none" stroke={color} strokeWidth={1.5} />
@@ -317,7 +330,7 @@ export function TempEarGlyph({ size, color = colors.textPrimary }: EntryGlyphPro
   );
 }
 
-export function TempForeheadGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function TempForeheadGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={14} h={7}>
       <Path
@@ -333,7 +346,7 @@ export function TempForeheadGlyph({ size, color = colors.textPrimary }: EntryGly
 
 // --- Tummy time (option 1a) -------------------------------------------------
 
-export function TummyTimeGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function TummyTimeGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Baby lying prone: head + curved body.
   return (
     <GlyphFrame size={size} w={22} h={15}>
@@ -345,7 +358,7 @@ export function TummyTimeGlyph({ size, color = colors.textPrimary }: EntryGlyphP
 
 // --- Sleep (options 3c / 3d) ------------------------------------------------
 
-export function NapGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function NapGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Plain pillow/cloud.
   return (
     <GlyphFrame size={size} w={18} h={12}>
@@ -356,7 +369,7 @@ export function NapGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) 
   );
 }
 
-export function NightGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function NightGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Pillow + crescent moon. The prototype fakes the crescent with an inset
   // box-shadow in the swatch's own colour; an even-odd cut-out gives the same
   // silhouette without needing to know the background.
@@ -373,7 +386,7 @@ export function NightGlyph({ size, color = colors.textPrimary }: EntryGlyphProps
 
 // --- Note (option 2a) -------------------------------------------------------
 
-export function NoteGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function NoteGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Document with lines of text; the page itself is a faint wash.
   return (
     <GlyphFrame size={size} w={14} h={18}>
@@ -387,15 +400,19 @@ export function NoteGlyph({ size, color = colors.textPrimary }: EntryGlyphProps)
 
 // --- Feed row actions -------------------------------------------------------
 
-export function PencilGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function PencilGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={12} h={12}>
-      <Path d={rr(4.75, 0, 2.5, 12, 1.25, 1.25, 1.25, 1.25)} fill={color} transform="rotate(45, 6, 6)" />
+      <Path
+        d={rr(4.75, 0, 2.5, 12, 1.25, 1.25, 1.25, 1.25)}
+        fill={color}
+        transform="rotate(45, 6, 6)"
+      />
     </GlyphFrame>
   );
 }
 
-export function TrashGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function TrashGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={13} h={11}>
       <Rect x={0} y={0} width={13} height={2} fill={color} />
@@ -413,7 +430,7 @@ export function TrashGlyph({ size, color = colors.textPrimary }: EntryGlyphProps
  * the former. Sleep, Food and Tummy reuse the entry glyphs, which already match.
  */
 
-export function NappyGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function NappyGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // The side tabs hang outside the 20px body, so the drawing box is 24 wide.
   return (
     <GlyphFrame size={size} w={24} h={13}>
@@ -424,7 +441,7 @@ export function NappyGlyph({ size, color = colors.textPrimary }: EntryGlyphProps
   );
 }
 
-export function PillGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function PillGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   // Capsule outline with the left half filled — the two-tone pill.
   return (
     <GlyphFrame size={size} w={20} h={10}>
@@ -434,7 +451,7 @@ export function PillGlyph({ size, color = colors.textPrimary }: EntryGlyphProps)
   );
 }
 
-export function MoreGlyph({ size, color = colors.textPrimary }: EntryGlyphProps) {
+export function MoreGlyph({ size, color = themeColors().textPrimary }: EntryGlyphProps) {
   return (
     <GlyphFrame size={size} w={18} h={4}>
       <Circle cx={2} cy={2} r={2} fill={color} />
@@ -473,7 +490,7 @@ const GLYPHS: Record<GlyphKind, React.ComponentType<EntryGlyphProps>> = {
 export function EntryGlyph({
   kind,
   size = 18,
-  color = colors.textPrimary,
+  color = themeColors().textPrimary,
 }: EntryGlyphProps & { kind: GlyphKind }) {
   const Component = GLYPHS[kind];
   return <Component size={size} color={color} />;
@@ -495,9 +512,10 @@ const ACTION_GLYPHS: Record<ActionGlyphKind, React.ComponentType<EntryGlyphProps
 export function ActionGlyph({
   kind,
   size = 18,
-  color = colors.textPrimary,
+  color = themeColors().textPrimary,
 }: EntryGlyphProps & { kind: ActionGlyphKind | GlyphKind }) {
-  const Component = kind in ACTION_GLYPHS ? ACTION_GLYPHS[kind as ActionGlyphKind] : GLYPHS[kind as GlyphKind];
+  const Component =
+    kind in ACTION_GLYPHS ? ACTION_GLYPHS[kind as ActionGlyphKind] : GLYPHS[kind as GlyphKind];
   return <Component size={size} color={color} />;
 }
 

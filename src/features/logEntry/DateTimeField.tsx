@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { AppText, FieldLabel, TextField } from '../../components';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { fontSize, radii, spacing, useThemedStyles, type AppTheme } from '../../theme';
 
 interface DateTimeFieldProps {
   label: string;
@@ -56,6 +56,8 @@ function parseLocal(text: string): string | null {
  */
 export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
   const { t } = useTranslation();
+  // Above the platform branch — both paths render, so this can't sit inside it.
+  const styles = useThemedStyles(makeStyles);
   if (Platform.OS !== 'android') {
     return (
       <TextField
@@ -128,22 +130,23 @@ export function DateTimeField({ label, value, onChange }: DateTimeFieldProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  field: {
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing['2xl'],
-    alignItems: 'center',
-  },
-  dateField: {
-    flex: 3,
-  },
-  timeField: {
-    flex: 2,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    field: {
+      backgroundColor: colors.card,
+      borderRadius: radii.control,
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing['2xl'],
+      alignItems: 'center',
+    },
+    dateField: {
+      flex: 3,
+    },
+    timeField: {
+      flex: 2,
+    },
+  });

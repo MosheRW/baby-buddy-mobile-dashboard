@@ -5,9 +5,24 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
-import { avatarTint, colors, fontSize, spacing } from '../../theme';
+import {
+  avatarTint,
+  fontSize,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  type AppTheme,
+} from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
-import { useAuthStore, useKidsStore, useLocaleStore, useSettingsStore } from '../../stores';
+import {
+  THEME_PREFERENCES,
+  useAuthStore,
+  useKidsStore,
+  useLocaleStore,
+  useSettingsStore,
+  useThemeStore,
+  type ThemePreference,
+} from '../../stores';
 import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
 import { useDashboardData } from '../../data/queries';
@@ -17,10 +32,18 @@ const LANGUAGE_LABEL_KEY: Record<AppLanguage, string> = {
   he: 'settings.languageHebrew',
 };
 
+const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
+  system: 'settings.appearanceSystem',
+  light: 'settings.appearanceLight',
+  dark: 'settings.appearanceDark',
+};
+
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { scheme, colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
   const { children } = useDashboardData();
@@ -32,6 +55,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setHidden = useKidsStore((s) => s.setHidden);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
   const activeLanguage = useEffectiveLanguage();
+  const themePreference = useThemeStore((s) => s.preference);
+  const setThemePreference = useThemeStore((s) => s.setPreference);
 
   const defaultMl = (id: string, fallback: number) => defaults[id] ?? fallback;
 
@@ -44,7 +69,7 @@ export function SettingsScreen({ navigation }: Props) {
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
-          <ChevronLeftGlyph size={24} />
+          <ChevronLeftGlyph size={24} color={colors.textPrimary} />
         </Pressable>
         <AppText size={fontSize.screenTitle} weight="800">
           {t('settings.title')}
@@ -94,6 +119,28 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
+            {t('settings.appearance')}
+          </AppText>
+          <View style={styles.windowRow}>
+            {THEME_PREFERENCES.map((preference) => (
+              <Chip
+                key={preference}
+                label={t(APPEARANCE_LABEL_KEY[preference])}
+                active={themePreference === preference}
+                onPress={() => setThemePreference(preference)}
+              />
+            ))}
+          </View>
+          {/* Only "System" needs explaining — the other two say what they do. */}
+          {themePreference === 'system' ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {t('settings.appearanceSystemHint')}
+            </AppText>
+          ) : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <AppText size={fontSize.bodySm} weight="800">
             {t('settings.language')}
           </AppText>
           <View style={styles.windowRow}>
@@ -130,7 +177,7 @@ export function SettingsScreen({ navigation }: Props) {
             {t('settings.children')}
           </AppText>
           {children.map((child) => {
-            const tint = avatarTint(child.hue);
+            const tint = avatarTint(child.hue, scheme);
             const isVisible = !hidden[child.id];
             return (
               <View key={child.id} style={styles.childRow}>
@@ -205,79 +252,80 @@ function maskToken(token: string): string {
   return `••••${token.slice(-4)}`;
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  content: {
-    padding: spacing['2xl'],
-    gap: spacing['2xl'],
-  },
-  section: {
-    gap: spacing.lg,
-  },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  navText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  chevron: {
-    // The only chevron glyph points left; flip it to point into the sub-screen.
-    transform: [{ rotate: '180deg' }],
-  },
-  windowRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  childRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  childInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    flexShrink: 1,
-  },
-  childControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperWrap: {
-    width: 150,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  toggleText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      paddingHorizontal: spacing['2xl'],
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    content: {
+      padding: spacing['2xl'],
+      gap: spacing['2xl'],
+    },
+    section: {
+      gap: spacing.lg,
+    },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    navText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    chevron: {
+      // The only chevron glyph points left; flip it to point into the sub-screen.
+      transform: [{ rotate: '180deg' }],
+    },
+    windowRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    childRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    childInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      flexShrink: 1,
+    },
+    childControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepperWrap: {
+      width: 150,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    toggleText: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+  });

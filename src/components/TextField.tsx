@@ -1,7 +1,15 @@
 import React from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { FieldLabel } from './FieldLabel';
-import { colors, fontSize, radii, spacing, weightFamily } from '../theme';
+import {
+  fontSize,
+  radii,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  weightFamily,
+  type AppTheme,
+} from '../theme';
 
 interface TextFieldProps extends TextInputProps {
   /** Optional uppercase caption rendered above the input. */
@@ -15,6 +23,8 @@ interface TextFieldProps extends TextInputProps {
  * Pass `label` to render the standard FieldLabel above it.
  */
 export function TextField({ label, multilineFixed, style, ...rest }: TextFieldProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View>
       {label ? <FieldLabel>{label}</FieldLabel> : null}
@@ -28,18 +38,19 @@ export function TextField({ label, multilineFixed, style, ...rest }: TextFieldPr
   );
 }
 
-const styles = StyleSheet.create({
-  input: {
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing['2xl'],
-    fontFamily: weightFamily['600'],
-    fontSize: fontSize.bodySm,
-    color: colors.textPrimary,
-  },
-  multiline: {
-    height: 52,
-    textAlignVertical: 'top',
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    input: {
+      backgroundColor: colors.card,
+      borderRadius: radii.control,
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing['2xl'],
+      fontFamily: weightFamily['600'],
+      fontSize: fontSize.bodySm,
+      color: colors.textPrimary,
+    },
+    multiline: {
+      height: 52,
+      textAlignVertical: 'top',
+    },
+  });

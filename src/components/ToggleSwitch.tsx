@@ -6,7 +6,7 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { colors } from '../theme';
+import { useTheme, useThemedStyles, type AppTheme } from '../theme';
 
 interface ToggleSwitchProps {
   value: boolean;
@@ -28,12 +28,19 @@ export function ToggleSwitch({
   disabled = false,
   accessibilityLabel,
 }: ToggleSwitchProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   // Read-only derived value tracks `value` and animates on every change.
   const progress = useDerivedValue(() => withTiming(value ? 1 : 0, { duration: 160 }), [value]);
 
-  const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 1], [colors.neutral, colors.accent]),
-  }));
+  // The worklet closes over the palette, so the track keeps its old colours
+  // after a scheme switch unless the palette is in the dependency list.
+  const trackStyle = useAnimatedStyle(
+    () => ({
+      backgroundColor: interpolateColor(progress.value, [0, 1], [colors.neutral, colors.accent]),
+    }),
+    [colors],
+  );
 
   const knobStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: progress.value * (TRACK_W - KNOB - PAD * 2) }],
@@ -55,21 +62,22 @@ export function ToggleSwitch({
   );
 }
 
-const styles = StyleSheet.create({
-  track: {
-    width: TRACK_W,
-    height: TRACK_H,
-    borderRadius: TRACK_H / 2,
-    padding: PAD,
-    justifyContent: 'center',
-  },
-  knob: {
-    width: KNOB,
-    height: KNOB,
-    borderRadius: KNOB / 2,
-    backgroundColor: colors.card,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    track: {
+      width: TRACK_W,
+      height: TRACK_H,
+      borderRadius: TRACK_H / 2,
+      padding: PAD,
+      justifyContent: 'center',
+    },
+    knob: {
+      width: KNOB,
+      height: KNOB,
+      borderRadius: KNOB / 2,
+      backgroundColor: colors.card,
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+  });

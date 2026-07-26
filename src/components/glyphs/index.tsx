@@ -7,7 +7,10 @@
  */
 import React from 'react';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
-import { colors } from '../../theme';
+// `themeColors()` rather than `useTheme()`: `color` is a *default parameter*,
+// evaluated on every call, so it already picks up the active scheme — and that
+// keeps these small glyph functions hook-free.
+import { themeColors } from '../../theme';
 
 export interface GlyphProps {
   size?: number;
@@ -19,7 +22,11 @@ function frame(size: number) {
   return { width: size, height: size, viewBox: '0 0 24 24' } as const;
 }
 
-export function DiaperGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function DiaperGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Path
@@ -34,7 +41,11 @@ export function DiaperGlyph({ size = 22, color = colors.textPrimary, strokeWidth
   );
 }
 
-export function BottleGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function BottleGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Path
@@ -51,7 +62,7 @@ export function BottleGlyph({ size = 22, color = colors.textPrimary, strokeWidth
 
 export function CapsuleGlyph({
   size = 22,
-  color = colors.textPrimary,
+  color = themeColors().textPrimary,
   strokeWidth = 2,
 }: GlyphProps) {
   return (
@@ -82,7 +93,7 @@ export function CapsuleGlyph({
 
 export function ThermometerGlyph({
   size = 22,
-  color = colors.textPrimary,
+  color = themeColors().textPrimary,
   strokeWidth = 2,
 }: GlyphProps) {
   return (
@@ -99,7 +110,11 @@ export function ThermometerGlyph({
   );
 }
 
-export function MoonGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function MoonGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Path
@@ -113,7 +128,11 @@ export function MoonGlyph({ size = 22, color = colors.textPrimary, strokeWidth =
   );
 }
 
-export function TummyGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function TummyGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   // A baby-on-tummy abstraction: head circle + rounded body.
   return (
     <Svg {...frame(size)}>
@@ -130,7 +149,7 @@ export function TummyGlyph({ size = 22, color = colors.textPrimary, strokeWidth 
   );
 }
 
-export function DotsGlyph({ size = 22, color = colors.textPrimary }: GlyphProps) {
+export function DotsGlyph({ size = 22, color = themeColors().textPrimary }: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Circle cx="6" cy="12" r="1.7" fill={color} />
@@ -142,7 +161,7 @@ export function DotsGlyph({ size = 22, color = colors.textPrimary }: GlyphProps)
 
 export function ChevronLeftGlyph({
   size = 22,
-  color = colors.textPrimary,
+  color = themeColors().textPrimary,
   strokeWidth = 2,
 }: GlyphProps) {
   return (
@@ -159,7 +178,11 @@ export function ChevronLeftGlyph({
   );
 }
 
-export function CloseGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function CloseGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Line
@@ -184,7 +207,7 @@ export function CloseGlyph({ size = 22, color = colors.textPrimary, strokeWidth 
   );
 }
 
-export function GearGlyph({ size = 22, color = colors.textPrimary }: GlyphProps) {
+export function GearGlyph({ size = 22, color = themeColors().textPrimary }: GlyphProps) {
   // Toothed cog: filled gear outline with the centre hole punched out via
   // the even-odd fill rule (the inner circle winds against the body).
   return (
@@ -199,7 +222,11 @@ export function GearGlyph({ size = 22, color = colors.textPrimary }: GlyphProps)
   );
 }
 
-export function PlusGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function PlusGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Line
@@ -224,7 +251,11 @@ export function PlusGlyph({ size = 22, color = colors.textPrimary, strokeWidth =
   );
 }
 
-export function MinusGlyph({ size = 22, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function MinusGlyph({
+  size = 22,
+  color = themeColors().textPrimary,
+  strokeWidth = 2,
+}: GlyphProps) {
   return (
     <Svg {...frame(size)}>
       <Line

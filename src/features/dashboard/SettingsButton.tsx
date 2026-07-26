@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { GearGlyph } from '../../components/glyphs';
-import { colors, radii, shadows } from '../../theme';
+import { radii, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 
 interface SettingsButtonProps {
   onPress: () => void;
@@ -14,6 +14,8 @@ interface SettingsButtonProps {
  * so it never takes a row of its own.
  */
 export function SettingsButton({ onPress, style }: SettingsButtonProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -26,14 +28,15 @@ export function SettingsButton({ onPress, style }: SettingsButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.tile,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(shadows.feedRow as object),
-  },
-});
+const makeStyles = ({ colors, shadows }: AppTheme) =>
+  StyleSheet.create({
+    button: {
+      width: 38,
+      height: 38,
+      borderRadius: radii.tile,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...(shadows.feedRow as object),
+    },
+  });

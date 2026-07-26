@@ -2,7 +2,15 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { AppText } from './AppText';
 import { CloseGlyph } from './glyphs';
-import { colors, fontSize, radii, spacing, weightFamily } from '../theme';
+import {
+  fontSize,
+  radii,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  weightFamily,
+  type AppTheme,
+} from '../theme';
 
 interface TagRowProps {
   /** The auto-generated "by {name}" author tag, always shown first, non-removable. */
@@ -19,6 +27,8 @@ interface TagRowProps {
  */
 export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
   const [draft, setDraft] = useState('');
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const commit = () => {
     const t = draft.trim();
@@ -76,49 +86,50 @@ export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.neutral,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  authorChip: {
-    backgroundColor: colors.background,
-  },
-  addRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radii.control,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing['2xl'],
-    fontFamily: weightFamily['600'],
-    fontSize: fontSize.bodySm,
-    color: colors.textPrimary,
-  },
-  addBtn: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.control,
-    paddingHorizontal: spacing['4xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});
+const makeStyles = ({ colors }: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      gap: spacing.md,
+    },
+    chips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      backgroundColor: colors.neutral,
+      borderRadius: radii.pill,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+    },
+    authorChip: {
+      backgroundColor: colors.background,
+    },
+    addRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: radii.control,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing['2xl'],
+      fontFamily: weightFamily['600'],
+      fontSize: fontSize.bodySm,
+      color: colors.textPrimary,
+    },
+    addBtn: {
+      backgroundColor: colors.accent,
+      borderRadius: radii.control,
+      paddingHorizontal: spacing['4xl'],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+  });

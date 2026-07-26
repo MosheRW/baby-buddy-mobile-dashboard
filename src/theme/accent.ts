@@ -3,18 +3,17 @@
  * choice can paint the avatar, the name, and the card's gradient background and
  * stay coherent.
  *
- * **Light-only today, but dark-ready.** The app currently ships a single light
- * theme (no color-scheme detection anywhere). Every accent colour is resolved
- * through `accentColors(hue, scheme)`, and `scheme` comes from `resolveScheme()`
- * which returns `'light'` for now. When a dark theme is added, only
- * `resolveScheme` and the dark branch below change — not the call sites.
+ * Both schemes are live. `accentColors(hue, scheme)` defaults `scheme` to the
+ * active one via `getScheme()`; components that already hold a theme should pass
+ * `theme.scheme` explicitly so the value is tied to the render that produced it.
  *
- * Hues follow the same HSL approach as `avatarTint` in `tokens.ts`, so an accent
- * and the avatar it recolours share one colour model.
+ * Hues follow the same HSL approach as `avatarTint` in `palette.ts`, so an
+ * accent and the avatar it recolours share one colour model.
  */
-import { avatarTint } from './tokens';
-
-export type Scheme = 'light' | 'dark';
+// `Scheme` is deliberately not re-exported here — `palette.ts` owns it and the
+// theme barrel already exports it from there.
+import { avatarTint, type Scheme } from './palette';
+import { getScheme } from './scheme';
 
 /**
  * Curated, on-theme accent hues offered in the colour picker. Kept deliberately
@@ -44,33 +43,34 @@ export interface AccentColors {
 }
 
 /**
- * The current colour scheme. Single future touch-point for dark mode — returns
- * `'light'` until a real light/dark theming layer exists.
+ * The current colour scheme.
+ *
+ * @deprecated Prefer `useTheme().scheme` in components — it re-renders on a
+ * switch. This is the module-level read, kept for pure code and default props.
  */
 export function resolveScheme(): Scheme {
-  return 'light';
+  return getScheme();
 }
 
 const norm = (hue: number): number => ((hue % 360) + 360) % 360;
 
 /**
- * Resolve a hue into the set of coherent colours a card uses. The light stops
- * are a *subtle* wash over the white card so the existing dark body text stays
- * readable — the accent should tint the card, not repaint it.
+ * Resolve a hue into the set of coherent colours a card uses. Both schemes keep
+ * the same idea: the accent should *tint* the card, not repaint it, so the
+ * stops stay a subtle wash and the body text on top keeps its normal contrast.
+ * Light washes toward white, dark washes toward the warm near-black surface.
  */
-export function accentColors(hue: number, scheme: Scheme = resolveScheme()): AccentColors {
+export function accentColors(hue: number, scheme: Scheme = getScheme()): AccentColors {
   const h = norm(hue);
-  const tint = avatarTint(h);
+  const tint = avatarTint(h, scheme);
 
   if (scheme === 'dark') {
-    // Defined for when a dark theme lands; unreachable while resolveScheme()
-    // returns 'light'. Deeper, desaturated stops for a dark card surface.
     return {
       gradientFrom: `hsl(${h}, 22%, 20%)`,
       gradientTo: `hsl(${h}, 26%, 14%)`,
       name: `hsl(${h}, 55%, 74%)`,
-      avatarBg: `hsl(${h}, 30%, 26%)`,
-      avatarFg: `hsl(${h}, 55%, 78%)`,
+      avatarBg: tint.bg,
+      avatarFg: tint.fg,
     };
   }
 

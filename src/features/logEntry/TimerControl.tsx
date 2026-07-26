@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText } from '../../components';
-import { colors, fontSize, radii, spacing, tints } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { elapsedClock, type TimerType } from '../../lib/timers';
 import { useTimerActions } from '../../hooks/useTimers';
 import { useTimerStore } from '../../stores';
@@ -27,6 +27,8 @@ interface StartTimerButtonProps {
 /** Soft peach pill with a play triangle — starts the (type, child) timer. */
 export function StartTimerButton({ type, childId }: StartTimerButtonProps) {
   const { t } = useTranslation();
+  const { tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { start } = useTimerActions();
   return (
     <Pressable
@@ -59,6 +61,8 @@ interface RunningTimerStripProps {
 /** Compact "● Timer running m:ss [Stop]" pill shown at the top of the form. */
 export function RunningTimerStrip({ type, childId, asOf, onStop }: RunningTimerStripProps) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const timer = useTimerStore((s) =>
     s.timers.find((timer_) => timer_.type === type && timer_.childId === childId),
   );
@@ -87,49 +91,50 @@ export function RunningTimerStrip({ type, childId, asOf, onStop }: RunningTimerS
   );
 }
 
-const styles = StyleSheet.create({
-  startButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: tints.suggestion.bg,
-    borderRadius: radii.control,
-    paddingVertical: spacing.lg,
-  },
-  playTriangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 5,
-    borderBottomWidth: 5,
-    borderLeftWidth: 8,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
-  strip: {
-    flexDirection: 'row',
-    alignSelf: 'flex-start',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.card,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.md,
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.md,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.danger,
-  },
-  stopButton: {
-    backgroundColor: colors.danger,
-    borderRadius: radii.chipSmall,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.lg,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    startButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      backgroundColor: tints.suggestion.bg,
+      borderRadius: radii.control,
+      paddingVertical: spacing.lg,
+    },
+    playTriangle: {
+      width: 0,
+      height: 0,
+      borderTopWidth: 5,
+      borderBottomWidth: 5,
+      borderLeftWidth: 8,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+    },
+    strip: {
+      flexDirection: 'row',
+      alignSelf: 'flex-start',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: radii.pill,
+      paddingVertical: spacing.md,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.md,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.danger,
+    },
+    stopButton: {
+      backgroundColor: colors.danger,
+      borderRadius: radii.chipSmall,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.lg,
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+  });

@@ -320,6 +320,11 @@ export const he = {
     language: 'שפה',
     languageEnglish: 'English',
     languageHebrew: 'עברית',
+    appearance: 'מראה',
+    appearanceSystem: 'לפי המכשיר',
+    appearanceLight: 'בהיר',
+    appearanceDark: 'כהה',
+    appearanceSystemHint: 'עוקב אחרי הגדרת המצב הבהיר או הכהה במכשיר שלך.',
   },
 
   advanced: {
@@ -426,7 +431,8 @@ export const he = {
     eligAt_noChild: '{{med}} זמינה שוב עכשיו.',
     eligAfter: '{{med}} עבור {{child}} זמינה למנה נוספת כבר {{duration}}.',
     eligAfter_noChild: '{{med}} זמינה למנה נוספת כבר {{duration}}.',
-    timerBody: 'טיימר {{activity}} עבור {{child}} פועל כבר יותר מ-{{duration}} — אולי שכחתם לעצור אותו?',
+    timerBody:
+      'טיימר {{activity}} עבור {{child}} פועל כבר יותר מ-{{duration}} — אולי שכחתם לעצור אותו?',
     timerBody_noChild: 'טיימר {{activity}} פועל כבר יותר מ-{{duration}} — אולי שכחתם לעצור אותו?',
     liveTimerTitle: 'טיימר {{activity}} פעיל',
     liveTimerBody: '{{child}} · פועל כבר {{duration}}',
@@ -435,7 +441,8 @@ export const he = {
     foodBody: '{{child}} לא אכל/ה כבר {{duration}}.',
     foodBodyMin: '{{child}} לא אכל/ה כבר {{duration}} — כדאי לתת לפחות {{min}} מ״ל.',
     titleWeekly: 'הסיכום השבועי שלך',
-    weeklyBody: 'תיעדתם {{mine}} מתוך {{total}} רשומות השבוע — {{share}}% מסך הכול של המשפחה. {{breakdown}}',
+    weeklyBody:
+      'תיעדתם {{mine}} מתוך {{total}} רשומות השבוע — {{share}}% מסך הכול של המשפחה. {{breakdown}}',
     weeklyBodySolo: 'תיעדתם {{mine}} רשומות השבוע. {{breakdown}}',
     // In-app carousel of already-delivered reminders, shown above the child card.
     carouselHeading: 'התראות',

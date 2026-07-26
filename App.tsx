@@ -5,11 +5,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useAppFonts } from './src/theme';
+import { ThemeProvider, useAppFonts } from './src/theme';
 import { useAuthStore } from './src/stores';
 import { queryClient } from './src/data/queryClient';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useSyncAppLanguage } from './src/hooks/useAppLanguage';
+import { useEffectiveScheme } from './src/hooks/useAppScheme';
 import './src/i18n';
 
 // Keep the splash visible until fonts + persisted state are ready so nothing
@@ -28,6 +29,7 @@ export default function App() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const [timedOut, setTimedOut] = useState(false);
   useSyncAppLanguage();
+  const scheme = useEffectiveScheme();
 
   useEffect(() => {
     const id = setTimeout(() => setTimedOut(true), BOOT_TIMEOUT_MS);
@@ -49,10 +51,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout}>
       <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </SafeAreaProvider>
+        <ThemeProvider scheme={scheme}>
+          <SafeAreaProvider>
+            {/* `style` names the status-bar *content* colour, so it's the
+                inverse of the surface behind it. */}
+            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+            <RootNavigator />
+          </SafeAreaProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

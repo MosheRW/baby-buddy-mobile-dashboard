@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText } from '../../components';
 import { ActionGlyph, type ActionGlyphKind } from '../../components/glyphs/entryGlyphs';
-import { colors, fontSize, radii, spacing, tints } from '../../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { EntryType } from '../../api/types';
 import type { GlyphKind } from '../../lib/entryDisplay';
 
@@ -45,6 +45,8 @@ interface QuickActionsProps {
 /** 3-column quick-log button grid. */
 export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.grid}>
       {ACTIONS.map((action) => {
@@ -79,27 +81,28 @@ export function QuickActions({ onAction, runningTimers = {} }: QuickActionsProps
   );
 }
 
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  button: {
-    // 3 per row: (100% - 2 gaps) / 3
-    flexBasis: '31%',
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    borderRadius: radii.tile,
-    paddingVertical: spacing.md,
-  },
-  glyph: {
-    height: 24,
-    justifyContent: 'center',
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    button: {
+      // 3 per row: (100% - 2 gaps) / 3
+      flexBasis: '31%',
+      flexGrow: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      borderRadius: radii.tile,
+      paddingVertical: spacing.md,
+    },
+    glyph: {
+      height: 24,
+      justifyContent: 'center',
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+  });

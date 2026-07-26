@@ -2,11 +2,18 @@
  * Human-readable labels and tint selection for entries. Pure and shared between
  * the dashboard feed and the log-entry form.
  */
-// Imported from `theme/tokens` rather than the `theme` barrel on purpose: the
+// Imported from `theme/scheme` rather than the `theme` barrel on purpose: the
 // barrel re-exports `typography`, which pulls in @expo-google-fonts/expo-font
 // and can't load under the plain-node test environment. `src/lib` is pure, so
 // it should never reach for the font loader anyway.
-import { tints, colors, pooSwatch } from '../theme/tokens';
+//
+// The colour-returning helpers below take an optional `scheme`, defaulting to
+// whichever is active — the same singleton-with-an-override shape as the `i18n`
+// instance the label helpers use. Components that hold a theme should pass
+// `theme.scheme` so the colours belong to the render that produced them; tests
+// omit it and get light.
+import { themeColors, themePooSwatch, themeTints } from '../theme/scheme';
+import type { Scheme } from '../theme/palette';
 import i18n from '../i18n';
 import { durationLabel } from './dates';
 import type {
@@ -36,7 +43,9 @@ export function temperatureMethodLabel(method: TemperatureMethod): string {
 }
 
 /** Background+foreground tint for an entry type's icon swatch / card. */
-export function entryTint(type: EntryType): { bg: string; fg: string } {
+export function entryTint(type: EntryType, scheme?: Scheme): { bg: string; fg: string } {
+  const tints = themeTints(scheme);
+  const colors = themeColors(scheme);
   switch (type) {
     case 'diaper':
       return { bg: tints.pee.bg, fg: tints.pee.fg };
@@ -202,8 +211,11 @@ export interface EntryVisual {
  * that reading is the point of the entry, so it drives the icon rather than
  * being tucked into a secondary swatch.
  */
-export function entryVisual(entry: Entry): EntryVisual {
-  const tint = entryTint(entry.type);
+export function entryVisual(entry: Entry, scheme?: Scheme): EntryVisual {
+  const tints = themeTints(scheme);
+  const colors = themeColors(scheme);
+  const pooSwatch = themePooSwatch(scheme);
+  const tint = entryTint(entry.type, scheme);
   const visual: EntryVisual = {
     glyph: entryGlyphKind(entry),
     accent: tint.fg,
@@ -220,7 +232,7 @@ export function entryVisual(entry: Entry): EntryVisual {
       if (entry.amount != null) visual.amountBadge = `${entry.amount}/10`;
       break;
     case 'temperature':
-      visual.tempDotColor = isFever(entry.value) ? colors.danger : FEVER_OK_COLOR;
+      visual.tempDotColor = isFever(entry.value) ? colors.danger : colors.feverOk;
       break;
     default:
       break;
@@ -228,6 +240,3 @@ export function entryVisual(entry: Entry): EntryVisual {
 
   return visual;
 }
-
-/** Green "within normal range" dot for temperature readings. */
-const FEVER_OK_COLOR = '#4E8A5B';

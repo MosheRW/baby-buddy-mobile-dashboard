@@ -3,7 +3,15 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, StatTile } from '../../components';
 import { EntryGlyph } from '../../components/glyphs/entryGlyphs';
-import { accentColors, colors, fontSize, radii, resolveScheme, spacing, tints } from '../../theme';
+import {
+  accentColors,
+  fontSize,
+  radii,
+  spacing,
+  useTheme,
+  useThemedStyles,
+  type AppTheme,
+} from '../../theme';
 import { effectiveHue } from '../../lib/visibility';
 import { timeAgo } from '../../lib/dates';
 import { ageLabel } from '../../api/normalize';
@@ -67,6 +75,8 @@ export const ChildCard = React.memo(function ChildCard({
   width,
 }: ChildCardProps) {
   const { t } = useTranslation();
+  const { scheme, colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   // The per-child feeding interval doubles as this child's food-total window
   // (merged from the old global "feeding window" setting).
   const windowMinutes = useNotificationStore(
@@ -88,10 +98,7 @@ export const ChildCard = React.memo(function ChildCard({
   const childAccent = useKidsStore((s) => s.childAccent);
   const childGroupId = useKidsStore((s) => s.childGroupId);
   const groups = useKidsStore((s) => s.groups);
-  const accent = accentColors(
-    effectiveHue(child, { childAccent, childGroupId, groups }),
-    resolveScheme(),
-  );
+  const accent = accentColors(effectiveHue(child, { childAccent, childGroupId, groups }), scheme);
 
   // Live mm:ss labels for this child's running timers, keyed by entry type.
   const timers = useTimerStore((s) => s.timers);
@@ -204,6 +211,8 @@ function MedRow({
   onPress?: (status: MedStatus) => void;
 }) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   // Scheduled meds warn a few minutes ahead; an as-needed med has nothing to be
   // late for, so it only lights up once it's actually available again.
   const urgent = kind === 'needed' ? status.urgent : status.isDue;
@@ -227,7 +236,9 @@ function MedRow({
           {status.name}
         </AppText>
         <AppText size={fontSize.micro} weight="600" color={fg} style={styles.faded}>
-          {t('childCard.lastAt', { time: timeAgo(new Date(status.lastTakenAt).toISOString(), now) })}
+          {t('childCard.lastAt', {
+            time: timeAgo(new Date(status.lastTakenAt).toISOString(), now),
+          })}
         </AppText>
       </View>
       <AppText size={fontSize.metaSm} weight="800" color={fg} style={styles.medStatus}>
@@ -251,6 +262,8 @@ function MedLimitTile({
   onPress?: () => void;
 }) {
   const { t } = useTranslation();
+  const { colors, tints } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const fg = tints.eligible.fg;
   // At the ceiling the bar turns red — this is the one number here that means
   // "stop", so it shouldn't read the same as a half-full bar.
@@ -310,6 +323,8 @@ function MedLimitTile({
  * now gauges today against itself when there's no norm yet.
  */
 function FoodTrend({ trend }: { trend: ReturnType<typeof foodTrend> }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.trend}>
       <View style={[styles.barTrack, styles.trendTrack]}>
@@ -330,99 +345,100 @@ function FoodTrend({ trend }: { trend: ReturnType<typeof foodTrend> }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    gap: spacing.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  headerMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    flexShrink: 1,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  stat: {
-    flex: 1,
-  },
-  medRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderRadius: radii.tile,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  medIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.iconButton,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  medName: {
-    flex: 1,
-  },
-  medStatus: {
-    textAlign: 'right',
-  },
-  limitTile: {
-    backgroundColor: tints.eligible.bg,
-    borderRadius: radii.tile,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.xs,
-  },
-  limitHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  limitIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.iconButton,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  limitName: {
-    flex: 1,
-  },
-  faded: {
-    opacity: 0.75,
-  },
-  barTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.neutral,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  trend: {
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  trendTrack: {
-    backgroundColor: tints.feeding.track,
-  },
-});
+const makeStyles = ({ colors, tints }: AppTheme) =>
+  StyleSheet.create({
+    card: {
+      gap: spacing.xl,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.lg,
+    },
+    headerMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      flexShrink: 1,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    stat: {
+      flex: 1,
+    },
+    medRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      borderRadius: radii.tile,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    medIcon: {
+      width: 22,
+      height: 22,
+      borderRadius: radii.iconButton,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    medName: {
+      flex: 1,
+    },
+    medStatus: {
+      textAlign: 'right',
+    },
+    limitTile: {
+      backgroundColor: tints.eligible.bg,
+      borderRadius: radii.tile,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      gap: spacing.xs,
+    },
+    limitHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    limitIcon: {
+      width: 22,
+      height: 22,
+      borderRadius: radii.iconButton,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    limitName: {
+      flex: 1,
+    },
+    faded: {
+      opacity: 0.75,
+    },
+    barTrack: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.neutral,
+      overflow: 'hidden',
+    },
+    barFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    trend: {
+      gap: spacing.xs,
+      marginTop: spacing.xs,
+    },
+    trendTrack: {
+      backgroundColor: tints.feeding.track,
+    },
+  });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from './AppText';
-import { colors, fontSize, radii, shadows, spacing } from '../theme';
+import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../theme';
 
 export interface SegmentOption<T extends string> {
   value: T;
@@ -30,6 +30,8 @@ export function SegmentedToggle<T extends string>({
   value,
   onChange,
 }: SegmentedToggleProps<T>) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.container}>
       {options.map((opt) => {
@@ -54,25 +56,26 @@ export function SegmentedToggle<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.neutral,
-    borderRadius: radii.control,
-    padding: 4,
-    gap: 4,
-  },
-  segment: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
-    borderRadius: radii.chipSmall,
-  },
-  segmentActive: {
-    backgroundColor: colors.card,
-    ...(shadows.feedRow as object),
-  },
-});
+const makeStyles = ({ colors, shadows }: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      backgroundColor: colors.neutral,
+      borderRadius: radii.control,
+      padding: 4,
+      gap: 4,
+    },
+    segment: {
+      flex: 1,
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      paddingVertical: spacing.md,
+      borderRadius: radii.chipSmall,
+    },
+    segmentActive: {
+      backgroundColor: colors.card,
+      ...(shadows.feedRow as object),
+    },
+  });
