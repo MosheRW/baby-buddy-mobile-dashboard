@@ -502,6 +502,32 @@ describe('buildNotifications — weekly summary', () => {
     expect(plan.some((n) => n.key === 'weekly')).toBe(false);
   });
 
+  it('splits the body by kid group when there is more than one bucket', () => {
+    const children = [child('c1', 'Emma'), child('c2', 'Noah')];
+    const entries: Entry[] = [
+      diaper(iso(NOW - DAY)),
+      feeding(iso(NOW - DAY), { id: 'f-noah', childId: 'c2' }),
+    ];
+    const plan = buildNotifications(
+      input({
+        entries,
+        children,
+        settings: weeklyOn(),
+        me: 'Sarah',
+        kidGroups: { childGroupId: { c1: 'g1' }, groups: { g1: { id: 'g1', name: 'Twins', order: 0 } } },
+      }),
+      NOW,
+    );
+    const weekly = plan.find((n) => n.key === 'weekly')!;
+    expect(weekly.body.split('\n')[1]).toBe('By group: Twins 1 · Noah 1');
+  });
+
+  it('leaves a single-child account with a one-line body', () => {
+    const entries: Entry[] = [diaper(iso(NOW - DAY))];
+    const plan = buildNotifications(input({ entries, settings: weeklyOn(), me: 'Sarah' }), NOW);
+    expect(plan.find((n) => n.key === 'weekly')!.body).not.toContain('\n');
+  });
+
   it('leaves the reminder cases outside the visibility scope', () => {
     // A hidden child's medication is still due — hiding is a display choice.
     const entries: Entry[] = [

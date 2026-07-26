@@ -191,34 +191,56 @@ export function computeGroupContributions(
   return buckets;
 }
 
+/** `mine/total` pairs joined with a middot, or bare `mine` counts when solo. */
+function joinCounts(parts: { label: string; mine: number; total: number }[], solo: boolean): string {
+  return parts
+    .map((p) => (solo ? `${p.label} ${p.mine}` : `${p.label} ${p.mine}/${p.total}`))
+    .join(' · ');
+}
+
 /**
  * Localized notification body for a summary. When I'm the only caregiver who
  * logged anything, the "% of the family's total" comparison is meaningless, so a
  * solo variant drops it and just recaps my own counts. Categories are joined
  * with a middot into one line the OS can expand.
+ *
+ * `groups` adds a second line splitting the same week by kid group. It's dropped
+ * below two buckets, where it would only restate the total the first line
+ * already gives — the same rule the in-app sheet applies to its group section.
  */
-export function contributionBody(summary: ContributionSummary): string {
+export function contributionBody(
+  summary: ContributionSummary,
+  groups: GroupContribution[] = [],
+): string {
   const solo = summary.caregivers <= 1;
 
-  const breakdown = summary.categories
-    .map((c) =>
-      solo
-        ? `${entryTypeLabel(c.type)} ${c.mine}`
-        : `${entryTypeLabel(c.type)} ${c.mine}/${c.total}`,
-    )
-    .join(' · ');
+  const breakdown = joinCounts(
+    summary.categories.map((c) => ({ label: entryTypeLabel(c.type), mine: c.mine, total: c.total })),
+    solo,
+  );
 
-  if (solo) {
-    return i18n.t('notifications.weeklyBodySolo', {
-      mine: summary.myTotal,
-      breakdown,
-    });
-  }
+  const head = solo
+    ? i18n.t('notifications.weeklyBodySolo', {
+        mine: summary.myTotal,
+        breakdown,
+      })
+    : i18n.t('notifications.weeklyBody', {
+        mine: summary.myTotal,
+        total: summary.allTotal,
+        share: Math.round(summary.overallShare * 100),
+        breakdown,
+      });
 
-  return i18n.t('notifications.weeklyBody', {
-    mine: summary.myTotal,
-    total: summary.allTotal,
-    share: Math.round(summary.overallShare * 100),
-    breakdown,
-  });
+  if (groups.length < 2) return head;
+
+  const byGroup = joinCounts(
+    groups.map((g) => ({
+      label: g.label,
+      mine: g.summary.myTotal,
+      total: g.summary.allTotal,
+    })),
+    solo,
+  );
+
+  return `${head}\n${i18n.t('notifications.weeklyGroups', { breakdown: byGroup })}`;
 }

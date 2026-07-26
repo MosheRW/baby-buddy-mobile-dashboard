@@ -455,6 +455,8 @@ export const en = {
     weeklyBody:
       "You logged {{mine}} of {{total}} entries this week — {{share}}% of the family's total. {{breakdown}}",
     weeklyBodySolo: 'You logged {{mine}} entries this week. {{breakdown}}',
+    // Second line of the weekly body, listing the same week split by kid group.
+    weeklyGroups: 'By group: {{breakdown}}',
     // In-app carousel of already-delivered reminders, shown above the child card.
     carouselHeading: 'Notifications',
     dismissOne: 'Dismiss notification',

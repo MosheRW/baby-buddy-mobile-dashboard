@@ -139,6 +139,53 @@ describe('contributionBody', () => {
     expect(body).not.toContain('/');
   });
 
+  it('appends a per-group line when there is more than one bucket', () => {
+    const children = [child('c1', 'Ada'), child('c2', 'Ben')];
+    const state = { childGroupId: { c1: 'g1' }, groups: { g1: { id: 'g1', name: 'Twins', order: 0 } } };
+    const entries: Entry[] = [
+      diaper(NOW - DAY, 'Sarah'),
+      diaper(NOW - DAY, 'Alex'),
+      forChild(feeding(NOW - DAY, 'Sarah'), 'c2'),
+    ];
+    const summary = computeContribution(entries, 'Sarah', NOW);
+    const buckets = computeGroupContributions(entries, children, state, 'Sarah', NOW);
+
+    const body = contributionBody(summary, buckets);
+    const [head, groupLine] = body.split('\n');
+    expect(head).toContain('2 of 3');
+    expect(groupLine).toBe('By group: Twins 1/2 · Ben 1/1');
+  });
+
+  it('omits the per-group line when a single bucket would restate the total', () => {
+    const entries: Entry[] = [diaper(NOW - DAY, 'Sarah')];
+    const summary = computeContribution(entries, 'Sarah', NOW);
+    const buckets = computeGroupContributions(
+      entries,
+      [child('c1', 'Ada')],
+      { childGroupId: {}, groups: {} },
+      'Sarah',
+      NOW,
+    );
+    expect(contributionBody(summary, buckets)).not.toContain('\n');
+  });
+
+  it('drops the totals from the per-group line when I am the only caregiver', () => {
+    const children = [child('c1', 'Ada'), child('c2', 'Ben')];
+    const entries: Entry[] = [
+      diaper(NOW - DAY, 'Sarah'),
+      forChild(feeding(NOW - DAY, 'Sarah'), 'c2'),
+    ];
+    const summary = computeContribution(entries, 'Sarah', NOW);
+    const buckets = computeGroupContributions(
+      entries,
+      children,
+      { childGroupId: {}, groups: {} },
+      'Sarah',
+      NOW,
+    );
+    expect(contributionBody(summary, buckets)).toContain('By group: Ada 1 · Ben 1');
+  });
+
   it('renders in the active language', async () => {
     await i18n.changeLanguage('he');
     try {

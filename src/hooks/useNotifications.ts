@@ -86,6 +86,7 @@ export function useNotificationSync(): void {
       timers,
       children: children ?? [],
       visibleChildIds: visible.map((c) => c.id),
+      kidGroups: { childGroupId, groups },
       settings: {
         masterEnabled,
         scheduledMeds,

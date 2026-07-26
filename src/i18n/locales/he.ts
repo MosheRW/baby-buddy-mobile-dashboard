@@ -446,6 +446,7 @@ export const he = {
     weeklyBody:
       'תיעדתם {{mine}} מתוך {{total}} רשומות השבוע — {{share}}% מסך הכול של המשפחה. {{breakdown}}',
     weeklyBodySolo: 'תיעדתם {{mine}} רשומות השבוע. {{breakdown}}',
+    weeklyGroups: 'לפי קבוצה: {{breakdown}}',
     // In-app carousel of already-delivered reminders, shown above the child card.
     carouselHeading: 'התראות',
     dismissOne: 'סגירת התראה',
