@@ -13,16 +13,44 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Card, CloseGlyph } from '../../components';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import type { Child } from '../../api/types';
-import { notificationAction } from '../../lib/notifications';
-import type { DeliveredNotification } from '../../hooks/useDeliveredNotifications';
+
+/**
+ * One card in the carousel. Two kinds share the pager so every dashboard alert —
+ * an OS-delivered reminder and an app error — reads as one stack instead of a
+ * reminder tray plus a separate red banner.
+ *
+ * - `reminder`: tappable only when `onPress` is set (the parent decides, from
+ *   `notificationAction` + a known child); always dismissable.
+ * - `error`: danger-accented. `onRetry` renders a Retry button (the reactive
+ *   dashboard fetch error); `onDismiss` renders the ✕ (event errors like a
+ *   failed save). The fetch-error card has a retry but no dismiss — it clears
+ *   itself when a refetch succeeds, so a manual ✕ would just reappear.
+ */
+export type CarouselItem =
+  | {
+      kind: 'reminder';
+      id: string;
+      title: string;
+      body: string;
+      childId?: string;
+      onPress?: () => void;
+      onDismiss: () => void;
+    }
+  | {
+      kind: 'error';
+      id: string;
+      title: string;
+      body: string;
+      childId?: string;
+      onRetry?: () => void;
+      onDismiss?: () => void;
+    };
 
 interface NotificationCarouselProps {
-  items: DeliveredNotification[];
+  items: CarouselItem[];
   childrenById: Record<string, Child>;
-  onDismiss: (id: string) => void;
-  onDismissAll: () => void;
-  /** Tap a card to open the relevant screen (see `notificationAction`). */
-  onPress: (item: DeliveredNotification) => void;
+  /** Clears every *clearable* card at once (reminders + dismissable errors). */
+  onClearAll: () => void;
 }
 
 // The dashboard scroll content is inset by 2xl on each side; a card fills that
@@ -31,21 +59,20 @@ const H_PADDING = spacing['2xl'];
 const FALLBACK_WIDTH = Dimensions.get('window').width - H_PADDING * 2;
 
 /**
- * A carousel of reminders the OS has already delivered (see
- * `useDeliveredNotifications`). Rendered above the child card, and **hidden
- * entirely when there's nothing to show** — the dashboard renders it
+ * A carousel of dashboard alerts — OS-delivered reminders (see
+ * `useDeliveredNotifications`) and app errors (fetch failures via React Query,
+ * save/delete failures via `appErrorStore`). Rendered above the child card, and
+ * **hidden entirely when there's nothing to show** — the dashboard renders it
  * unconditionally and this returns `null` on an empty list.
  *
- * One notification is shown per page with paging + a dot indicator, so a stack
- * of reminders never pushes the child card down the screen. Tapping a card
- * focuses the child it's about; the ✕ dismisses it from the tray.
+ * One card is shown per page with paging + a dot indicator, so a stack of alerts
+ * never pushes the child card down the screen. The parent assembles the item
+ * list and supplies each card's behaviour; this component is just the pager.
  */
 export function NotificationCarousel({
   items,
   childrenById,
-  onDismiss,
-  onDismissAll,
-  onPress,
+  onClearAll,
 }: NotificationCarouselProps) {
   const { t } = useTranslation();
   const [width, setWidth] = useState(FALLBACK_WIDTH);
@@ -68,6 +95,13 @@ export function NotificationCarousel({
 
   const dots = useMemo(() => items.map((n) => n.id), [items]);
 
+  // "Clear all" only makes sense when more than one card can actually be
+  // cleared — a lone reactive fetch error isn't dismissable, so it shouldn't
+  // offer the affordance.
+  const clearableCount = items.filter(
+    (n) => n.kind === 'reminder' || n.onDismiss != null,
+  ).length;
+
   if (items.length === 0) return null;
 
   return (
@@ -76,12 +110,8 @@ export function NotificationCarousel({
         <AppText size={fontSize.micro} weight="800" color={colors.textMuted}>
           {t('notifications.carouselHeading').toUpperCase()}
         </AppText>
-        {items.length > 1 ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onDismissAll}
-            hitSlop={spacing.md}
-          >
+        {clearableCount > 1 ? (
+          <Pressable accessibilityRole="button" onPress={onClearAll} hitSlop={spacing.md}>
             <AppText size={fontSize.metaSm} weight="800" color={colors.accent}>
               {t('notifications.dismissAll')}
             </AppText>
@@ -100,58 +130,11 @@ export function NotificationCarousel({
       >
         {items.map((n) => {
           const child = n.childId ? childrenById[n.childId] : undefined;
-          // Tappable only when the key maps to a screen we can open AND we have
-          // the childId that screen needs — every navigable action is
-          // child-scoped, so without it the tap would go nowhere. A weekly recap
-          // or unrecognised reminder is a read-only card.
-          const tappable = !!n.childId && notificationAction(n.id).kind !== 'none';
           return (
             <View key={n.id} style={{ width }}>
-              {/* Styled to match the dashboard's inactive-days prompt: a flat
-                  cream card (no shadow), control radius, and the same title/body
-                  type scale — so the two read as one message component. */}
-              <Card
-                elevation="none"
-                radius={radii.control}
-                padding={spacing['2xl']}
-                style={styles.card}
-              >
-                <Pressable
-                  accessibilityRole={tappable ? 'button' : undefined}
-                  disabled={!tappable}
-                  onPress={tappable ? () => onPress(n) : undefined}
-                  style={styles.body}
-                >
-                  <AppText size={fontSize.bodySm} weight="800" numberOfLines={1}>
-                    {n.title}
-                  </AppText>
-                  <AppText
-                    size={fontSize.metaSm}
-                    weight="600"
-                    color={colors.textSecondary}
-                    numberOfLines={2}
-                  >
-                    {n.body}
-                  </AppText>
-                  {child ? (
-                    <View style={styles.childChip}>
-                      <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
-                        {child.name}
-                      </AppText>
-                    </View>
-                  ) : null}
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('notifications.dismissOne')}
-                  onPress={() => onDismiss(n.id)}
-                  hitSlop={spacing.md}
-                  style={styles.dismiss}
-                >
-                  <CloseGlyph size={16} color={colors.textMuted} />
-                </Pressable>
-              </Card>
+              {n.kind === 'error'
+                ? renderErrorCard(n, child, t)
+                : renderReminderCard(n, child, t)}
             </View>
           );
         })}
@@ -171,6 +154,116 @@ export function NotificationCarousel({
   );
 }
 
+type Translate = ReturnType<typeof useTranslation>['t'];
+
+function ChildChip({ child }: { child: Child | undefined }) {
+  if (!child) return null;
+  return (
+    <View style={styles.childChip}>
+      <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
+        {child.name}
+      </AppText>
+    </View>
+  );
+}
+
+function renderReminderCard(
+  n: Extract<CarouselItem, { kind: 'reminder' }>,
+  child: Child | undefined,
+  t: Translate,
+) {
+  const tappable = !!n.onPress;
+  return (
+    // Styled to match the dashboard's inactive-days prompt: a flat cream card
+    // (no shadow), control radius, and the same title/body type scale — so the
+    // alerts read as one message component.
+    <Card elevation="none" radius={radii.control} padding={spacing['2xl']} style={styles.card}>
+      <Pressable
+        accessibilityRole={tappable ? 'button' : undefined}
+        disabled={!tappable}
+        onPress={n.onPress}
+        style={styles.body}
+      >
+        <AppText size={fontSize.bodySm} weight="800" numberOfLines={1}>
+          {n.title}
+        </AppText>
+        <AppText
+          size={fontSize.metaSm}
+          weight="600"
+          color={colors.textSecondary}
+          numberOfLines={2}
+        >
+          {n.body}
+        </AppText>
+        <ChildChip child={child} />
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('notifications.dismissOne')}
+        onPress={n.onDismiss}
+        hitSlop={spacing.md}
+        style={styles.dismiss}
+      >
+        <CloseGlyph size={16} color={colors.textMuted} />
+      </Pressable>
+    </Card>
+  );
+}
+
+function renderErrorCard(
+  n: Extract<CarouselItem, { kind: 'error' }>,
+  child: Child | undefined,
+  t: Translate,
+) {
+  return (
+    <Card
+      elevation="none"
+      radius={radii.control}
+      padding={spacing['2xl']}
+      style={[styles.card, styles.errorCard]}
+    >
+      <View style={styles.body}>
+        <AppText size={fontSize.bodySm} weight="800" color={colors.danger} numberOfLines={1}>
+          {n.title}
+        </AppText>
+        <AppText
+          size={fontSize.metaSm}
+          weight="600"
+          color={colors.textSecondary}
+          numberOfLines={2}
+        >
+          {n.body}
+        </AppText>
+        <ChildChip child={child} />
+        {n.onRetry ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={n.onRetry}
+            style={styles.retry}
+          >
+            <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
+              {t('common.retry')}
+            </AppText>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {n.onDismiss ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('errors.dismissOne')}
+          onPress={n.onDismiss}
+          hitSlop={spacing.md}
+          style={styles.dismiss}
+        >
+          <CloseGlyph size={16} color={colors.textMuted} />
+        </Pressable>
+      ) : null}
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -183,6 +276,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.md,
   },
+  // A danger left-edge marks the error variant apart from cream reminders while
+  // reusing the same flat card shell. Width matches the ActivityFeed row accent
+  // so the two left-edges read as one system.
+  errorCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.danger,
+  },
   body: {
     flex: 1,
     gap: spacing.xs,
@@ -194,6 +294,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 2,
     marginTop: spacing.xs,
+  },
+  retry: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.accent,
+    borderRadius: radii.chipSmall,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.sm,
   },
   dismiss: {
     padding: spacing.xs,

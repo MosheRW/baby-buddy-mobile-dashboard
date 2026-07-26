@@ -382,6 +382,8 @@ export const he = {
     forgottenHint: 'הזהירו אותי כשטיימר פועל זמן רב מהרגיל.',
     forgottenGeneralLabel: 'האכלה וזמן בטן',
     forgottenSleepLabel: 'שינה',
+    liveTitle: 'טיימרים פעילים',
+    liveHint: 'השאירו התראה חיה במגירת ההתראות כל עוד טיימר פועל.',
     diaperTitle: 'החלפות חיתול',
     diaperHint: 'הזכירו לי כשעבר יותר מדי זמן מאז ההחלפה האחרונה.',
     foodTitle: 'מרווחי האכלה',
@@ -428,6 +430,9 @@ export const he = {
     eligAfter_noChild: '{{med}} זמינה למנה נוספת כבר {{duration}}.',
     timerBody: 'טיימר {{activity}} עבור {{child}} פועל כבר יותר מ-{{duration}} — אולי שכחתם לעצור אותו?',
     timerBody_noChild: 'טיימר {{activity}} פועל כבר יותר מ-{{duration}} — אולי שכחתם לעצור אותו?',
+    liveTimerTitle: 'טיימר {{activity}} פעיל',
+    liveTimerBody: '{{child}} · פועל כבר {{duration}}',
+    liveTimerBody_noChild: 'פועל כבר {{duration}}',
     diaperBody: 'לא הוחלף חיתול ל{{child}} כבר {{duration}}.',
     foodBody: '{{child}} לא אכל/ה כבר {{duration}}.',
     foodBodyMin: '{{child}} לא אכל/ה כבר {{duration}} — כדאי לתת לפחות {{min}} מ״ל.',
@@ -438,6 +443,13 @@ export const he = {
     carouselHeading: 'התראות',
     dismissOne: 'סגירת התראה',
     dismissAll: 'נקה הכול',
+  },
+
+  errors: {
+    loadTitle: 'לא ניתן לטעון את הנתונים',
+    saveTitle: 'לא ניתן לשמור את הרשומה',
+    deleteTitle: 'לא ניתן למחוק את הרשומה',
+    dismissOne: 'סגירת שגיאה',
   },
 
   dates: {
