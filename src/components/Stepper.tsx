@@ -14,25 +14,19 @@ import {
   weightFamily,
   type AppTheme,
 } from '../theme';
-import { parseNumericInput, rampStep } from '../lib/stepper';
+import { parseNumericInput } from '../lib/stepper';
 
 // Press-and-hold: after this delay the button starts auto-repeating, one step
-// every `HOLD_INTERVAL_MS`. A quick tap releases well before the delay and just
-// steps once by the fine unit. In `enhanced` mode the repeated step accelerates
-// (see `rampStep`); otherwise it stays the fixed `step`.
+// every `HOLD_INTERVAL_MS`. Every tick moves by the same fixed `step` a single
+// tap does — holding is faster, never coarser.
 const HOLD_DELAY_MS = 350;
 const HOLD_INTERVAL_MS = 90;
 
 interface StepperProps {
   value: number;
   onChange: (value: number) => void;
-  /**
-   * The fine, single-tap increment. A function is resolved from the current
-   * `value` on each press, so the step can adapt as the value moves (e.g. finer
-   * near zero). Under `enhanced` this is also the floor and precision for the
-   * accelerating hold ramp.
-   */
-  step: number | ((value: number) => number);
+  /** The increment applied by one tap — and by each press-and-hold tick. */
+  step: number;
   min?: number;
   max?: number;
   /** Digits after the decimal point when displaying (0 for integers). */
@@ -52,20 +46,21 @@ interface StepperProps {
   trimZeros?: boolean;
   disabled?: boolean;
   /**
-   * Enhanced interactions (default). Tap the number to type a value; long-press
-   * it to reset to the value it had before editing began; hold ±  to ramp by a
-   * magnitude/duration-scaled amount. Set `false` to keep the plain stepper
-   * (fixed-step hold, no manual entry) — used where the extra affordances add
+   * Manual entry (default). Tap the number to type an exact value; long-press
+   * it to reset to `defaultValue` — the `value` this stepper was mounted with,
+   * not the one it held when the editor opened, and the same target an
+   * out-of-range entry falls back to. Set `false` where the affordance adds
    * nothing, e.g. the 1–10 diaper amount.
    */
   enhanced?: boolean;
 }
 
 /**
- * ± stepper. The caller's `step` prop is the fine single-tap increment, so each
- * usage picks its own: ±1 ml/g amount, ±0.1 dose/°, ±1 min duration, ±1 hour,
- * etc. Tap ±  to step by that unit; press-and-hold to accelerate (see
- * `rampStep`).
+ * ± stepper. The caller's `step` prop is the increment, so each usage picks its
+ * own: ±1 ml/g amount, ±0.1 dose/°, ±1 min duration, ±1 hour, etc. Tap ±  to
+ * step by that amount; press-and-hold to repeat it — the increment never grows
+ * or shrinks, so a hold stays predictable and typing is how you get somewhere
+ * far away fast.
  * Rounds to a stable number of decimals to avoid float drift (0.1 + 0.2 etc).
  */
 export function Stepper({
@@ -90,27 +85,21 @@ export function Stepper({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
 
-  const stepAt = (v: number) => (typeof step === 'function' ? step(v) : step);
-  const round = (n: number, s: number) => {
-    const p = Math.pow(10, Math.max(decimals, countDecimals(s)));
+  const round = (n: number) => {
+    const p = Math.pow(10, Math.max(decimals, countDecimals(step)));
     return Math.round(n * p) / p;
   };
   const clamp = (n: number) => Math.min(max, Math.max(min, n));
 
-  // Apply one increment. `heldMs === null` is a single tap (fine unit); a number
-  // is a hold tick, which ramps only when enhanced.
+  // One increment, the same for a tap and for every auto-repeat tick.
   const applyDelta = useCallback(
-    (dir: 1 | -1, heldMs: number | null) => {
+    (dir: 1 | -1) => {
       if (disabled) return;
-      const s =
-        enhanced && heldMs != null
-          ? rampStep(value, stepAt(value), heldMs, min, max)
-          : stepAt(value);
-      const next = clamp(dir > 0 ? value + s : value - s);
-      onChange(round(next, s));
+      const next = clamp(dir > 0 ? value + step : value - step);
+      onChange(round(next));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [value, disabled, enhanced, min, max, onChange, step, decimals],
+    [value, disabled, min, max, onChange, step, decimals],
   );
 
   const resetToDefault = () => {
@@ -133,7 +122,7 @@ export function Stepper({
       Alert.alert(t('stepper.invalidTitle'), rangeMessage(t, min, max));
       return;
     }
-    onChange(round(parsed, stepAt(parsed)));
+    onChange(round(parsed));
   };
 
   // Fixed precision keeps float drift out; `trimZeros` then drops "37.0" → "37".
@@ -149,7 +138,7 @@ export function Stepper({
   return (
     <View style={[styles.row, disabled && styles.disabled]}>
       <StepButton
-        onStep={(heldMs) => applyDelta(-1, heldMs)}
+        onStep={() => applyDelta(-1)}
         disabled={disabled || value <= min}
         kind="minus"
         label={t('stepper.decrease')}
@@ -173,7 +162,7 @@ export function Stepper({
       )}
 
       <StepButton
-        onStep={(heldMs) => applyDelta(1, heldMs)}
+        onStep={() => applyDelta(1)}
         disabled={disabled || value >= max}
         kind="plus"
         label={t('stepper.increase')}
@@ -244,7 +233,7 @@ function StepButton({
   kind,
   label,
 }: {
-  onStep: (heldMs: number | null) => void;
+  onStep: () => void;
   disabled: boolean;
   kind: 'plus' | 'minus';
   label: string;
@@ -263,9 +252,6 @@ function StepButton({
   // True once auto-repeat has fired, so the release tap (`onPress`) doesn't add
   // one extra step on top of the ones the hold already applied.
   const repeated = useRef(false);
-  // When the current hold began, so each repeat tick can report how long it has
-  // been held (drives the ramp acceleration).
-  const holdStart = useRef(0);
 
   const stopHold = useCallback(() => {
     if (delay.current) clearTimeout(delay.current);
@@ -276,13 +262,9 @@ function StepButton({
 
   const startHold = useCallback(() => {
     repeated.current = false;
-    holdStart.current = Date.now();
     delay.current = setTimeout(() => {
       repeated.current = true;
-      repeat.current = setInterval(
-        () => stepRef.current(Date.now() - holdStart.current),
-        HOLD_INTERVAL_MS,
-      );
+      repeat.current = setInterval(() => stepRef.current(), HOLD_INTERVAL_MS);
     }, HOLD_DELAY_MS);
   }, []);
 
@@ -306,7 +288,7 @@ function StepButton({
       onPress={() => {
         // A hold already applied its steps via the interval; only a real tap
         // (no repeat) steps here. This also serves screen-reader activation.
-        if (!repeated.current) stepRef.current(null);
+        if (!repeated.current) stepRef.current();
       }}
       hitSlop={8}
       style={({ pressed }) => [styles.btn, pressed && !disabled && styles.pressed]}

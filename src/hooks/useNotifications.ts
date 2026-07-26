@@ -34,7 +34,9 @@ import {
 } from '../lib/notifications';
 import { useNotificationStore } from '../stores';
 import { useAuthStore } from '../stores/authStore';
+import { useKidsStore } from '../stores/kidsStore';
 import { useTimerStore } from '../stores/timerStore';
+import { visibleChildren } from '../lib/visibility';
 import * as service from '../notifications/service';
 import { useNotificationValidator } from './useNotificationValidator';
 
@@ -89,6 +91,13 @@ export function useNotificationSync(): void {
     ],
   );
 
+  // Visibility slices, subscribed individually so the plan doesn't rebuild on
+  // every unrelated kids-store change. Only the weekly summary reads them.
+  const hidden = useKidsStore((s) => s.hidden);
+  const childGroupId = useKidsStore((s) => s.childGroupId);
+  const groups = useKidsStore((s) => s.groups);
+  const childSchedule = useKidsStore((s) => s.childSchedule);
+
   const [tick, setTick] = useState(0);
 
   // Register handler/channel and reflect the live OS permission state once.
@@ -140,10 +149,21 @@ export function useNotificationSync(): void {
   // check keeps the interval/foreground ticks from re-issuing identical schedules.
   const lastSig = useRef<string>('');
   useEffect(() => {
+    // Reveal is deliberately not applied: a shake-to-peek shouldn't widen the
+    // week's recap. Recomputed here rather than memoized because a schedule
+    // window can open or close between ticks.
+    const visible = visibleChildren(
+      children ?? [],
+      { hidden, childGroupId, groups, childSchedule },
+      Date.now(),
+      false,
+    );
     const plan = buildNotifications({
       entries: entries ?? [],
       timers,
       children: children ?? [],
+      visibleChildIds: visible.map((c) => c.id),
+      kidGroups: { childGroupId, groups },
       settings,
       me,
       // Anything planned without a confirmed fetch is disclaimed: it may fire with
@@ -158,7 +178,19 @@ export function useNotificationSync(): void {
     if (sig === lastSig.current) return;
     lastSig.current = sig;
     void service.syncScheduledAsync(plan);
-  }, [entries, children, timers, settings, me, serverConfirmed, tick]);
+  }, [
+    entries,
+    children,
+    timers,
+    settings,
+    me,
+    serverConfirmed,
+    hidden,
+    childGroupId,
+    groups,
+    childSchedule,
+    tick,
+  ]);
 
   // Delivery-time validation: hand the native service a gate it can call as each
   // reminder arrives. Registered once — the validator reads live state at call time,
