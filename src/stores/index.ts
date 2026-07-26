@@ -6,3 +6,4 @@ export * from './uiStore';
 export * from './notificationStore';
 export * from './localeStore';
 export * from './kidsStore';
+export * from './appErrorStore';

@@ -438,6 +438,13 @@ export const he = {
     dismissAll: 'נקה הכול',
   },
 
+  errors: {
+    loadTitle: 'לא ניתן לטעון את הנתונים',
+    saveTitle: 'לא ניתן לשמור את הרשומה',
+    deleteTitle: 'לא ניתן למחוק את הרשומה',
+    dismissOne: 'סגירת שגיאה',
+  },
+
   dates: {
     now: 'עכשיו',
     minutesAgo: 'לפני {{m}} דק׳',
