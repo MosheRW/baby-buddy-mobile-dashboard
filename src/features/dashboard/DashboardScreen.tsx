@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -20,7 +20,13 @@ import { isTimerType, type TimerType } from '../../lib/timers';
 import type { MedStatus } from '../../lib/medication';
 import type { MainStackParamList } from '../../navigation/types';
 import { useDashboardData } from '../../data/queries';
-import { useAuthStore, useKidsStore, useSettingsStore, useUiStore } from '../../stores';
+import {
+  useAppErrorStore,
+  useAuthStore,
+  useKidsStore,
+  useSettingsStore,
+  useUiStore,
+} from '../../stores';
 import { hiddenCount, visibleChildren } from '../../lib/visibility';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
@@ -32,7 +38,7 @@ import {
 } from '../../hooks/useDeliveredNotifications';
 import { ChildNav } from './ChildNav';
 import { TimerStrip } from './TimerStrip';
-import { NotificationCarousel } from './NotificationCarousel';
+import { NotificationCarousel, type CarouselItem } from './NotificationCarousel';
 import { ActivityFeed } from './ActivityFeed';
 import { entriesForChild } from './selectors';
 import { errorMessage } from '../../api/client';
@@ -55,6 +61,13 @@ export function DashboardScreen({ navigation }: Props) {
   const revealHiddenUntil = useUiStore((s) => s.revealHiddenUntil);
   const revealHidden = useUiStore((s) => s.revealHidden);
   const clearReveal = useUiStore((s) => s.clearReveal);
+
+  // App-wide event errors (failed save/delete) surfaced in the carousel. The
+  // dashboard *fetch* error stays reactive in React Query (`error` below) — it
+  // clears itself on a successful refetch, so it isn't kept here.
+  const appErrors = useAppErrorStore((s) => s.errors);
+  const dismissAppError = useAppErrorStore((s) => s.dismissError);
+  const clearAppErrors = useAppErrorStore((s) => s.clearErrors);
 
   // Visibility/appearance state (client-only). Selecting the fields individually
   // keeps each a stable reference, so the memo below only recomputes on a real
@@ -117,8 +130,22 @@ export function DashboardScreen({ navigation }: Props) {
   // the filtered list — clamp so a tab stays selected and swipe navigation keeps
   // working instead of landing on nothing.
   const clampedIndex = activeIndex < visible.length ? activeIndex : 0;
-  const activeChild = visible[clampedIndex];
-  const feedEntries = activeChild ? entriesForChild(entries, activeChild.id) : [];
+
+  // Switching children is two jobs of very different weight: move the highlight
+  // (one pill's colours) and rebuild the child card plus the whole un-virtualized
+  // feed. Done in one commit the cheap one waits on the expensive one and the
+  // chips visibly lag the finger. `useDeferredValue` splits them — the pill row
+  // renders from `clampedIndex` urgently, the card and feed from `contentIndex`
+  // on the follow-up low-priority pass. It only pays off because `ChildCard` and
+  // `ActivityFeed` are memoized on stable props, so the urgent render can skip
+  // them outright.
+  const contentIndex = useDeferredValue(clampedIndex);
+  const safeContentIndex = contentIndex < visible.length ? contentIndex : clampedIndex;
+  const activeChild = visible[safeContentIndex];
+  const feedEntries = useMemo(
+    () => (activeChild ? entriesForChild(entries, activeChild.id) : []),
+    [entries, activeChild],
+  );
 
   // Offer the exclude-inactive-days feature the first time a logging gap is
   // actually diluting the active child's food-trend baseline — not before there
@@ -132,102 +159,177 @@ export function DashboardScreen({ navigation }: Props) {
    * of the session. Every interactive path on this screen runs through one of
    * the handlers below, so they're where the dismissal hangs — a global touch
    * hook would be less code and less certain.
+   *
+   * Every handler here is a stable reference on purpose. They're props of the
+   * memoized card and feed, so a fresh closure per render would re-render both
+   * on the pill tap and undo the deferred split above. That's also why this one
+   * reads `welcomeDismissed` off the store rather than closing over the selector.
    */
-  const dismiss = () => {
-    if (!welcomeDismissed) dismissWelcome();
-  };
+  const dismiss = useCallback(() => {
+    if (!useUiStore.getState().welcomeDismissed) dismissWelcome();
+  }, [dismissWelcome]);
 
-  const openCreate = (childId: string, type: EntryType) => {
-    dismiss();
-    // Quick-logging a timed activity (Food/Sleep/Tummy) starts its timer right
-    // away — tapping "Food" means a feed is starting now, matching the
-    // prototype. The button is disabled once a timer runs, so this can't
-    // double-start, and `startTimer` replaces any existing (type, child) timer.
-    if (isTimerType(type)) startTimer(type, childId);
-    navigation.navigate('LogEntry', { mode: 'create', childId, type });
-  };
+  const openCreate = useCallback(
+    (childId: string, type: EntryType) => {
+      dismiss();
+      // Quick-logging a timed activity (Food/Sleep/Tummy) starts its timer right
+      // away — tapping "Food" means a feed is starting now, matching the
+      // prototype. The button is disabled once a timer runs, so this can't
+      // double-start, and `startTimer` replaces any existing (type, child) timer.
+      if (isTimerType(type)) startTimer(type, childId);
+      navigation.navigate('LogEntry', { mode: 'create', childId, type });
+    },
+    [dismiss, navigation, startTimer],
+  );
 
   /** Repeat dose from a med row — the form opens prefilled from that entry. */
-  const openDose = (childId: string, status: MedStatus) => {
-    dismiss();
-    navigation.navigate('LogEntry', {
-      mode: 'create',
-      childId,
-      type: 'medication',
-      prefillMedEntryId: status.entryId,
-    });
-  };
+  const openDose = useCallback(
+    (childId: string, status: MedStatus) => {
+      dismiss();
+      navigation.navigate('LogEntry', {
+        mode: 'create',
+        childId,
+        type: 'medication',
+        prefillMedEntryId: status.entryId,
+      });
+    },
+    [dismiss, navigation],
+  );
 
-  const openTimer = (childId: string, type: TimerType) => {
-    dismiss();
-    const idx = visible.findIndex((c) => c.id === childId);
-    if (idx >= 0) setActiveIndex(idx);
-    navigation.navigate('LogEntry', { mode: 'create', childId, type });
-  };
+  const openTimer = useCallback(
+    (childId: string, type: TimerType) => {
+      dismiss();
+      const idx = visible.findIndex((c) => c.id === childId);
+      if (idx >= 0) setActiveIndex(idx);
+      navigation.navigate('LogEntry', { mode: 'create', childId, type });
+    },
+    [dismiss, navigation, visible],
+  );
 
-  const openEdit = (entry: Entry) => {
-    dismiss();
-    navigation.navigate('LogEntry', {
-      mode: 'edit',
-      childId: entry.childId,
-      type: entry.type,
-      entryId: entry.id,
-    });
-  };
+  const openEdit = useCallback(
+    (entry: Entry) => {
+      dismiss();
+      navigation.navigate('LogEntry', {
+        mode: 'edit',
+        childId: entry.childId,
+        type: entry.type,
+        entryId: entry.id,
+      });
+    },
+    [dismiss, navigation],
+  );
 
-  const confirmDelete = (entry: Entry) => {
-    dismiss();
-    navigation.navigate('DeleteConfirm', {
-      entryId: entry.id,
-      entryLabel: entryTitle(entry),
-    });
-  };
+  const confirmDelete = useCallback(
+    (entry: Entry) => {
+      dismiss();
+      navigation.navigate('DeleteConfirm', {
+        entryId: entry.id,
+        entryLabel: entryTitle(entry),
+      });
+    },
+    [dismiss, navigation],
+  );
 
-  const openMedBreakdown = (child: Child) => {
-    dismiss();
-    navigation.navigate('MedBreakdown', { childId: child.id, childName: child.name });
-  };
+  const openMedBreakdown = useCallback(
+    (child: Child) => {
+      dismiss();
+      navigation.navigate('MedBreakdown', { childId: child.id, childName: child.name });
+    },
+    [dismiss, navigation],
+  );
 
-  const changeChild = (index: number) => {
-    dismiss();
-    setActiveIndex(index);
-  };
+  const changeChild = useCallback(
+    (index: number) => {
+      dismiss();
+      setActiveIndex(index);
+    },
+    [dismiss],
+  );
 
   // Tapping a delivered notification opens the screen it's about: the med
   // breakdown for a medication reminder, or a prefilled log form for a
   // timer/diaper/feeding one (see `notificationAction`). The child's tab is
   // focused first so the destination — and the dashboard behind it — is in
   // context. Weekly/unrecognised reminders aren't tappable, so never arrive here.
-  const openNotification = (item: DeliveredNotification) => {
-    dismiss();
-    const childId = item.childId;
-    if (childId) {
-      const idx = visible.findIndex((c) => c.id === childId);
-      if (idx >= 0) setActiveIndex(idx);
-    }
-    const action = notificationAction(item.id);
-    if (!childId) return;
-    switch (action.kind) {
-      case 'medication':
-        navigation.navigate('MedBreakdown', {
-          childId,
-          childName: childrenById[childId]?.name ?? '',
-        });
-        return;
-      case 'timer':
-        navigation.navigate('LogEntry', { mode: 'create', childId, type: action.timerType });
-        return;
-      case 'create':
-        navigation.navigate('LogEntry', { mode: 'create', childId, type: action.entryType });
-        return;
-      case 'none':
-        return;
-    }
-  };
+  const openNotification = useCallback(
+    (item: DeliveredNotification) => {
+      dismiss();
+      const childId = item.childId;
+      if (childId) {
+        const idx = visible.findIndex((c) => c.id === childId);
+        if (idx >= 0) setActiveIndex(idx);
+      }
+      const action = notificationAction(item.id);
+      if (!childId) return;
+      switch (action.kind) {
+        case 'medication':
+          navigation.navigate('MedBreakdown', {
+            childId,
+            childName: childrenById[childId]?.name ?? '',
+          });
+          return;
+        case 'timer':
+          navigation.navigate('LogEntry', { mode: 'create', childId, type: action.timerType });
+          return;
+        case 'create':
+          navigation.navigate('LogEntry', { mode: 'create', childId, type: action.entryType });
+          return;
+        case 'none':
+          return;
+      }
+    },
+    [childrenById, dismiss, navigation, visible],
+  );
 
-  const openSettings = () => {
+  const openSettings = useCallback(() => {
     dismiss();
     navigation.navigate('Settings');
+  }, [dismiss, navigation]);
+
+  // Every dashboard alert in one stack: the reactive fetch error (with Retry)
+  // first, then event errors (failed save/delete, dismissable), then the
+  // OS-delivered reminders. Built inline — the list is tiny and rebuilding it on
+  // the minute tick is free. `notificationAction` decides which reminders are
+  // tappable (see `openNotification`).
+  const carouselItems: CarouselItem[] = [];
+  if (error) {
+    carouselItems.push({
+      kind: 'error',
+      id: 'dashboard-fetch',
+      title: t('errors.loadTitle'),
+      body: errorMessage(error),
+      onRetry: refetch,
+    });
+  }
+  for (const e of appErrors) {
+    carouselItems.push({
+      kind: 'error',
+      id: e.id,
+      title: t(e.titleKey),
+      body: e.message,
+      childId: e.childId,
+      onDismiss: () => dismissAppError(e.id),
+    });
+  }
+  for (const n of deliveredNotifications) {
+    const tappable = !!n.childId && notificationAction(n.id).kind !== 'none';
+    carouselItems.push({
+      kind: 'reminder',
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      childId: n.childId,
+      onPress: tappable ? () => openNotification(n) : undefined,
+      onDismiss: () => dismissNotification(n.id),
+    });
+  }
+
+  // Clear every dismissable card at once: the OS reminders (tells the OS) and
+  // the event errors. The reactive fetch error has no ✕ and survives — it's
+  // cleared by a successful refetch, not a manual sweep.
+  const clearAllAlerts = () => {
+    dismissAllNotifications();
+    clearAppErrors();
   };
 
   return (
@@ -257,19 +359,6 @@ export function DashboardScreen({ navigation }: Props) {
             </AppText>
           </View>
         )}
-
-        {error ? (
-          <View style={styles.banner}>
-            <AppText size={fontSize.bodySm} weight="700" color={colors.danger}>
-              {errorMessage(error)}
-            </AppText>
-            <Pressable accessibilityRole="button" onPress={refetch} style={styles.retry}>
-              <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
-                {t('common.retry')}
-              </AppText>
-            </Pressable>
-          </View>
-        ) : null}
 
         {isLoading ? (
           <View style={styles.loading}>
@@ -323,11 +412,9 @@ export function DashboardScreen({ navigation }: Props) {
         ) : null}
 
         <NotificationCarousel
-          items={deliveredNotifications}
+          items={carouselItems}
           childrenById={childrenById}
-          onDismiss={dismissNotification}
-          onDismissAll={dismissAllNotifications}
-          onPress={openNotification}
+          onClearAll={clearAllAlerts}
         />
 
         {activeChild ? (
@@ -335,6 +422,7 @@ export function DashboardScreen({ navigation }: Props) {
             childList={visible}
             entries={entries}
             activeIndex={clampedIndex}
+            cardIndex={safeContentIndex}
             onActiveChange={changeChild}
             now={now}
             timerNow={timerNow}
@@ -371,21 +459,6 @@ const makeStyles = ({ colors }: AppTheme) =>
     content: {
       padding: spacing['2xl'],
       gap: spacing['5xl'],
-    },
-    banner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.lg,
-      backgroundColor: colors.card,
-      borderRadius: radii.control,
-      padding: spacing['2xl'],
-    },
-    retry: {
-      backgroundColor: colors.accent,
-      borderRadius: radii.chipSmall,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing['2xl'],
     },
     loading: {
       paddingVertical: spacing['7xl'],

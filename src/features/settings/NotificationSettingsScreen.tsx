@@ -32,6 +32,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);
   const medEligibility = useNotificationStore((s) => s.medEligibility);
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
+  const liveTimer = useNotificationStore((s) => s.liveTimer);
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
@@ -43,6 +44,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const updateTiming = useNotificationStore((s) => s.updateTiming);
   const setForgottenTimerEnabled = useNotificationStore((s) => s.setForgottenTimerEnabled);
   const setForgottenTimerMinutes = useNotificationStore((s) => s.setForgottenTimerMinutes);
+  const setLiveTimerEnabled = useNotificationStore((s) => s.setLiveTimerEnabled);
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
   const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
   const updateWeeklySummary = useNotificationStore((s) => s.updateWeeklySummary);
@@ -155,6 +157,24 @@ export function NotificationSettingsScreen({ navigation }: Props) {
               />
             </View>
           ) : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.liveTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.liveHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch
+              value={liveTimer.enabled}
+              onValueChange={setLiveTimerEnabled}
+              disabled={!masterEnabled}
+            />
+          </View>
         </Card>
 
         <Card style={styles.section}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -25,7 +25,14 @@ import { SettingsButton } from './SettingsButton';
 interface ChildNavProps {
   childList: Child[];
   entries: Entry[];
+  /** Selected child. Urgent — the pill row highlights from this. */
   activeIndex: number;
+  /**
+   * The index the *card* shows: `activeIndex` after the dashboard's deferred
+   * pass has caught up. Splitting the two is what lets the pill highlight paint
+   * on the tap instead of waiting for the card and feed to re-render.
+   */
+  cardIndex: number;
   onActiveChange: (index: number) => void;
   now: number;
   timerNow: number;
@@ -40,6 +47,11 @@ interface ChildNavProps {
 // scrolling the feed below doesn't accidentally flip a child.
 const SWIPE_DISTANCE = 60;
 const SWIPE_VELOCITY = 800;
+
+// One duration for the whole hand-off: the cards slide across it and the card
+// area's height eases across it, so the feed below travels with the card rather
+// than after it.
+const SLIDE_MS = 220;
 
 /**
  * Child navigation: a scrollable pill tab row above the active child's card,
@@ -82,6 +94,7 @@ function TabsNav({
   childList,
   entries,
   activeIndex,
+  cardIndex,
   onActiveChange,
   now,
   timerNow,
@@ -93,11 +106,30 @@ function TabsNav({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const active = childList[activeIndex] ?? childList[0];
+  const active = childList[cardIndex] ?? childList[activeIndex] ?? childList[0];
   const translateX = useSharedValue(0);
   // Measured card width, so a committed swipe slides the card exactly one full
   // width off-screen rather than guessing a distance.
   const cardWidth = useSharedValue(0);
+
+  // The card area reserves its height explicitly instead of just wrapping the
+  // current card. During a swipe the arriving card is an absolute overlay and
+  // contributes no height, so a taller child used to render straight over the
+  // feed and then shove it down on commit. Easing this alongside the slide makes
+  // the feed travel with the card.
+  const areaHeight = useSharedValue(0);
+  const areaTarget = useRef(0);
+  const currentHeight = useRef(0);
+
+  const easeAreaTo = (h: number) => {
+    if (h <= 0 || Math.abs(areaTarget.current - h) < 1) return;
+    // First measurement is the mount — snap, or the card would unfold from zero.
+    const snap = areaTarget.current === 0;
+    areaTarget.current = h;
+    areaHeight.value = snap ? h : withTiming(h, { duration: SLIDE_MS });
+  };
+
+  const areaStyle = useAnimatedStyle(() => ({ minHeight: areaHeight.value }));
 
   // A committed swipe mounts the neighbour card off-screen and slides it in
   // alongside the outgoing one — so the card that arrives already shows the
@@ -119,8 +151,10 @@ function TabsNav({
     const n = childList.length;
     if (n < 2) return;
     // Wrap around: swiping past either end loops to the other side instead of
-    // dead-ending, so the children form an endless carousel.
-    const neighbour = (((activeIndex + dir) % n) + n) % n;
+    // dead-ending, so the children form an endless carousel. Anchored on
+    // `cardIndex`, not `activeIndex` — the neighbour of the card you can see is
+    // the one you meant to swipe to.
+    const neighbour = (((cardIndex + dir) % n) + n) % n;
     setIncoming({ index: neighbour, dir });
     setPhase('animating');
   };
@@ -137,7 +171,7 @@ function TabsNav({
     if (phase !== 'animating' || !incoming) return;
     const { dir, index } = incoming;
     const w = cardWidth.value || 320;
-    translateX.value = withTiming(-dir * w, { duration: 220 }, (finished) => {
+    translateX.value = withTiming(-dir * w, { duration: SLIDE_MS }, (finished) => {
       if (finished) runOnJS(settle)(index);
     });
     // translateX / cardWidth are shared values (stable); depend on the phase and
@@ -145,19 +179,32 @@ function TabsNav({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, incoming]);
 
-  // Post-commit: the new current child has now rendered (off-screen at -dir*w).
-  // Snap translateX back to 0 to bring it to centre, then drop the overlay. Both
+  // Post-commit: once the new current child has rendered (off-screen at -dir*w),
+  // snap translateX back to 0 to bring it to centre and drop the overlay. Both
   // show the same child at the same position, so there's nothing to flash.
+  //
+  // "Once" is the load-bearing word now that the card renders from the deferred
+  // `cardIndex`: the commit that flipped the pills lands a render before the card
+  // catches up, and finishing there would park the *old* child back at centre for
+  // a frame — the exact flash this phase exists to prevent.
   useEffect(() => {
     if (phase !== 'settling') return;
-    translateX.value = 0;
-    // Stepping the state machine forward from an effect is the intended cascade
-    // here — the render that dropped the overlay is exactly what we waited for.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIncoming(null);
-    setPhase('idle');
+    const finish = () => {
+      translateX.value = 0;
+      // Stepping the state machine forward from an effect is the intended cascade
+      // here — the render that dropped the overlay is exactly what we waited for.
+      setIncoming(null);
+      setPhase('idle');
+    };
+    if (incoming && cardIndex !== incoming.index) {
+      // Safety net: if the deferred index never lands on the target — the visible
+      // list changed mid-swipe, say — don't leave the card parked off-screen.
+      const id = setTimeout(finish, SLIDE_MS * 2);
+      return () => clearTimeout(id);
+    }
+    finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, [phase, cardIndex, incoming]);
 
   // Horizontal drag follows the finger for feedback; releasing either snaps back
   // (no commit) or hands off to the slide above.
@@ -198,6 +245,43 @@ function TabsNav({
 
   const incomingChild = incoming ? childList[incoming.index] : undefined;
 
+  // Stable per-child handlers, so `ChildCard`'s memo actually holds: the render
+  // that only flipped a pill must not rebuild the card, or the tap's highlight
+  // waits on it.
+  const activeId = active?.id;
+  const handleQuickAction = useCallback(
+    (type: EntryType) => {
+      if (activeId) onQuickAction(activeId, type);
+    },
+    [activeId, onQuickAction],
+  );
+  const handleMedBreakdown = useCallback(() => {
+    if (active) onOpenMedBreakdown(active);
+  }, [active, onOpenMedBreakdown]);
+  const handleLogDose = useCallback(
+    (status: MedStatus) => {
+      if (activeId) onLogDose(activeId, status);
+    },
+    [activeId, onLogDose],
+  );
+
+  const incomingId = incomingChild?.id;
+  const handleIncomingQuickAction = useCallback(
+    (type: EntryType) => {
+      if (incomingId) onQuickAction(incomingId, type);
+    },
+    [incomingId, onQuickAction],
+  );
+  const handleIncomingMedBreakdown = useCallback(() => {
+    if (incomingChild) onOpenMedBreakdown(incomingChild);
+  }, [incomingChild, onOpenMedBreakdown]);
+  const handleIncomingLogDose = useCallback(
+    (status: MedStatus) => {
+      if (incomingId) onLogDose(incomingId, status);
+    },
+    [incomingId, onLogDose],
+  );
+
   return (
     <View>
       {/* Names live on their own pill row, so the cog sits on that same line,
@@ -233,12 +317,18 @@ function TabsNav({
         </ScrollView>
         <SettingsButton onPress={onOpenSettings} />
       </View>
-      <View style={styles.cardArea}>
+      <Animated.View style={[styles.cardArea, areaStyle]}>
         <GestureDetector gesture={pan}>
           <Animated.View
             style={currentStyle}
             onLayout={(e) => {
-              cardWidth.value = e.nativeEvent.layout.width;
+              const { width, height } = e.nativeEvent.layout;
+              cardWidth.value = width;
+              currentHeight.current = height;
+              // While the neighbour slides in, the overlay owns the area height.
+              // A re-layout of the outgoing card here (a med row appearing on a
+              // tick, say) would otherwise yank it back and undo the grow.
+              if (phase !== 'animating') easeAreaTo(height);
             }}
           >
             <ChildCard
@@ -246,26 +336,42 @@ function TabsNav({
               entries={entries}
               now={now}
               timerNow={timerNow}
-              onQuickAction={(type) => onQuickAction(active.id, type)}
-              onOpenMedBreakdown={() => onOpenMedBreakdown(active)}
-              onLogDose={(status) => onLogDose(active.id, status)}
+              onQuickAction={handleQuickAction}
+              onOpenMedBreakdown={handleMedBreakdown}
+              onLogDose={handleLogDose}
             />
           </Animated.View>
         </GestureDetector>
         {incomingChild ? (
-          <Animated.View style={[styles.overlay, incomingStyle]} pointerEvents="none">
+          <Animated.View
+            style={[styles.overlay, incomingStyle]}
+            // Inert while it slides — a card mid-flight shouldn't take taps — but
+            // live once it lands. In 'settling' this overlay *is* the card at
+            // centre; the real one is parked off-screen waiting for the deferred
+            // index, so leaving this inert would make the visible card swallow
+            // every tap for the length of that wait. Its handlers already target
+            // `incomingChild`, which is the child now on screen.
+            pointerEvents={phase === 'settling' ? 'auto' : 'none'}
+            onLayout={(e) => {
+              // Grow the area to fit the arriving card *while* it slides, so the
+              // feed eases down with it. Shrinking is left to the outgoing card's
+              // own layout at settle — pulling the feed up now would cut into the
+              // taller card that's still on screen.
+              easeAreaTo(Math.max(e.nativeEvent.layout.height, currentHeight.current));
+            }}
+          >
             <ChildCard
               child={incomingChild}
               entries={entries}
               now={now}
               timerNow={timerNow}
-              onQuickAction={(type) => onQuickAction(incomingChild.id, type)}
-              onOpenMedBreakdown={() => onOpenMedBreakdown(incomingChild)}
-              onLogDose={(status) => onLogDose(incomingChild.id, status)}
+              onQuickAction={handleIncomingQuickAction}
+              onOpenMedBreakdown={handleIncomingMedBreakdown}
+              onLogDose={handleIncomingLogDose}
             />
           </Animated.View>
         ) : null}
-      </View>
+      </Animated.View>
     </View>
   );
 }

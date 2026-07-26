@@ -7,3 +7,4 @@ export * from './notificationStore';
 export * from './localeStore';
 export * from './themeStore';
 export * from './kidsStore';
+export * from './appErrorStore';

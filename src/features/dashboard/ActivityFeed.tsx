@@ -31,7 +31,20 @@ interface ActivityFeedProps {
   onDeleteEntry: (entry: Entry) => void;
 }
 
-export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: ActivityFeedProps) {
+/**
+ * Memoized, and every prop it takes is a stable reference from the dashboard.
+ * This is the heaviest thing on the screen — one un-virtualized Card per entry —
+ * so switching children must be able to skip it: the child pills re-render
+ * urgently on the tap, the feed follows on the deferred pass. Without the memo
+ * the whole list would re-render inside the tap's own commit and the pill
+ * highlight would visibly lag the finger.
+ */
+export const ActivityFeed = React.memo(function ActivityFeed({
+  entries,
+  now,
+  onEditEntry,
+  onDeleteEntry,
+}: ActivityFeedProps) {
   const { t } = useTranslation();
   const { colors, tints } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -111,8 +124,8 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
                 entry={entry}
                 now={now}
                 dailyNorm={dailyNorm}
-                onEdit={() => onEditEntry(entry)}
-                onDelete={() => onDeleteEntry(entry)}
+                onEdit={onEditEntry}
+                onDelete={onDeleteEntry}
                 onTagPress={setTagFilter}
               />
             ))}
@@ -121,9 +134,14 @@ export function ActivityFeed({ entries, now, onEditEntry, onDeleteEntry }: Activ
       )}
     </View>
   );
-}
+});
 
-function FeedRow({
+/**
+ * Memoized too, and it takes the entry-taking callbacks rather than per-row
+ * closures — a `() => onEditEntry(entry)` prop would be a fresh function every
+ * render and defeat the memo on every row.
+ */
+const FeedRow = React.memo(function FeedRow({
   entry,
   now,
   dailyNorm,
@@ -135,8 +153,8 @@ function FeedRow({
   now: number;
   /** Per-day intake norm when excluding inactive days; else undefined. */
   dailyNorm?: number;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (entry: Entry) => void;
+  onDelete: (entry: Entry) => void;
   onTagPress: (tag: string) => void;
 }) {
   const { t } = useTranslation();
@@ -167,7 +185,7 @@ function FeedRow({
         <EntryGlyph kind={visual.glyph} size={18} color={visual.accent} />
       </View>
 
-      <Pressable style={styles.rowText} onPress={onEdit} accessibilityRole="button">
+      <Pressable style={styles.rowText} onPress={() => onEdit(entry)} accessibilityRole="button">
         <View style={styles.titleRow}>
           <AppText size={fontSize.bodySm} weight="700">
             {entryTitle(entry)}
@@ -200,10 +218,14 @@ function FeedRow({
       </Pressable>
 
       <View style={styles.actions}>
-        <RowButton label={t('dashboard.editEntry')} onPress={onEdit} bg={colors.neutral}>
+        <RowButton label={t('dashboard.editEntry')} onPress={() => onEdit(entry)} bg={colors.neutral}>
           <PencilGlyph size={14} color={colors.textSecondary} />
         </RowButton>
-        <RowButton label={t('dashboard.deleteEntry')} onPress={onDelete} bg={tints.overdue.bg}>
+        <RowButton
+          label={t('dashboard.deleteEntry')}
+          onPress={() => onDelete(entry)}
+          bg={tints.overdue.bg}
+        >
           <TrashGlyph size={14} color={tints.overdue.fg} />
         </RowButton>
       </View>
@@ -234,7 +256,7 @@ function FeedRow({
       ) : null}
     </Card>
   );
-}
+});
 
 /** The poo swatch and `x/10` badge, which only diaper rows carry. */
 function DiaperAdornments({ visual }: { visual: EntryVisual }) {
