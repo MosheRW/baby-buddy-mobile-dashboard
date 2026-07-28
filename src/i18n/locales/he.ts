@@ -325,6 +325,10 @@ export const he = {
     appearanceLight: 'בהיר',
     appearanceDark: 'כהה',
     appearanceSystemHint: 'עוקב אחרי הגדרת המצב הבהיר או הכהה במכשיר שלך.',
+    timeFormat: 'תבנית זמן',
+    timeFormatText: 'טקסט (2h 30m)',
+    timeFormatDigital: 'ספרתי (2:30)',
+    timeFormatHint: 'איך מוצגים משכי זמן וטיימרים פעילים.',
   },
 
   advanced: {

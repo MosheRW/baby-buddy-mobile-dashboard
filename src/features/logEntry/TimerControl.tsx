@@ -5,7 +5,7 @@ import { AppText } from '../../components';
 import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { elapsedClock, type TimerType } from '../../lib/timers';
 import { useTimerActions } from '../../hooks/useTimers';
-import { useTimerStore } from '../../stores';
+import { useSettingsStore, useTimerStore } from '../../stores';
 
 /**
  * Timer UI for feeding, sleep, and tummy time. The prototype splits it into
@@ -66,6 +66,7 @@ export function RunningTimerStrip({ type, childId, asOf, onStop }: RunningTimerS
   const timer = useTimerStore((s) =>
     s.timers.find((timer_) => timer_.type === type && timer_.childId === childId),
   );
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
   if (!timer) return null;
 
   return (
@@ -75,7 +76,7 @@ export function RunningTimerStrip({ type, childId, asOf, onStop }: RunningTimerS
         {t('timer.running')}
       </AppText>
       <AppText size={fontSize.body} weight="800" color={colors.accent}>
-        {elapsedClock(timer.startedAt, asOf)}
+        {elapsedClock(timer.startedAt, asOf, timeFormat)}
       </AppText>
       <Pressable
         accessibilityRole="button"

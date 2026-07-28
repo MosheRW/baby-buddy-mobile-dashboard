@@ -174,6 +174,11 @@ describe('countdownLabel', () => {
     // Overdue durations arrive negative; the caller supplies the wording.
     expect(countdownLabel(-(2 * HOUR))).toBe('2h 0m');
   });
+  it('formats as "H:MM" in digital format', () => {
+    expect(countdownLabel(7 * HOUR + 5 * 60000, 'digital')).toBe('7:05');
+    expect(countdownLabel(45 * 60000, 'digital')).toBe('0:45');
+    expect(countdownLabel(-(2 * HOUR), 'digital')).toBe('2:00');
+  });
 });
 
 describe('status labels', () => {

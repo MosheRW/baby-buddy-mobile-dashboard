@@ -39,6 +39,7 @@ import {
 import { foodTrend, foodTrendLabel } from '../../lib/feed';
 import { DEFAULT_FOOD_INTERVAL_MINUTES } from '../../lib/notifications';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
+import type { TimeFormat } from '../../lib/timeFormat';
 import { useKidsStore, useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
 
 interface ChildCardProps {
@@ -91,6 +92,7 @@ export const ChildCard = React.memo(function ChildCard({
   const eligible = eligibleMeds(childEntries, now);
   const limits = medLimitSummaries(childEntries, now);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
   const trend = foodTrend(childEntries, now, { excludeInactiveDays });
 
   // The child's accent (override → group → default hue) drives the avatar, the
@@ -105,7 +107,7 @@ export const ChildCard = React.memo(function ChildCard({
   const runningTimers: Partial<Record<EntryType, string>> = {};
   for (const type of TIMER_TYPES) {
     const t = timers.find((x) => x.type === type && x.childId === child.id);
-    if (t) runningTimers[type] = elapsedClock(t.startedAt, timerNow);
+    if (t) runningTimers[type] = elapsedClock(t.startedAt, timerNow, timeFormat);
   }
 
   return (
@@ -169,19 +171,41 @@ export const ChildCard = React.memo(function ChildCard({
       </View>
 
       <StatTile
-        label={t('childCard.foodWindow', { window: countdownLabel(windowMinutes * 60_000) })}
+        label={t('childCard.foodWindow', {
+          window: countdownLabel(windowMinutes * 60_000, timeFormat),
+        })}
         value={t('childCard.foodValue', { amount: total })}
         tint={{ bg: colors.tileNeutral }}
       />
 
       {needed.map((m) => (
-        <MedRow key={`n-${m.name}`} status={m} kind="needed" now={now} onPress={onLogDose} />
+        <MedRow
+          key={`n-${m.name}`}
+          status={m}
+          kind="needed"
+          now={now}
+          format={timeFormat}
+          onPress={onLogDose}
+        />
       ))}
       {eligible.map((m) => (
-        <MedRow key={`e-${m.name}`} status={m} kind="eligible" now={now} onPress={onLogDose} />
+        <MedRow
+          key={`e-${m.name}`}
+          status={m}
+          kind="eligible"
+          now={now}
+          format={timeFormat}
+          onPress={onLogDose}
+        />
       ))}
       {limits.map((m) => (
-        <MedLimitTile key={`l-${m.name}`} summary={m} now={now} onPress={onOpenMedBreakdown} />
+        <MedLimitTile
+          key={`l-${m.name}`}
+          summary={m}
+          now={now}
+          format={timeFormat}
+          onPress={onOpenMedBreakdown}
+        />
       ))}
 
       <QuickActions onAction={onQuickAction} runningTimers={runningTimers} />
@@ -203,11 +227,13 @@ function MedRow({
   status,
   kind,
   now,
+  format,
   onPress,
 }: {
   status: MedStatus;
   kind: 'needed' | 'eligible';
   now: number;
+  format: TimeFormat;
   onPress?: (status: MedStatus) => void;
 }) {
   const { t } = useTranslation();
@@ -242,7 +268,9 @@ function MedRow({
         </AppText>
       </View>
       <AppText size={fontSize.metaSm} weight="800" color={fg} style={styles.medStatus}>
-        {kind === 'needed' ? neededStatusLabel(status) : eligibleStatusLabel(status)}
+        {kind === 'needed'
+          ? neededStatusLabel(status, format)
+          : eligibleStatusLabel(status, format)}
       </AppText>
     </Pressable>
   );
@@ -255,10 +283,12 @@ function MedRow({
 function MedLimitTile({
   summary,
   now,
+  format,
   onPress,
 }: {
   summary: MedLimitSummary;
   now: number;
+  format: TimeFormat;
   onPress?: () => void;
 }) {
   const { t } = useTranslation();
@@ -270,7 +300,7 @@ function MedLimitTile({
   const barColor = summary.atLimit ? colors.danger : fg;
   const eligible = summary.isDue
     ? t('med.eligibleNowShort')
-    : t('med.eligibleInShort', { duration: countdownLabel(summary.dueInMs) });
+    : t('med.eligibleInShort', { duration: countdownLabel(summary.dueInMs, format) });
 
   return (
     <Pressable

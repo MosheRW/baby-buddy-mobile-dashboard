@@ -325,6 +325,10 @@ export const en = {
     appearanceLight: 'Light',
     appearanceDark: 'Dark',
     appearanceSystemHint: 'Follows your device’s light or dark setting.',
+    timeFormat: 'Time format',
+    timeFormatText: 'Text (2h 30m)',
+    timeFormatDigital: 'Digital (2:30)',
+    timeFormatHint: 'How durations and running timers are shown.',
   },
 
   advanced: {
