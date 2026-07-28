@@ -37,6 +37,13 @@ export interface LocalDataState {
    * three without them ever colliding.
    */
   seq: number;
+  /**
+   * True once the persisted data has been read back from AsyncStorage. Callers
+   * that seed the first child (the login screen) must wait for this, or they'd
+   * read an empty `children` before rehydration and seed a duplicate.
+   */
+  hydrated: boolean;
+  setHydrated: () => void;
 
   // --- Children (managed from Settings) ---
   addChild: (input: LocalChildInput) => Child;
@@ -83,6 +90,9 @@ export const createLocalDataSlice: StateCreator<LocalDataState> = (set, get) => 
   entries: [],
   timers: [],
   seq: 0,
+  hydrated: false,
+
+  setHydrated: () => set({ hydrated: true }),
 
   addChild: (input) => {
     const id = get().seq + 1;
@@ -165,5 +175,13 @@ export const useLocalDataStore = create<LocalDataState>()(
       timers: state.timers,
       seq: state.seq,
     }),
+    // Flag hydration on both success and failure — a failed read just means an
+    // empty local store, and the login screen must stop waiting either way.
+    onRehydrateStorage: () => (state, error) => {
+      if (error) {
+        console.warn('[local-data] could not restore on-device data:', error);
+      }
+      (state ?? useLocalDataStore.getState()).setHydrated();
+    },
   }),
 );

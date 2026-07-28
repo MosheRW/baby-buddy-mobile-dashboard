@@ -7,7 +7,7 @@ import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
-import { useNotificationStore } from '../../stores';
+import { useNotificationStore, useSettingsStore } from '../../stores';
 import {
   DEFAULT_DIAPER_INTERVAL_MINUTES,
   DEFAULT_FOOD_INTERVAL_MINUTES,
@@ -17,9 +17,6 @@ import { countdownLabel } from '../../lib/medication';
 import { useDashboardData } from '../../data/queries';
 import * as service from '../../notifications/service';
 
-/** A minute count rendered as a friendly, localized duration ("3h 30m"). */
-const formatMinutes = (minutes: number) => countdownLabel(minutes * 60_000);
-
 type Props = NativeStackScreenProps<MainStackParamList, 'Notifications'>;
 
 export function NotificationSettingsScreen({ navigation }: Props) {
@@ -27,6 +24,11 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { children } = useDashboardData();
+  // Subscribing keeps these interval labels in step with the time-format
+  // preference (set on the parent Settings screen).
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
+  /** A minute count rendered as a friendly, localized duration ("3h 30m"). */
+  const formatMinutes = (minutes: number) => countdownLabel(minutes * 60_000, timeFormat);
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const permissionStatus = useNotificationStore((s) => s.permissionStatus);
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);

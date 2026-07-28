@@ -16,6 +16,7 @@ import { themeColors, themePooSwatch, themeTints } from '../theme/scheme';
 import type { Scheme } from '../theme/palette';
 import i18n from '../i18n';
 import { durationLabel } from './dates';
+import { getActiveTimeFormat, type TimeFormat } from './timeFormat';
 import type {
   DosageUnit,
   Entry,
@@ -99,7 +100,10 @@ export function entryTitle(entry: Entry): string {
  * zero-length span (e.g. a bottle feed logged with no timer, where the server
  * fills in `end = start`) — nothing meaningful to show in either case.
  */
-export function entryDurationLabel(entry: Entry): string | undefined {
+export function entryDurationLabel(
+  entry: Entry,
+  format: TimeFormat = getActiveTimeFormat(),
+): string | undefined {
   if (entry.type !== 'feeding' && entry.type !== 'sleep' && entry.type !== 'tummyTime') {
     return undefined;
   }
@@ -108,7 +112,7 @@ export function entryDurationLabel(entry: Entry): string | undefined {
     (new Date(entry.endTime).getTime() - new Date(entry.time).getTime()) / 60_000,
   );
   if (minutes < 1) return undefined;
-  return durationLabel(entry.time, entry.endTime);
+  return durationLabel(entry.time, entry.endTime, undefined, format);
 }
 
 // --- Glyph + swatch selection (Phase 8, Batch C) ----------------------------

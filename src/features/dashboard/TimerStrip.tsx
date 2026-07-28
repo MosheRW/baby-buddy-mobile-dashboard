@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Card } from '../../components';
 import { fontSize, radii, spacing, useTheme, type AppTheme } from '../../theme';
 import { elapsedClock, type TimerType } from '../../lib/timers';
-import { useTimerStore } from '../../stores';
+import { useSettingsStore, useTimerStore } from '../../stores';
 import type { Child } from '../../api/types';
 
 // A function of the theme rather than a module-scope map: at module scope the
@@ -32,6 +32,7 @@ export function TimerStrip({ childrenById, now, onPress }: TimerStripProps) {
   const { colors } = theme;
   const dotColor = typeDot(theme);
   const timers = useTimerStore((s) => s.timers);
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
   if (timers.length === 0) return null;
 
   return (
@@ -55,7 +56,7 @@ export function TimerStrip({ childrenById, now, onPress }: TimerStripProps) {
                 {child ? `${child.name} · ${typeLabel}` : typeLabel}
               </AppText>
               <AppText size={fontSize.meta} weight="800" color={colors.accent}>
-                {elapsedClock(timer.startedAt, now)}
+                {elapsedClock(timer.startedAt, now, timeFormat)}
               </AppText>
             </Card>
           </Pressable>

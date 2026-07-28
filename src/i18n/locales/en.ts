@@ -344,6 +344,10 @@ export const en = {
     addChild: 'Add child',
     removeChild: 'Remove {{name}}',
     newChildDefault: 'Baby',
+    timeFormat: 'Time format',
+    timeFormatText: 'Text (2h 30m)',
+    timeFormatDigital: 'Digital (2:30)',
+    timeFormatHint: 'How durations and running timers are shown.',
   },
 
   advanced: {

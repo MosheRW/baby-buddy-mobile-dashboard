@@ -28,6 +28,7 @@ export function LoginScreen() {
   const styles = useThemedStyles(makeStyles);
   const signIn = useAuthStore((s) => s.signIn);
   const localChildren = useLocalDataStore((s) => s.children);
+  const localHydrated = useLocalDataStore((s) => s.hydrated);
   const addChild = useLocalDataStore((s) => s.addChild);
   const [mode, setMode] = useState<LoginMode>('babybuddy');
 
@@ -51,9 +52,15 @@ export function LoginScreen() {
 
   const submitLocal = () => {
     setError(null);
+    // The local store rehydrates asynchronously; acting before it finishes could
+    // read an empty `children` and seed a duplicate first child. The CTA is
+    // disabled until then, and this re-reads the count straight from the store
+    // (not the render snapshot) as a second guard against that race.
+    if (!localHydrated) return;
+    const hasChildren = useLocalDataStore.getState().children.length > 0;
     // First time in offline mode: seed the child the caregiver just described.
     // On a later sign-in the existing on-device data is simply reopened.
-    if (!hasLocalData) {
+    if (!hasChildren) {
       const name = babyName.trim();
       if (!name) {
         setError(t('login.enterBabyName'));
@@ -238,7 +245,7 @@ export function LoginScreen() {
             <ActionButton
               label={ctaLabel()}
               fullWidth
-              disabled={busy}
+              disabled={busy || (isLocal && !localHydrated)}
               onPress={() => void submit()}
             />
           </View>

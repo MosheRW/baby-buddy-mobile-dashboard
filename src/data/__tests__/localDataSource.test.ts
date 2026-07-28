@@ -3,17 +3,18 @@
  * creator with no persistence), so there's no AsyncStorage or singleton state to
  * reset between cases.
  */
-// The store module pulls in storage.ts → AsyncStorage at import time. These tests
-// use a persistence-free vanilla store, but the import still needs the native
-// module mocked out.
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
-
 import { createStore } from 'zustand/vanilla';
 import { createLocalDataSlice, type LocalDataState } from '../localDataStore';
 import { createLocalDataSource } from '../localDataSource';
 import type { DiaperEntry, Entry } from '../../api/types';
+
+// The store module pulls in storage.ts → AsyncStorage at import time. These tests
+// use a persistence-free vanilla store, but the import still needs the native
+// module mocked out. (jest.mock is hoisted above the imports by babel-jest.)
+jest.mock('@react-native-async-storage/async-storage', () =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 function freshStore() {
   return createStore<LocalDataState>()(createLocalDataSlice);
@@ -137,6 +138,13 @@ describe('createLocalDataSource', () => {
     expect((await source.getChildren()).map((c) => c.id)).toEqual([noah.id]);
     expect((await source.getEntries()).map((e) => e.id)).toEqual([keep.id]);
     expect(await source.getTimers()).toEqual([]);
+  });
+
+  it('starts un-hydrated and flips on setHydrated', () => {
+    const store = freshStore();
+    expect(store.getState().hydrated).toBe(false);
+    store.getState().setHydrated();
+    expect(store.getState().hydrated).toBe(true);
   });
 
   it('renaming a child refreshes its initial', () => {

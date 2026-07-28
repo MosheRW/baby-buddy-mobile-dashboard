@@ -11,6 +11,7 @@ import { queryClient } from './src/data/queryClient';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useSyncAppLanguage } from './src/hooks/useAppLanguage';
 import { useEffectiveScheme } from './src/hooks/useAppScheme';
+import { useSyncTimeFormat } from './src/hooks/useTimeFormat';
 import './src/i18n';
 
 // Keep the splash visible until fonts + persisted state are ready so nothing
@@ -29,6 +30,7 @@ export default function App() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const [timedOut, setTimedOut] = useState(false);
   useSyncAppLanguage();
+  useSyncTimeFormat();
   const scheme = useEffectiveScheme();
 
   useEffect(() => {

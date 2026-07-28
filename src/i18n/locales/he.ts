@@ -344,6 +344,10 @@ export const he = {
     addChild: 'הוספת ילד/ה',
     removeChild: 'הסרת {{name}}',
     newChildDefault: 'תינוק/ת',
+    timeFormat: 'תבנית זמן',
+    timeFormatText: 'טקסט (2h 30m)',
+    timeFormatDigital: 'ספרתי (2:30)',
+    timeFormatHint: 'איך מוצגים משכי זמן וטיימרים פעילים.',
   },
 
   advanced: {

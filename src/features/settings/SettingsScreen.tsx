@@ -30,6 +30,7 @@ import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
 import { queryKeys, useDashboardData } from '../../data/queries';
 import { DateTimeField } from '../logEntry/DateTimeField';
+import type { TimeFormat } from '../../lib/timeFormat';
 
 const LANGUAGE_LABEL_KEY: Record<AppLanguage, string> = {
   en: 'settings.languageEnglish',
@@ -40,6 +41,12 @@ const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
   system: 'settings.appearanceSystem',
   light: 'settings.appearanceLight',
   dark: 'settings.appearanceDark',
+};
+
+const TIME_FORMATS: TimeFormat[] = ['text', 'digital'];
+const TIME_FORMAT_LABEL_KEY: Record<TimeFormat, string> = {
+  text: 'settings.timeFormatText',
+  digital: 'settings.timeFormatDigital',
 };
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>;
@@ -56,6 +63,8 @@ export function SettingsScreen({ navigation }: Props) {
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
   const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
+  const setTimeFormat = useSettingsStore((s) => s.setTimeFormat);
   const hidden = useKidsStore((s) => s.hidden);
   const setHidden = useKidsStore((s) => s.setHidden);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
@@ -142,6 +151,25 @@ export function SettingsScreen({ navigation }: Props) {
               {t('settings.appearanceSystemHint')}
             </AppText>
           ) : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <AppText size={fontSize.bodySm} weight="800">
+            {t('settings.timeFormat')}
+          </AppText>
+          <View style={styles.windowRow}>
+            {TIME_FORMATS.map((format) => (
+              <Chip
+                key={format}
+                label={t(TIME_FORMAT_LABEL_KEY[format])}
+                active={timeFormat === format}
+                onPress={() => setTimeFormat(format)}
+              />
+            ))}
+          </View>
+          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+            {t('settings.timeFormatHint')}
+          </AppText>
         </Card>
 
         <Card style={styles.section}>
@@ -287,6 +315,14 @@ function LocalChildrenCard({ childList }: { childList: Child[] }) {
   const queryClient = useQueryClient();
   const refreshChildren = () =>
     void queryClient.invalidateQueries({ queryKey: queryKeys.children });
+  // Removing a child cascades to its entries and timers in the store, so the
+  // feed and timer caches must be dropped too — invalidating only children
+  // would leave the deleted child's entries on screen until the next refetch.
+  const refreshAfterRemove = () => {
+    refreshChildren();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.entries });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.timers });
+  };
 
   return (
     <Card style={styles.section}>
@@ -358,7 +394,7 @@ function LocalChildrenCard({ childList }: { childList: Child[] }) {
                 fullWidth
                 onPress={() => {
                   removeChild(child.id);
-                  refreshChildren();
+                  refreshAfterRemove();
                 }}
               />
             ) : null}

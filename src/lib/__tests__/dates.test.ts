@@ -33,6 +33,10 @@ describe('durationLabel', () => {
   it('measures to now when no end is given', () => {
     expect(durationLabel(iso(NOW - 30 * MIN), undefined, NOW)).toBe('30m');
   });
+  it('renders colon form in digital format', () => {
+    expect(durationLabel(iso(NOW - 80 * MIN), iso(NOW), NOW, 'digital')).toBe('1:20');
+    expect(durationLabel(iso(NOW - 12 * MIN), iso(NOW), NOW, 'digital')).toBe('0:12');
+  });
 });
 
 describe('greeting', () => {

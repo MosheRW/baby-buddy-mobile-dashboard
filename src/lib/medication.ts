@@ -13,6 +13,7 @@
  */
 import i18n from '../i18n';
 import type { DosageUnit, Entry, MedicationEntry } from '../api/types';
+import { formatSpan, getActiveTimeFormat, type TimeFormat } from './timeFormat';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -191,14 +192,11 @@ export function medicationSuggestions(entries: Entry[]): MedicationEntry[] {
 }
 
 /**
- * "2h 15m" / "45m" for a duration in ms, sign-insensitive. Under an hour the
- * hour segment is dropped — "0h 45m" reads like a placeholder.
+ * "2h 15m" / "45m" (or "2:15" / "0:45" in digital format) for a duration in ms,
+ * sign-insensitive.
  */
-export function countdownLabel(ms: number): string {
-  const totalMin = Math.round(Math.abs(ms) / 60000);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return h > 0 ? i18n.t('duration.hoursMinutes', { h, m }) : i18n.t('duration.minutes', { m });
+export function countdownLabel(ms: number, format: TimeFormat = getActiveTimeFormat()): string {
+  return formatSpan(ms, format);
 }
 
 /**
@@ -207,20 +205,28 @@ export function countdownLabel(ms: number): string {
  * Before the halfway point the useful number is how long it's been; after it,
  * how long is left. See `halfOver`.
  */
-export function neededStatusLabel(status: MedStatus): string {
+export function neededStatusLabel(
+  status: MedStatus,
+  format: TimeFormat = getActiveTimeFormat(),
+): string {
   if (!status.halfOver) {
-    return i18n.t('med.status.sinceLastDose', { duration: countdownLabel(status.elapsedMs) });
+    return i18n.t('med.status.sinceLastDose', {
+      duration: countdownLabel(status.elapsedMs, format),
+    });
   }
   return status.isDue
-    ? i18n.t('med.status.overdueBy', { duration: countdownLabel(status.dueInMs) })
-    : i18n.t('med.status.dueIn', { duration: countdownLabel(status.dueInMs) });
+    ? i18n.t('med.status.overdueBy', { duration: countdownLabel(status.dueInMs, format) })
+    : i18n.t('med.status.dueIn', { duration: countdownLabel(status.dueInMs, format) });
 }
 
 /** The right-hand status on an as-needed ("eligible") medication row. */
-export function eligibleStatusLabel(status: MedStatus): string {
+export function eligibleStatusLabel(
+  status: MedStatus,
+  format: TimeFormat = getActiveTimeFormat(),
+): string {
   return status.isDue
     ? i18n.t('med.status.eligibleNow')
-    : i18n.t('med.status.eligibleIn', { duration: countdownLabel(status.dueInMs) });
+    : i18n.t('med.status.eligibleIn', { duration: countdownLabel(status.dueInMs, format) });
 }
 
 // --- 24h dose limits --------------------------------------------------------
