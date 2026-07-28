@@ -3,6 +3,7 @@
  * Display copy is looked up from i18n; the numeric math stays here.
  */
 import i18n from '../i18n';
+import { formatClock, formatSpan, getActiveTimeFormat, type TimeFormat } from './timeFormat';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -21,24 +22,25 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
   return i18n.t('dates.daysAgo', { d: Math.floor(diff / DAY) });
 }
 
-/** "Xh Ym" duration between two ISO times (or from a start to now). */
-export function durationLabel(startIso: string, endIso?: string, now: number = Date.now()): string {
+/** Duration between two ISO times (or from a start to now), in the active format. */
+export function durationLabel(
+  startIso: string,
+  endIso?: string,
+  now: number = Date.now(),
+  format: TimeFormat = getActiveTimeFormat(),
+): string {
   const start = new Date(startIso).getTime();
   const end = endIso ? new Date(endIso).getTime() : now;
-  const diff = Math.max(0, end - start);
-  const h = Math.floor(diff / HOUR);
-  const m = Math.floor((diff % HOUR) / MIN);
-  if (h > 0) return i18n.t('duration.hoursMinutes', { h, m });
-  return i18n.t('duration.minutes', { m });
+  return formatSpan(Math.max(0, end - start), format);
 }
 
-/** mm:ss elapsed since a start time — for live timer displays. */
-export function elapsedClock(startIso: string, now: number = Date.now()): string {
-  const diff = Math.max(0, now - new Date(startIso).getTime());
-  const totalSec = Math.floor(diff / 1000);
-  const mm = Math.floor(totalSec / 60);
-  const ss = totalSec % 60;
-  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+/** Live-timer elapsed since a start time — mm:ss (text) or h:mm:ss (digital). */
+export function elapsedClock(
+  startIso: string,
+  now: number = Date.now(),
+  format: TimeFormat = getActiveTimeFormat(),
+): string {
+  return formatClock(Math.max(0, now - new Date(startIso).getTime()), format);
 }
 
 /** Greeting based on the hour of day. */

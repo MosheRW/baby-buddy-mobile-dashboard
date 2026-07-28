@@ -170,7 +170,10 @@ const FeedRow = React.memo(function FeedRow({
   // stays non-tappable: `filterByTag` never matches the author, so a tap would
   // be a dead filter.
   const author = entry.tags.find((t) => t.author);
-  const duration = entryDurationLabel(entry);
+  // Subscribing here re-renders this memoized row the instant the preference
+  // flips, rather than waiting for the next minute tick.
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
+  const duration = entryDurationLabel(entry, timeFormat);
 
   return (
     <Card

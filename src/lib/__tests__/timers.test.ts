@@ -45,6 +45,13 @@ describe('timer helpers', () => {
     expect(elapsedClock(NOW, NOW + 65000)).toBe('01:05');
     expect(elapsedClock(NOW, NOW + 725000)).toBe('12:05');
   });
+
+  it('rolls into an hours segment in digital format', () => {
+    expect(elapsedClock(NOW, NOW + 5000, 'digital')).toBe('0:05');
+    expect(elapsedClock(NOW, NOW + 65000, 'digital')).toBe('1:05');
+    // 1h 5m 3s — the minutes stay two-digit once an hours field appears.
+    expect(elapsedClock(NOW, NOW + (3600 + 5 * 60 + 3) * 1000, 'digital')).toBe('1:05:03');
+  });
 });
 
 describe('timerTypeFromName', () => {

@@ -4,6 +4,7 @@
  * timestamp so displays derive from `startedAt` (not an accumulating counter).
  */
 import type { EntryType } from '../api/types';
+import { formatClock, getActiveTimeFormat, type TimeFormat } from './timeFormat';
 
 /** Entry types that support a background timer. */
 export const TIMER_TYPES = ['feeding', 'sleep', 'tummyTime'] as const;
@@ -97,10 +98,11 @@ export function reconcileTimers(
   return [...live, ...survivors].sort((a, b) => a.startedAt - b.startedAt);
 }
 
-/** mm:ss from a start timestamp — for live timer displays. */
-export function elapsedClock(startedAt: number, now: number = Date.now()): string {
-  const totalSec = Math.floor(elapsedMs(startedAt, now) / 1000);
-  const mm = Math.floor(totalSec / 60);
-  const ss = totalSec % 60;
-  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+/** Live-timer elapsed from a start timestamp — mm:ss (text) or h:mm:ss (digital). */
+export function elapsedClock(
+  startedAt: number,
+  now: number = Date.now(),
+  format: TimeFormat = getActiveTimeFormat(),
+): string {
+  return formatClock(elapsedMs(startedAt, now), format);
 }
