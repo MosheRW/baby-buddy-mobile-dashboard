@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { ActionButton, AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
+import { useQueryClient } from '@tanstack/react-query';
+import { ActionButton, AppText, Card, Chip, Stepper, TextField, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import {
   avatarTint,
@@ -13,6 +14,7 @@ import {
   useThemedStyles,
   type AppTheme,
 } from '../../theme';
+import type { Child } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import {
   THEME_PREFERENCES,
@@ -23,9 +25,11 @@ import {
   useThemeStore,
   type ThemePreference,
 } from '../../stores';
+import { useLocalDataStore } from '../../data/localDataStore';
 import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
-import { useDashboardData } from '../../data/queries';
+import { queryKeys, useDashboardData } from '../../data/queries';
+import { DateTimeField } from '../logEntry/DateTimeField';
 
 const LANGUAGE_LABEL_KEY: Record<AppLanguage, string> = {
   en: 'settings.languageEnglish',
@@ -46,6 +50,7 @@ export function SettingsScreen({ navigation }: Props) {
   const styles = useThemedStyles(makeStyles);
   const session = useAuthStore((s) => s.session);
   const signOut = useAuthStore((s) => s.signOut);
+  const isLocal = session?.mode === 'local';
   const { children } = useDashboardData();
   const defaults = useSettingsStore((s) => s.defaultFoodMl);
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
@@ -172,6 +177,9 @@ export function SettingsScreen({ navigation }: Props) {
           </View>
         </Card>
 
+        {isLocal ? (
+          <LocalChildrenCard childList={children} />
+        ) : (
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
             {t('settings.children')}
@@ -211,28 +219,40 @@ export function SettingsScreen({ navigation }: Props) {
             );
           })}
         </Card>
+        )}
 
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {session?.mode === 'homeassistant'
-              ? t('settings.serverHomeAssistant')
-              : t('settings.serverBabyBuddy')}
-          </AppText>
-          <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
-            {session?.baseUrl ?? '—'}
-          </AppText>
-          {/* The HA path authenticates with a pasted token and never learns a
-              username, so it shows the (masked) token instead. */}
-          {session?.userName ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('settings.loggedInAs', { name: session.userName })}
+        {isLocal ? (
+          <Card style={styles.section}>
+            <AppText size={fontSize.bodySm} weight="800">
+              {t('settings.offlineTitle')}
             </AppText>
-          ) : session?.token ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('settings.accessToken', { token: maskToken(session.token) })}
+            <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
+              {t('settings.offlineHint')}
             </AppText>
-          ) : null}
-        </Card>
+          </Card>
+        ) : (
+          <Card style={styles.section}>
+            <AppText size={fontSize.bodySm} weight="800">
+              {session?.mode === 'homeassistant'
+                ? t('settings.serverHomeAssistant')
+                : t('settings.serverBabyBuddy')}
+            </AppText>
+            <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
+              {session?.baseUrl ?? '—'}
+            </AppText>
+            {/* The HA path authenticates with a pasted token and never learns a
+                username, so it shows the (masked) token instead. */}
+            {session?.userName ? (
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('settings.loggedInAs', { name: session.userName })}
+              </AppText>
+            ) : session?.token ? (
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('settings.accessToken', { token: maskToken(session.token) })}
+              </AppText>
+            ) : null}
+          </Card>
+        )}
 
         <ActionButton
           label={t('settings.logOut')}
@@ -244,6 +264,117 @@ export function SettingsScreen({ navigation }: Props) {
         />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * Offline-mode children card: unlike the server-backed card, there's no server
+ * to create children, so this one is a full editor — rename, re-date, add and
+ * remove children stored on the device. Child writes invalidate the children
+ * query so the dashboard reflects them immediately.
+ */
+function LocalChildrenCard({ childList }: { childList: Child[] }) {
+  const { t } = useTranslation();
+  const { scheme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const addChild = useLocalDataStore((s) => s.addChild);
+  const updateChild = useLocalDataStore((s) => s.updateChild);
+  const removeChild = useLocalDataStore((s) => s.removeChild);
+  const hidden = useKidsStore((s) => s.hidden);
+  const setHidden = useKidsStore((s) => s.setHidden);
+  const defaults = useSettingsStore((s) => s.defaultFoodMl);
+  const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
+  const queryClient = useQueryClient();
+  const refreshChildren = () =>
+    void queryClient.invalidateQueries({ queryKey: queryKeys.children });
+
+  return (
+    <Card style={styles.section}>
+      <AppText size={fontSize.bodySm} weight="800">
+        {t('settings.children')}
+      </AppText>
+      {childList.map((child) => {
+        const tint = avatarTint(child.hue, scheme);
+        return (
+          <View key={child.id} style={styles.localChild}>
+            <View style={styles.localChildHead}>
+              <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+                <AppText size={fontSize.body} weight="800" color={tint.fg}>
+                  {child.initial}
+                </AppText>
+              </View>
+              <View style={styles.localChildName}>
+                <TextField
+                  label={t('settings.childName')}
+                  defaultValue={child.name}
+                  autoCapitalize="words"
+                  onEndEditing={(e) => {
+                    const name = e.nativeEvent.text.trim();
+                    if (name && name !== child.name) {
+                      updateChild(child.id, { name });
+                      refreshChildren();
+                    }
+                  }}
+                />
+              </View>
+            </View>
+            <DateTimeField
+              label={t('settings.childBirthDate')}
+              value={child.birthDate}
+              onChange={(iso) => {
+                updateChild(child.id, { birthDate: iso });
+                refreshChildren();
+              }}
+            />
+            <View style={styles.toggleRow}>
+              <AppText size={fontSize.body} weight="700">
+                {t('settings.showOnDashboard')}
+              </AppText>
+              <ToggleSwitch
+                value={!hidden[child.id]}
+                onValueChange={(visible) => setHidden(child.id, !visible)}
+                accessibilityLabel={t('settings.visibilityToggle', { name: child.name })}
+              />
+            </View>
+            <View style={styles.toggleRow}>
+              <AppText size={fontSize.body} weight="700">
+                {t('settings.defaultFood')}
+              </AppText>
+              <View style={styles.stepperWrap}>
+                <Stepper
+                  value={defaults[child.id] ?? child.defaultFoodMl}
+                  onChange={(v) => setDefaultFoodMl(child.id, v)}
+                  step={1}
+                  min={0}
+                  suffix={t('settings.mlSuffix')}
+                />
+              </View>
+            </View>
+            {/* Keep at least one child — offline logging needs something to log against. */}
+            {childList.length > 1 ? (
+              <ActionButton
+                label={t('settings.removeChild', { name: child.name })}
+                variant="danger"
+                fullWidth
+                onPress={() => {
+                  removeChild(child.id);
+                  refreshChildren();
+                }}
+              />
+            ) : null}
+          </View>
+        );
+      })}
+      <ActionButton
+        label={t('settings.addChild')}
+        variant="neutral"
+        fullWidth
+        onPress={() => {
+          addChild({ name: t('settings.newChildDefault'), birthDate: new Date().toISOString() });
+          refreshChildren();
+        }}
+      />
+    </Card>
   );
 }
 
@@ -296,6 +427,20 @@ const makeStyles = ({ colors }: AppTheme) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.lg,
+    },
+    localChild: {
+      gap: spacing.lg,
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.background,
+    },
+    localChildHead: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: spacing.lg,
+    },
+    localChildName: {
+      flex: 1,
     },
     childInfo: {
       flexDirection: 'row',

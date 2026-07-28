@@ -190,14 +190,20 @@ export interface Child {
 
 // --- Session ----------------------------------------------------------------
 
-export type LoginMode = 'babybuddy' | 'homeassistant';
+/**
+ * `local` is the offline, server-less mode: children, entries and timers live
+ * on the device (see `src/data/localDataStore.ts`) and no network call is ever
+ * made. Chosen at the login screen alongside the two server modes.
+ */
+export type LoginMode = 'babybuddy' | 'homeassistant' | 'local';
 
 export interface Session {
   mode: LoginMode;
   /**
    * Base URL of the Baby Buddy server. For the Home Assistant add-on this
    * includes the ingress path segment, e.g.
-   * `http://homeassistant.local:8123/<addon-slug>`.
+   * `http://homeassistant.local:8123/<addon-slug>`. The sentinel `'local'` for
+   * the offline mode, which has no server.
    */
   baseUrl: string;
   /** Display name of the signed-in user (drives the author tag). */
