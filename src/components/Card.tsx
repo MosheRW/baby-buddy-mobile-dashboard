@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { radii, spacing, useTheme } from '../theme';
+import { elevatedCardBorder } from './cardBorder';
 
 interface CardProps extends ViewProps {
   /** Padding preset. Defaults to the 20px main-card padding. */
@@ -38,14 +39,12 @@ export function Card({
         elevation === 'card' && shadows.card,
         elevation === 'feedRow' && shadows.feedRow,
         // A drop shadow does nothing against a dark background, so the dark
-        // palette separates cards with a hairline edge instead. Applied only
-        // when the palette defines one — a transparent border would still inset
-        // the light layout by a hairline.
-        elevation !== 'none' &&
-          colors.cardBorder != null && {
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: colors.cardBorder,
-          },
+        // palette separates cards with a hairline edge instead. The border is
+        // always declared (0-width in light) rather than omitted: on Android a
+        // *removed* border isn't repainted, so a dark→light switch would leave
+        // the dark hairline lingering around every card (#27). See
+        // `elevatedCardBorder`.
+        elevation !== 'none' && elevatedCardBorder(colors.cardBorder),
         style,
       ]}
       {...rest}

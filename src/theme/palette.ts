@@ -36,9 +36,10 @@ export interface Palette {
   /**
    * Hairline card outline. Undefined in light, where the drop shadow does the
    * separating; a drop shadow is invisible on a dark surface, so dark needs an
-   * explicit edge instead. Consumers must treat `undefined` as "draw no border"
-   * rather than defaulting to a colour — a transparent border would still inset
-   * the light layout by a hairline.
+   * explicit edge instead. `Card` renders `undefined` as a 0-width transparent
+   * border (via `elevatedCardBorder`) rather than omitting the border outright —
+   * a *removed* border isn't repainted on Android, so a dark→light switch would
+   * otherwise leave the dark hairline behind (#27). 0 width adds no inset.
    */
   cardBorder?: string;
 
