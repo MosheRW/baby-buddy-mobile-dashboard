@@ -407,6 +407,12 @@ export const en = {
     enableHint: 'Local reminders, scheduled on this device.',
     blocked: 'Notifications are blocked. Turn them on for Baby Buddy in your device settings.',
     unsupported: "Notifications aren't available on this platform.",
+    backgroundTitle: 'Background updates',
+    backgroundHint:
+      'Let Baby Buddy refresh in the background so reminders stay accurate while the app is closed. Android checks in roughly every 15 minutes, not instantly.',
+    backgroundRestricted:
+      'Background activity is restricted. Allow it for Baby Buddy (turn off battery optimization) in your device settings.',
+    backgroundUnsupported: "Background updates aren't available on this platform.",
     scheduledMedsTitle: 'Scheduled medications',
     scheduledMedsHint: 'Remind me when a scheduled dose is due.',
     eligibilityTitle: 'Medication eligibility',

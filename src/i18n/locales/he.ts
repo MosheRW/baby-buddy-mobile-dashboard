@@ -402,6 +402,12 @@ export const he = {
     enableHint: 'תזכורות מקומיות, מתוזמנות במכשיר זה.',
     blocked: 'ההתראות חסומות. הפעילו אותן עבור Baby Buddy בהגדרות המכשיר.',
     unsupported: 'התראות אינן זמינות בפלטפורמה זו.',
+    backgroundTitle: 'עדכונים ברקע',
+    backgroundHint:
+      'אפשרו ל‑Baby Buddy להתרענן ברקע כדי שהתזכורות יישארו מדויקות גם כשהאפליקציה סגורה. אנדרואיד בודק בערך כל 15 דקות, לא באופן מיידי.',
+    backgroundRestricted:
+      'הפעילות ברקע מוגבלת. אפשרו אותה עבור Baby Buddy (כבו את מיטוב הסוללה) בהגדרות המכשיר.',
+    backgroundUnsupported: 'עדכונים ברקע אינם זמינים בפלטפורמה זו.',
     scheduledMedsTitle: 'תרופות מתוזמנות',
     scheduledMedsHint: 'הזכירו לי כשמגיע הזמן למנה מתוזמנת.',
     eligibilityTitle: 'זמינות תרופה',

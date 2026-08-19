@@ -31,6 +31,8 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const formatMinutes = (minutes: number) => countdownLabel(minutes * 60_000, timeFormat);
   const masterEnabled = useNotificationStore((s) => s.masterEnabled);
   const permissionStatus = useNotificationStore((s) => s.permissionStatus);
+  const backgroundRefresh = useNotificationStore((s) => s.backgroundRefresh);
+  const backgroundStatus = useNotificationStore((s) => s.backgroundStatus);
   const scheduledMeds = useNotificationStore((s) => s.scheduledMeds);
   const medEligibility = useNotificationStore((s) => s.medEligibility);
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
@@ -50,6 +52,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
     (s) => s.setForgottenTimerSleepMinutes,
   );
   const setLiveTimerEnabled = useNotificationStore((s) => s.setLiveTimerEnabled);
+  const setBackgroundRefreshEnabled = useNotificationStore((s) => s.setBackgroundRefreshEnabled);
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
   const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
   const updateWeeklySummary = useNotificationStore((s) => s.updateWeeklySummary);
@@ -106,6 +109,34 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           {masterEnabled && permissionStatus === 'unsupported' ? (
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
               {t('notifications.unsupported')}
+            </AppText>
+          ) : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.backgroundTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.backgroundHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch
+              value={backgroundRefresh.enabled}
+              onValueChange={setBackgroundRefreshEnabled}
+              disabled={!masterEnabled}
+            />
+          </View>
+          {masterEnabled && backgroundRefresh.enabled && backgroundStatus === 'restricted' ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.danger}>
+              {t('notifications.backgroundRestricted')}
+            </AppText>
+          ) : null}
+          {masterEnabled && backgroundRefresh.enabled && backgroundStatus === 'unsupported' ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {t('notifications.backgroundUnsupported')}
             </AppText>
           ) : null}
         </Card>

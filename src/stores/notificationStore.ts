@@ -33,6 +33,15 @@ export type IntervalCaseId = 'diaperInterval' | 'foodMin';
 
 export type PermissionStatus = 'granted' | 'denied' | 'undetermined' | 'unsupported';
 
+/**
+ * Live OS state of the background-refresh capability — never persisted (the user
+ * can change battery-optimization settings out from under us, so it's queried).
+ * `available` = WorkManager will run our task; `restricted` = the OS is throttling
+ * background work (battery optimization); `unsupported` = web/Expo Go; `unknown` =
+ * not yet queried this launch.
+ */
+export type BackgroundStatus = 'available' | 'restricted' | 'unsupported' | 'unknown';
+
 interface NotificationState {
   masterEnabled: boolean;
   scheduledMeds: CaseSettings;
@@ -43,8 +52,18 @@ interface NotificationState {
   liveTimer: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
+  /**
+   * Opt-in periodic background refresh (`expo-background-task`). Off by default —
+   * it's an extra battery cost the user approves. When on (and master on), a
+   * WorkManager job re-fetches and re-plans notifications every ~15 min so a
+   * reminder firing while the app is closed carries fresher data. See
+   * `src/notifications/backgroundTask.ts`.
+   */
+  backgroundRefresh: { enabled: boolean };
   /** Live OS permission state — not persisted. */
   permissionStatus: PermissionStatus;
+  /** Live background-task availability — not persisted. */
+  backgroundStatus: BackgroundStatus;
 
   setMasterEnabled: (enabled: boolean) => void;
   setCaseEnabled: (id: TimingCaseId, enabled: boolean) => void;
@@ -56,7 +75,9 @@ interface NotificationState {
   setIntervalCaseEnabled: (id: IntervalCaseId, enabled: boolean) => void;
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
   updateWeeklySummary: (patch: Partial<WeeklySummarySettings>) => void;
+  setBackgroundRefreshEnabled: (enabled: boolean) => void;
   setPermissionStatus: (status: PermissionStatus) => void;
+  setBackgroundStatus: (status: BackgroundStatus) => void;
 }
 
 const defaultTiming = (over: Partial<TimingPrefs> = {}): TimingPrefs => ({
@@ -88,7 +109,10 @@ export const useNotificationStore = create<NotificationState>()(
       // in the he locale too.
       weeklySummary: { enabled: true, weekday: 0, hour: 9 },
       perChild: {},
+      // Opt-in: costs battery, so the user turns it on deliberately.
+      backgroundRefresh: { enabled: false },
       permissionStatus: 'undetermined',
+      backgroundStatus: 'unknown',
 
       setMasterEnabled: (enabled) => set({ masterEnabled: enabled }),
 
@@ -128,14 +152,22 @@ export const useNotificationStore = create<NotificationState>()(
       updateWeeklySummary: (patch) =>
         set((state) => ({ weeklySummary: { ...state.weeklySummary, ...patch } })),
 
+      setBackgroundRefreshEnabled: (enabled) => set({ backgroundRefresh: { enabled } }),
+
       setPermissionStatus: (status) => set({ permissionStatus: status }),
+      setBackgroundStatus: (status) => set({ backgroundStatus: status }),
     }),
     {
       name: 'notifications',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => asyncStorage),
-      // permissionStatus is live OS state, not a preference — never persist it.
-      partialize: ({ permissionStatus: _permissionStatus, ...rest }) => rest,
+      // permissionStatus / backgroundStatus are live OS state, not preferences —
+      // never persist them.
+      partialize: ({
+        permissionStatus: _permissionStatus,
+        backgroundStatus: _backgroundStatus,
+        ...rest
+      }) => rest,
       // v0 stored the diaper/food intervals in whole hours; v1 stores minutes so
       // the adaptive-step UI can offer 10-minute resolution. Convert per child.
       migrate: (persisted, version) => {
@@ -170,6 +202,11 @@ export const useNotificationStore = create<NotificationState>()(
               sleepThresholdMinutes: DEFAULT_SLEEP_FORGOTTEN_MINUTES,
             },
           };
+        }
+        // v3 added opt-in background refresh; pre-v3 state has no such preference,
+        // so seed it off (the safe, no-extra-battery default).
+        if (version < 3 && state?.backgroundRefresh == null) {
+          state = { ...state, backgroundRefresh: { enabled: false } };
         }
         return state;
       },

@@ -30,7 +30,8 @@
       "expo-splash-screen",
       "expo-secure-store",
       "expo-notifications",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-background-task"
     ]
   }
 }

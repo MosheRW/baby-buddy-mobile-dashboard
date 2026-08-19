@@ -38,6 +38,11 @@ import { useKidsStore } from '../stores/kidsStore';
 import { useTimerStore } from '../stores/timerStore';
 import { visibleChildren } from '../lib/visibility';
 import * as service from '../notifications/service';
+import {
+  getBackgroundStatusAsync,
+  registerBackgroundTaskAsync,
+  unregisterBackgroundTaskAsync,
+} from '../notifications/backgroundTask';
 import { useNotificationValidator } from './useNotificationValidator';
 
 /** How often to re-evaluate while the app is foregrounded and enabled. */
@@ -59,7 +64,9 @@ export function useNotificationSync(): void {
   const liveTimer = useNotificationStore((s) => s.liveTimer);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
+  const backgroundRefresh = useNotificationStore((s) => s.backgroundRefresh.enabled);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
+  const setBackgroundStatus = useNotificationStore((s) => s.setBackgroundStatus);
   const me = useAuthStore((s) => s.session?.userName);
 
   // One settings object, memoized on the individual store slices and shared by the
@@ -105,6 +112,31 @@ export function useNotificationSync(): void {
     void service.initAsync();
     void service.getPermissionStatusAsync().then(setPermissionStatus);
   }, [setPermissionStatus]);
+
+  // Opt-in background refresh: register the WorkManager task while enabled (and the
+  // master switch is on), unregister otherwise. `getBackgroundStatusAsync` reflects
+  // whether the OS will actually run it (battery optimization can restrict it), so
+  // the settings screen can warn the user. No-op on web/Expo Go.
+  useEffect(() => {
+    let cancelled = false;
+    if (masterEnabled && backgroundRefresh) {
+      void registerBackgroundTaskAsync()
+        .then(getBackgroundStatusAsync)
+        .then((status) => {
+          if (!cancelled) setBackgroundStatus(status);
+        });
+    } else {
+      void unregisterBackgroundTaskAsync();
+      // Reading status while disabled still tells us if the capability exists at
+      // all (unsupported vs available), which the UI uses to hide/show the note.
+      void getBackgroundStatusAsync().then((status) => {
+        if (!cancelled) setBackgroundStatus(status);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [masterEnabled, backgroundRefresh, setBackgroundStatus]);
 
   // Re-evaluate on foreground and on a slow interval, but only while enabled.
   useEffect(() => {
