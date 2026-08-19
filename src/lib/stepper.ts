@@ -35,7 +35,11 @@ export function splitMinutes(total: number): { hours: number; minutes: number } 
   return { hours: Math.floor(t / 60), minutes: t % 60 };
 }
 
-/** Recombine an hours + minutes pair into a total minute count. */
+/**
+ * Recombine an hours + minutes pair into a total minute count. Combines before
+ * rounding (so a fractional hour isn't rounded away on its own) and clamps
+ * negatives to zero, mirroring {@link splitMinutes}.
+ */
 export function joinMinutes(hours: number, minutes: number): number {
-  return Math.round(hours) * 60 + Math.round(minutes);
+  return Math.max(0, Math.round(hours * 60 + minutes));
 }

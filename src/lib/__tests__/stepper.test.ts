@@ -55,6 +55,19 @@ describe('splitMinutes / joinMinutes', () => {
     expect(joinMinutes(3, 30)).toBe(210);
   });
 
+  it('combines before rounding, so a fractional hour is not lost', () => {
+    // 1.5h + 0m = 90m — separate rounding would give 2h = 120m.
+    expect(joinMinutes(1.5, 0)).toBe(90);
+    expect(joinMinutes(0, 90.4)).toBe(90);
+    expect(joinMinutes(1.25, 15)).toBe(90);
+  });
+
+  it('clamps a negative combined total to zero', () => {
+    expect(joinMinutes(-1, 0)).toBe(0);
+    expect(joinMinutes(0, -30)).toBe(0);
+    expect(joinMinutes(-2, 30)).toBe(0);
+  });
+
   it('round-trips through split then join', () => {
     for (const total of [0, 5, 59, 60, 125, 210, 1440]) {
       const { hours, minutes } = splitMinutes(total);

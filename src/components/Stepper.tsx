@@ -135,10 +135,18 @@ export function Stepper({
 
   const commitEditor = () => {
     setEditing(false);
-    // Hours+minutes: blank fields count as 0; recombine before range-checking.
-    const parsed = hoursMinutes
-      ? joinMinutes(parseNumericInput(editHours) ?? 0, parseNumericInput(editMins) ?? 0)
-      : parseNumericInput(editText);
+    // Hours+minutes: an empty field counts as 0, but a non-empty field that
+    // doesn't parse (e.g. "-", "abc") stays invalid rather than silently 0.
+    const parseField = (raw: string): number | null =>
+      raw.trim() === '' ? 0 : parseNumericInput(raw);
+    let parsed: number | null;
+    if (hoursMinutes) {
+      const h = parseField(editHours);
+      const m = parseField(editMins);
+      parsed = h == null || m == null ? null : joinMinutes(h, m);
+    } else {
+      parsed = parseNumericInput(editText);
+    }
     if (parsed == null || parsed < min || parsed > max) {
       // Invalid or out of range: tell the user and restore `defaultValue` — the
       // value captured at mount, same target as the long-press reset.
@@ -217,6 +225,7 @@ export function Stepper({
                     <TextInput
                       value={editHours}
                       onChangeText={setEditHours}
+                      accessibilityLabel={t('stepper.hours')}
                       keyboardType="number-pad"
                       autoFocus
                       selectTextOnFocus
@@ -233,6 +242,7 @@ export function Stepper({
                     <TextInput
                       value={editMins}
                       onChangeText={setEditMins}
+                      accessibilityLabel={t('stepper.minutes')}
                       keyboardType="number-pad"
                       selectTextOnFocus
                       onSubmitEditing={commitEditor}
