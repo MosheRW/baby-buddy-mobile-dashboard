@@ -1,6 +1,7 @@
 import {
   formatClock,
   formatSpan,
+  formatWidgetSpan,
   getActiveTimeFormat,
   setActiveTimeFormat,
 } from '../timeFormat';
@@ -21,6 +22,27 @@ describe('formatSpan', () => {
   it('is sign-insensitive and rounds to the nearest minute', () => {
     expect(formatSpan(-(45 * MIN), 'digital')).toBe('0:45');
     expect(formatSpan(90 * 1000, 'digital')).toBe('0:02'); // 1m30s rounds to 2m
+  });
+});
+
+describe('formatWidgetSpan', () => {
+  it('matches formatSpan text output in text mode', () => {
+    expect(formatWidgetSpan(2 * HOUR + 30 * MIN, 'text')).toBe('2h 30m');
+    expect(formatWidgetSpan(45 * MIN, 'text')).toBe('45m');
+  });
+  it('uses the colon form only for the 1h–under-24h band in digital mode', () => {
+    expect(formatWidgetSpan(2 * HOUR, 'digital')).toBe('2:00');
+    expect(formatWidgetSpan(7 * HOUR + 5 * MIN, 'digital')).toBe('7:05');
+  });
+  it('keeps text minutes under an hour in digital mode', () => {
+    expect(formatWidgetSpan(45 * MIN, 'digital')).toBe('45m');
+    expect(formatWidgetSpan(12 * MIN, 'digital')).toBe('12m');
+  });
+  it('falls back to text for a day or more in digital mode', () => {
+    expect(formatWidgetSpan(25 * HOUR, 'digital')).toBe('25h 0m');
+  });
+  it('is sign-insensitive', () => {
+    expect(formatWidgetSpan(-(2 * HOUR), 'digital')).toBe('2:00');
   });
 });
 

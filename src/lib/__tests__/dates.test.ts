@@ -1,4 +1,4 @@
-import { dayHeader, durationLabel, greeting, timeAgo } from '../dates';
+import { dayHeader, durationLabel, entryTimeLabel, greeting, timeAgo } from '../dates';
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -20,6 +20,30 @@ describe('timeAgo', () => {
   });
   it('shows days beyond 24h', () => {
     expect(timeAgo(iso(NOW - 2 * DAY), NOW)).toBe('2d ago');
+  });
+
+  describe('digital format', () => {
+    it('renders the hours band as "h:mm ago"', () => {
+      expect(timeAgo(iso(NOW - 3 * HOUR), NOW, 'digital')).toBe('3:00 ago');
+      expect(timeAgo(iso(NOW - (3 * HOUR + 20 * MIN)), NOW, 'digital')).toBe('3:20 ago');
+      expect(timeAgo(iso(NOW - (1 * HOUR + 5 * MIN)), NOW, 'digital')).toBe('1:05 ago');
+    });
+    it('keeps minutes and days as text', () => {
+      expect(timeAgo(iso(NOW - 45 * MIN), NOW, 'digital')).toBe('45m ago');
+      expect(timeAgo(iso(NOW - 2 * DAY), NOW, 'digital')).toBe('2d ago');
+    });
+  });
+});
+
+describe('entryTimeLabel', () => {
+  it('uses the relative text form within 12h', () => {
+    expect(entryTimeLabel(iso(NOW - 3 * HOUR), NOW)).toBe('3h ago');
+    expect(entryTimeLabel(iso(NOW - 45 * MIN), NOW)).toBe('45m ago');
+  });
+  it('switches to a wall-clock time beyond 12h', () => {
+    const label = entryTimeLabel(iso(NOW - 13 * HOUR), NOW);
+    expect(label).not.toMatch(/ago/);
+    expect(label).toMatch(/\d/);
   });
 });
 

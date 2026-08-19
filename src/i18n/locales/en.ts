@@ -524,6 +524,7 @@ export const en = {
     minutesAgo: '{{m}}m ago',
     hoursAgo: '{{h}}h ago',
     hoursMinutesAgo: '{{h}}h {{m}}m ago',
+    hoursMinutesAgoDigital: '{{h}}:{{mm}} ago',
     daysAgo: '{{d}}d ago',
     today: 'Today',
     yesterday: 'Yesterday',

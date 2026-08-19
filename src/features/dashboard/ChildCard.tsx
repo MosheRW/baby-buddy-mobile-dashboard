@@ -29,7 +29,6 @@ import {
 } from './selectors';
 import { entryTitle, medGlyphKind } from '../../lib/entryDisplay';
 import {
-  countdownLabel,
   eligibleStatusLabel,
   formatDose,
   medLimitSummaries,
@@ -39,7 +38,7 @@ import {
 import { foodTrend, foodTrendLabel } from '../../lib/feed';
 import { DEFAULT_FOOD_INTERVAL_MINUTES } from '../../lib/notifications';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
-import type { TimeFormat } from '../../lib/timeFormat';
+import { formatWidgetSpan, type TimeFormat } from '../../lib/timeFormat';
 import { useKidsStore, useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
 
 interface ChildCardProps {
@@ -143,7 +142,7 @@ export const ChildCard = React.memo(function ChildCard({
           feeding
             ? t('childCard.lastFeedingValue', {
                 title: entryTitle(feeding),
-                ago: timeAgo(feeding.time, now),
+                ago: timeAgo(feeding.time, now, timeFormat),
               })
             : '—'
         }
@@ -156,14 +155,14 @@ export const ChildCard = React.memo(function ChildCard({
       <View style={styles.statRow}>
         <StatTile
           label={t('childCard.lastPee')}
-          value={pee ? timeAgo(pee.time, now) : '—'}
+          value={pee ? timeAgo(pee.time, now, timeFormat) : '—'}
           tint={tints.pee}
           glyph="diaperPee"
           style={styles.stat}
         />
         <StatTile
           label={t('childCard.lastPoo')}
-          value={poo ? timeAgo(poo.time, now) : '—'}
+          value={poo ? timeAgo(poo.time, now, timeFormat) : '—'}
           tint={tints.poo}
           glyph="diaperPoo"
           style={styles.stat}
@@ -172,7 +171,7 @@ export const ChildCard = React.memo(function ChildCard({
 
       <StatTile
         label={t('childCard.foodWindow', {
-          window: countdownLabel(windowMinutes * 60_000, timeFormat),
+          window: formatWidgetSpan(windowMinutes * 60_000, timeFormat),
         })}
         value={t('childCard.foodValue', { amount: total })}
         tint={{ bg: colors.tileNeutral }}
@@ -263,7 +262,7 @@ function MedRow({
         </AppText>
         <AppText size={fontSize.micro} weight="600" color={fg} style={styles.faded}>
           {t('childCard.lastAt', {
-            time: timeAgo(new Date(status.lastTakenAt).toISOString(), now),
+            time: timeAgo(new Date(status.lastTakenAt).toISOString(), now, format),
           })}
         </AppText>
       </View>
@@ -300,7 +299,7 @@ function MedLimitTile({
   const barColor = summary.atLimit ? colors.danger : fg;
   const eligible = summary.isDue
     ? t('med.eligibleNowShort')
-    : t('med.eligibleInShort', { duration: countdownLabel(summary.dueInMs, format) });
+    : t('med.eligibleInShort', { duration: formatWidgetSpan(summary.dueInMs, format) });
 
   return (
     <Pressable
@@ -324,7 +323,7 @@ function MedLimitTile({
           </AppText>
           <AppText size={fontSize.micro} weight="600" color={fg} style={styles.faded}>
             {t('childCard.lastAt', {
-              time: timeAgo(new Date(summary.lastTakenAt).toISOString(), now),
+              time: timeAgo(new Date(summary.lastTakenAt).toISOString(), now, format),
             })}
           </AppText>
         </View>

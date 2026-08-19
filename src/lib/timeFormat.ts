@@ -46,6 +46,27 @@ export function formatSpan(ms: number, format: TimeFormat = active): string {
 }
 
 /**
+ * A duration for the dashboard child card ("widget"). Text mode is identical to
+ * `formatSpan`. Digital mode uses the clock form (`h:mm`) *only* for the
+ * 1h–under-24h band — under an hour it keeps the text minutes ("45m") and a day
+ * or more falls back to text too, because "0:12" and "25:00" read badly in the
+ * card's compact stats. Scoped to the widget on purpose; `formatSpan` /
+ * `countdownLabel` elsewhere keep their original digital form.
+ */
+export function formatWidgetSpan(ms: number, format: TimeFormat = active): string {
+  if (format !== 'digital') {
+    return formatSpan(ms, format);
+  }
+  const totalMin = Math.round(Math.abs(ms) / MIN);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h >= 1 && h < 24) {
+    return `${h}:${String(m).padStart(2, '0')}`;
+  }
+  return formatSpan(ms, 'text');
+}
+
+/**
  * A live, second-resolution timer readout.
  *
  * `text` matches the original: `MM:SS` with the minutes unbounded and both
