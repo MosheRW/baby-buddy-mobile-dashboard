@@ -32,6 +32,8 @@ export const en = {
     rangeMin: 'Enter a number of at least {{min}}.',
     rangeMax: 'Enter a number of at most {{max}}.',
     rangeAny: 'Enter a valid number.',
+    hours: 'Hours',
+    minutes: 'Minutes',
   },
 
   login: {

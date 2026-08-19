@@ -23,7 +23,6 @@ import {
 import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../../theme';
 import type { DosageUnit, Entry, MedicationRoute, MedicationSchedule } from '../../../api/types';
 import {
-  DOSE_UNITS,
   DOSE_UNIT_ORDER,
   doseFieldLabel,
   doseUnitLabel,
@@ -91,7 +90,6 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
   // Custom mode is tracked on the draft, not derived from the value, so stepping
   // the custom interval onto a preset number (6h, 8h) doesn't collapse the field.
   const custom = draft.repeatCustom && !noRepeat;
-  const spec = DOSE_UNITS[draft.doseUnit];
 
   const scheduleOptions: SegmentOption<MedicationSchedule>[] = [
     {
@@ -143,7 +141,8 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
     if (!trimmed) return patch({ maxDose24h: null });
     const value = Number(trimmed);
     if (!Number.isFinite(value) || value < 0) return;
-    patch({ maxDose24h: Math.round(value * 10) / 10 });
+    // Up to 4 fractional digits; number→String drops any trailing zeros.
+    patch({ maxDose24h: Math.round(value * 1e4) / 1e4 });
   };
 
   return (
@@ -216,9 +215,10 @@ export function MedicationFields({ draft, patch, entries }: MedicationFieldsProp
             // covers larger doses.
             step={0.1}
             min={0}
-            // A 0.1 tap needs at least one visible decimal, else integer-unit
-            // doses (mg, drops) would appear not to move.
-            decimals={Math.max(spec.precision, 1)}
+            // Allow up to 4 fractional digits via manual entry; `trimZeros` hides
+            // the unused ones so a whole dose reads "5", not "5.0000".
+            decimals={4}
+            trimZeros
           />
         </View>
       ) : null}

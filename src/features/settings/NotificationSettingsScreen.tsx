@@ -160,6 +160,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                   step={1}
                   min={5}
                   format={formatMinutes}
+                  hoursMinutes
                 />
               </View>
               <View style={styles.field}>
@@ -172,6 +173,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                   step={1}
                   min={5}
                   format={formatMinutes}
+                  hoursMinutes
                 />
               </View>
             </View>
@@ -230,6 +232,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                       step={1}
                       min={30}
                       format={formatMinutes}
+                      hoursMinutes
                     />
                   </View>
                 </View>
@@ -265,6 +268,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                   step={1}
                   min={30}
                   format={formatMinutes}
+                  hoursMinutes
                 />
               </View>
             </View>

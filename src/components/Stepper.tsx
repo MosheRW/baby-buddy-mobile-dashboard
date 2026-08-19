@@ -14,7 +14,7 @@ import {
   weightFamily,
   type AppTheme,
 } from '../theme';
-import { parseNumericInput } from '../lib/stepper';
+import { joinMinutes, parseNumericInput, splitMinutes } from '../lib/stepper';
 
 // Press-and-hold: after this delay the button starts auto-repeating, one step
 // every `HOLD_INTERVAL_MS`. Every tick moves by the same fixed `step` a single
@@ -53,6 +53,13 @@ interface StepperProps {
    * nothing, e.g. the 1–10 diaper amount.
    */
   enhanced?: boolean;
+  /**
+   * Manual entry types the value as an hours + minutes pair instead of a single
+   * raw-minutes box. For minute-valued durations displayed as "3h 30m" (via
+   * `format`), so typing matches what's shown. The stored `value` stays a plain
+   * minute count; only the modal changes.
+   */
+  hoursMinutes?: boolean;
 }
 
 /**
@@ -75,6 +82,7 @@ export function Stepper({
   trimZeros = false,
   disabled = false,
   enhanced = true,
+  hoursMinutes = false,
 }: StepperProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -84,6 +92,9 @@ export function Stepper({
   const defaultValue = useRef(value).current;
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
+  // Hours+minutes manual entry keeps the two fields separately.
+  const [editHours, setEditHours] = useState('');
+  const [editMins, setEditMins] = useState('');
 
   const round = (n: number) => {
     const p = Math.pow(10, Math.max(decimals, countDecimals(step)));
@@ -108,13 +119,26 @@ export function Stepper({
 
   const openEditor = () => {
     if (disabled) return;
-    setEditText(decimals > 0 ? value.toFixed(decimals) : String(Math.round(value)));
+    if (hoursMinutes) {
+      const { hours, minutes } = splitMinutes(value);
+      setEditHours(String(hours));
+      setEditMins(String(minutes));
+    } else if (decimals > 0) {
+      // `trimZeros` drops the unused fractional zeros in the edit box too, so a
+      // 4-decimal dose opens as "5", not "5.0000".
+      setEditText(trimZeros ? String(Number(value.toFixed(decimals))) : value.toFixed(decimals));
+    } else {
+      setEditText(String(Math.round(value)));
+    }
     setEditing(true);
   };
 
   const commitEditor = () => {
     setEditing(false);
-    const parsed = parseNumericInput(editText);
+    // Hours+minutes: blank fields count as 0; recombine before range-checking.
+    const parsed = hoursMinutes
+      ? joinMinutes(parseNumericInput(editHours) ?? 0, parseNumericInput(editMins) ?? 0)
+      : parseNumericInput(editText);
     if (parsed == null || parsed < min || parsed > max) {
       // Invalid or out of range: tell the user and restore `defaultValue` — the
       // value captured at mount, same target as the long-press reset.
@@ -184,17 +208,53 @@ export function Stepper({
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
                 {rangeMessage(t, min, max)}
               </AppText>
-              <TextInput
-                value={editText}
-                onChangeText={setEditText}
-                keyboardType={decimals > 0 ? 'decimal-pad' : 'number-pad'}
-                autoFocus
-                selectTextOnFocus
-                onSubmitEditing={commitEditor}
-                returnKeyType="done"
-                placeholderTextColor={colors.textMuted}
-                style={styles.input}
-              />
+              {hoursMinutes ? (
+                <View style={styles.hmRow}>
+                  <View style={styles.hmField}>
+                    <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
+                      {t('stepper.hours')}
+                    </AppText>
+                    <TextInput
+                      value={editHours}
+                      onChangeText={setEditHours}
+                      keyboardType="number-pad"
+                      autoFocus
+                      selectTextOnFocus
+                      onSubmitEditing={commitEditor}
+                      returnKeyType="done"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.input}
+                    />
+                  </View>
+                  <View style={styles.hmField}>
+                    <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
+                      {t('stepper.minutes')}
+                    </AppText>
+                    <TextInput
+                      value={editMins}
+                      onChangeText={setEditMins}
+                      keyboardType="number-pad"
+                      selectTextOnFocus
+                      onSubmitEditing={commitEditor}
+                      returnKeyType="done"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.input}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <TextInput
+                  value={editText}
+                  onChangeText={setEditText}
+                  keyboardType={decimals > 0 ? 'decimal-pad' : 'number-pad'}
+                  autoFocus
+                  selectTextOnFocus
+                  onSubmitEditing={commitEditor}
+                  returnKeyType="done"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.input}
+                />
+              )}
               <View style={styles.dialogButtons}>
                 <ActionButton
                   label={t('common.cancel')}
@@ -361,6 +421,14 @@ const makeStyles = ({ colors }: AppTheme) =>
       fontSize: fontSize.cardTitle,
       color: colors.textPrimary,
       textAlign: 'center',
+    },
+    hmRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    hmField: {
+      flex: 1,
+      gap: spacing.xs,
     },
     dialogButtons: {
       flexDirection: 'row',
