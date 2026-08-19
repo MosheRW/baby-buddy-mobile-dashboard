@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Card, ChipRow } from '../../components';
 import { EntryGlyph, PencilGlyph, TrashGlyph } from '../../components/glyphs/entryGlyphs';
 import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
-import { timeAgo } from '../../lib/dates';
+import { entryTimeLabel } from '../../lib/dates';
 import {
   dailyIntakeNorm,
   feedingGaugePercent,
@@ -170,10 +170,9 @@ const FeedRow = React.memo(function FeedRow({
   // stays non-tappable: `filterByTag` never matches the author, so a tap would
   // be a dead filter.
   const author = entry.tags.find((t) => t.author);
-  // Subscribing here re-renders this memoized row the instant the preference
-  // flips, rather than waiting for the next minute tick.
-  const timeFormat = useSettingsStore((s) => s.timeFormat);
-  const duration = entryDurationLabel(entry, timeFormat);
+  // The row's duration is pinned to the text form ("2h 30m") regardless of the
+  // digital/text setting, so it reads the same in both modes.
+  const duration = entryDurationLabel(entry, 'text');
 
   return (
     <Card
@@ -199,7 +198,7 @@ const FeedRow = React.memo(function FeedRow({
         </View>
 
         <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-          {timeAgo(entry.time, now)}
+          {entryTimeLabel(entry.time, now)}
           {duration ? ` · ${duration}` : ''}
         </AppText>
 

@@ -9,17 +9,48 @@ const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-/** Compact "time since" label, e.g. "45m ago", "3h ago", "2d ago", "now". */
-export function timeAgo(iso: string, now: number = Date.now()): string {
+/**
+ * Compact "time since" label, e.g. "45m ago", "3h ago", "2d ago", "now".
+ *
+ * `format` only affects the hours band: `digital` renders it as "3:20 ago"
+ * (clock form). Sub-hour ("45m ago") and days ("2d ago") stay text in both
+ * modes. The default keeps every existing caller on the text form.
+ */
+export function timeAgo(
+  iso: string,
+  now: number = Date.now(),
+  format: TimeFormat = 'text',
+): string {
   const diff = Math.max(0, now - new Date(iso).getTime());
   if (diff < MIN) return i18n.t('dates.now');
   if (diff < HOUR) return i18n.t('dates.minutesAgo', { m: Math.floor(diff / MIN) });
   if (diff < DAY) {
     const h = Math.floor(diff / HOUR);
     const m = Math.floor((diff % HOUR) / MIN);
+    if (format === 'digital') {
+      return i18n.t('dates.hoursMinutesAgoDigital', { h, mm: String(m).padStart(2, '0') });
+    }
     return m > 0 ? i18n.t('dates.hoursMinutesAgo', { h, m }) : i18n.t('dates.hoursAgo', { h });
   }
   return i18n.t('dates.daysAgo', { d: Math.floor(diff / DAY) });
+}
+
+/** Wall-clock time of day, formatted by the active locale (auto 12h/24h). */
+export function clockTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(i18n.language || undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Timestamp for an activity-feed entry row: the wall-clock time once it's more
+ * than 12h old (relative "14h ago" stops being useful), otherwise the relative
+ * text form. Always text — unaffected by the duration/timer format setting.
+ */
+export function entryTimeLabel(iso: string, now: number = Date.now()): string {
+  const diff = now - new Date(iso).getTime();
+  return diff > 12 * HOUR ? clockTime(iso) : timeAgo(iso, now);
 }
 
 /** Duration between two ISO times (or from a start to now), in the active format. */

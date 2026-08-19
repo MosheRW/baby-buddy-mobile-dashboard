@@ -509,6 +509,7 @@ export const he = {
     minutesAgo: 'לפני {{m}} דק׳',
     hoursAgo: 'לפני {{h}} ש׳',
     hoursMinutesAgo: 'לפני {{h}} ש׳ {{m}} דק׳',
+    hoursMinutesAgoDigital: 'לפני {{h}}:{{mm}}',
     daysAgo: 'לפני {{d}} ימים',
     today: 'היום',
     yesterday: 'אתמול',

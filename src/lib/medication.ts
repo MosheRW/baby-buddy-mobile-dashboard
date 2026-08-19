@@ -13,7 +13,7 @@
  */
 import i18n from '../i18n';
 import type { DosageUnit, Entry, MedicationEntry } from '../api/types';
-import { formatSpan, getActiveTimeFormat, type TimeFormat } from './timeFormat';
+import { formatSpan, formatWidgetSpan, getActiveTimeFormat, type TimeFormat } from './timeFormat';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -211,12 +211,12 @@ export function neededStatusLabel(
 ): string {
   if (!status.halfOver) {
     return i18n.t('med.status.sinceLastDose', {
-      duration: countdownLabel(status.elapsedMs, format),
+      duration: formatWidgetSpan(status.elapsedMs, format),
     });
   }
   return status.isDue
-    ? i18n.t('med.status.overdueBy', { duration: countdownLabel(status.dueInMs, format) })
-    : i18n.t('med.status.dueIn', { duration: countdownLabel(status.dueInMs, format) });
+    ? i18n.t('med.status.overdueBy', { duration: formatWidgetSpan(status.dueInMs, format) })
+    : i18n.t('med.status.dueIn', { duration: formatWidgetSpan(status.dueInMs, format) });
 }
 
 /** The right-hand status on an as-needed ("eligible") medication row. */
@@ -226,7 +226,7 @@ export function eligibleStatusLabel(
 ): string {
   return status.isDue
     ? i18n.t('med.status.eligibleNow')
-    : i18n.t('med.status.eligibleIn', { duration: countdownLabel(status.dueInMs, format) });
+    : i18n.t('med.status.eligibleIn', { duration: formatWidgetSpan(status.dueInMs, format) });
 }
 
 // --- 24h dose limits --------------------------------------------------------

@@ -209,6 +209,13 @@ describe('status labels', () => {
     );
   });
 
+  it('uses the widget digital span: colon for the hours band, text under an hour', () => {
+    // 6h into an 8h cycle → 2h left → colon form.
+    expect(neededStatusLabel(scheduled(6), 'digital')).toBe('due in 2:00');
+    // 7h40m into an 8h cycle → 20m left → text minutes, not "0:20".
+    expect(neededStatusLabel(scheduled(8 - 20 / 60), 'digital')).toBe('due in 20m');
+  });
+
   it('frames as-needed meds around eligibility', () => {
     const [soon] = eligibleMeds(
       [med({ name: 'Tylenol', time: iso(NOW - 5 * HOUR), repeatHours: 6, schedule: 'asNeeded' })],
