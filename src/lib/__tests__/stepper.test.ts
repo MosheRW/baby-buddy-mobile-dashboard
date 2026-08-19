@@ -1,4 +1,4 @@
-import { parseNumericInput, isWithinRange } from '../stepper';
+import { parseNumericInput, isWithinRange, splitMinutes, joinMinutes } from '../stepper';
 
 describe('parseNumericInput', () => {
   it('parses plain and decimal numbers', () => {
@@ -33,5 +33,45 @@ describe('isWithinRange', () => {
   it('treats open (infinite) bounds as unbounded', () => {
     expect(isWithinRange(9999, 5, Infinity)).toBe(true);
     expect(isWithinRange(3, 5, Infinity)).toBe(false);
+  });
+});
+
+describe('splitMinutes / joinMinutes', () => {
+  it('splits a total into whole hours and remaining minutes', () => {
+    expect(splitMinutes(0)).toEqual({ hours: 0, minutes: 0 });
+    expect(splitMinutes(45)).toEqual({ hours: 0, minutes: 45 });
+    expect(splitMinutes(60)).toEqual({ hours: 1, minutes: 0 });
+    expect(splitMinutes(210)).toEqual({ hours: 3, minutes: 30 });
+  });
+
+  it('clamps negatives to zero and rounds fractional totals', () => {
+    expect(splitMinutes(-10)).toEqual({ hours: 0, minutes: 0 });
+    expect(splitMinutes(90.4)).toEqual({ hours: 1, minutes: 30 });
+  });
+
+  it('recombines an hours + minutes pair into a total', () => {
+    expect(joinMinutes(0, 0)).toBe(0);
+    expect(joinMinutes(2, 15)).toBe(135);
+    expect(joinMinutes(3, 30)).toBe(210);
+  });
+
+  it('combines before rounding, so a fractional hour is not lost', () => {
+    // 1.5h + 0m = 90m — separate rounding would give 2h = 120m.
+    expect(joinMinutes(1.5, 0)).toBe(90);
+    expect(joinMinutes(0, 90.4)).toBe(90);
+    expect(joinMinutes(1.25, 15)).toBe(90);
+  });
+
+  it('clamps a negative combined total to zero', () => {
+    expect(joinMinutes(-1, 0)).toBe(0);
+    expect(joinMinutes(0, -30)).toBe(0);
+    expect(joinMinutes(-2, 30)).toBe(0);
+  });
+
+  it('round-trips through split then join', () => {
+    for (const total of [0, 5, 59, 60, 125, 210, 1440]) {
+      const { hours, minutes } = splitMinutes(total);
+      expect(joinMinutes(hours, minutes)).toBe(total);
+    }
   });
 });

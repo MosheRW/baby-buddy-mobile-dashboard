@@ -31,6 +31,8 @@ export const he = {
     rangeMin: 'הזינו מספר של לפחות {{min}}.',
     rangeMax: 'הזינו מספר של עד {{max}}.',
     rangeAny: 'הזינו מספר תקין.',
+    hours: 'שעות',
+    minutes: 'דקות',
   },
 
   login: {

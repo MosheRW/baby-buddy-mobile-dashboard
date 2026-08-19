@@ -24,3 +24,22 @@ export function parseNumericInput(raw: string): number | null {
 export function isWithinRange(value: number, min: number, max: number): boolean {
   return value >= min && value <= max;
 }
+
+/**
+ * Split a total minute count into whole hours and the remaining minutes — the
+ * two fields the Stepper's hours+minutes manual-entry modal seeds itself from.
+ * Negative totals clamp to zero.
+ */
+export function splitMinutes(total: number): { hours: number; minutes: number } {
+  const t = Math.max(0, Math.round(total));
+  return { hours: Math.floor(t / 60), minutes: t % 60 };
+}
+
+/**
+ * Recombine an hours + minutes pair into a total minute count. Combines before
+ * rounding (so a fractional hour isn't rounded away on its own) and clamps
+ * negatives to zero, mirroring {@link splitMinutes}.
+ */
+export function joinMinutes(hours: number, minutes: number): number {
+  return Math.max(0, Math.round(hours * 60 + minutes));
+}
