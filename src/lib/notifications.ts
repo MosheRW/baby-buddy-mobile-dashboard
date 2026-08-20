@@ -138,6 +138,17 @@ export interface NotificationSettings {
    * `buildNotifications`.
    */
   liveTimer: { enabled: boolean };
+  /**
+   * The ongoing, live-counting medication notification — a per-medicine
+   * notification that counts *down* to the next due time and then *up* as
+   * "overdue by …", drawn by the OS chronometer so it ticks every second at no
+   * JS/battery cost. It **supplements** the fire-once "due now" alert (which the
+   * user still wants); the countdown appears once a dose enters its live window
+   * (see `LIVE_MED_LEAD_MS`). Like `liveTimer`, this only materializes when the
+   * native chronometer module is present (a dev/EAS build); on Expo Go/web it's a
+   * no-op and only the fire-once alert remains. See `buildOngoingMedChronometers`.
+   */
+  liveMed: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
 }
@@ -515,11 +526,11 @@ export function buildNotifications(
  * as the elapsed label changes. The native reconcile (`syncOngoingAsync`) diffs
  * this list against what's presented, so a stopped timer's notification clears.
  *
- * True second-by-second ticking is not possible in the managed Expo workflow
- * (no chronometer field on the notification, and a live-updating clock needs an
- * Android foreground service). The elapsed label is therefore minute-granular,
- * refreshed by the hook's foreground/60s re-evaluation — the closest honest
- * approximation without leaving the managed workflow.
+ * This is the **fallback** track, used when the native chronometer module is
+ * absent (Expo Go / web): the elapsed label is baked into the body and is
+ * minute-granular, refreshed by the hook's foreground/60s re-evaluation. When the
+ * module *is* present, `buildOngoingTimerChronometers` supersedes this with a true
+ * OS-drawn per-second clock (see `ChronometerSpec` / `src/notifications/chronometer.ts`).
  */
 export interface OngoingNotification {
   /** `ongoing:${type}:${childId}` — the OS identifier, so re-issues update it. */
@@ -561,6 +572,147 @@ export function buildOngoingTimerNotifications(
       childId: rt.childId,
     };
   });
+}
+
+// --- Native chronometer notifications ---------------------------------------
+
+/**
+ * A live, OS-drawn chronometer notification. Unlike `OngoingNotification` (whose
+ * elapsed label is baked into the body and only refreshes on the JS 60s tick),
+ * this carries an `anchorMs` the Android notification chronometer ticks against
+ * *itself*, every second, with no JS involvement — so it needs presenting only
+ * **once** (and re-presenting only when the title/text/anchor changes, not to
+ * advance the clock). It's the only true per-second surface in the managed
+ * workflow, and materializes only when the local native module is installed
+ * (`src/notifications/chronometer.ts`); everywhere else it's a no-op.
+ */
+export interface ChronometerSpec {
+  /**
+   * OS identifier / notification tag. Shares the `ongoing:` prefix family with
+   * `OngoingNotification` so the same reconcile can dismiss stale ones:
+   * `ongoing:${type}:${childId}` for timers, `ongoing-med:${childId}:${name}`
+   * for meds.
+   */
+  key: string;
+  title: string;
+  /** Secondary line; the elapsed/remaining clock is drawn by the OS, not here. */
+  text: string;
+  /**
+   * The chronometer's base, epoch ms. Timers pass `startedAt` and count up from
+   * it; meds pass `dueAt` and count down toward it (then past it, into "overdue").
+   */
+  anchorMs: number;
+  /** True → count down toward `anchorMs` (meds); false → count up (timers). */
+  countDown: boolean;
+  childId?: string;
+}
+
+/** Prefixes owned by the live-chronometer track, for reconcile/dismiss scoping. */
+export const CHRONO_TIMER_PREFIX = 'ongoing:';
+export const CHRONO_MED_PREFIX = 'ongoing-med:';
+
+/**
+ * How close to due a medication has to be before its live countdown notification
+ * appears, and how long past due it lingers. The countdown is only interesting
+ * near the due moment — showing an hour-out countdown for a dose given minutes
+ * ago would be noise — and a dose left un-taken for a full day shouldn't leave a
+ * sticky notification counting up forever, so the window is bounded on both ends.
+ */
+const LIVE_MED_LEAD_MS = 60 * MINUTE;
+const LIVE_MED_TRAIL_MS = 24 * 60 * MINUTE;
+
+/**
+ * The live timer chronometers that should currently be presented — one per
+ * running timer, counting up from its start. Parallels
+ * `buildOngoingTimerNotifications` but for the native-chronometer track; the
+ * caller picks one track or the other based on `chronometer.isSupported()`.
+ */
+export function buildOngoingTimerChronometers(
+  input: Pick<NotificationBuildInput, 'timers' | 'children' | 'settings'>,
+): ChronometerSpec[] {
+  const { timers, children, settings } = input;
+  if (!settings.masterEnabled || !settings.liveTimer.enabled) return [];
+
+  const childName = new Map(children.map((c) => [c.id, c.name]));
+  return timers.map((rt) => {
+    const who = childName.get(rt.childId);
+    return {
+      key: `${CHRONO_TIMER_PREFIX}${rt.type}:${rt.childId}`,
+      title: i18n.t('notifications.liveTimerTitle', {
+        activity: i18n.t(`timer.typeLabel.${rt.type}`),
+      }),
+      // The OS draws the running clock; the text line just names who it's for.
+      text: who ?? i18n.t('notifications.liveChronoRunning'),
+      anchorMs: rt.startedAt,
+      countDown: false,
+      childId: rt.childId,
+    };
+  });
+}
+
+/**
+ * The live medication countdowns that should currently be presented — one per
+ * medicine whose next dose is inside its live window (approaching within
+ * `LIVE_MED_LEAD_MS`, or overdue by up to `LIVE_MED_TRAIL_MS`). Each counts down
+ * to `dueAt` and then keeps ticking past it as "overdue". Deduped by key, so a
+ * medicine that surfaces from more than one source collapses to one notification.
+ *
+ * Gated on `liveMed` (and the master switch). This is *additional* to the
+ * fire-once "due now" scheduled reminder in `buildCandidates` — both can fire.
+ */
+export function buildOngoingMedChronometers(
+  input: Pick<NotificationBuildInput, 'entries' | 'children' | 'settings'>,
+  now: number = Date.now(),
+): ChronometerSpec[] {
+  const { entries, children, settings } = input;
+  if (!settings.masterEnabled || !settings.liveMed.enabled) return [];
+
+  const childName = new Map(children.map((c) => [c.id, c.name]));
+  const childOfEntry = new Map(entries.map((e) => [e.id, e.childId]));
+  const nameKey = (s: string) => s.trim().toLowerCase();
+  const inWindow = (dueInMs: number) => dueInMs <= LIVE_MED_LEAD_MS && dueInMs >= -LIVE_MED_TRAIL_MS;
+
+  // Keyed so duplicates across sources (a medicine both scheduled and limited,
+  // say) collapse; the first one wins, which is fine since they share a dueAt.
+  const byKey = new Map<string, ChronometerSpec>();
+  const add = (
+    childId: string | undefined,
+    name: string,
+    dueAt: number,
+    titleKey: string,
+  ): void => {
+    if (!childId) return;
+    const key = `${CHRONO_MED_PREFIX}${childId}:${nameKey(name)}`;
+    if (byKey.has(key)) return;
+    const who = childName.get(childId);
+    byKey.set(key, {
+      key,
+      title: i18n.t(titleKey),
+      text: i18n.t('notifications.liveMedBody', {
+        context: childContext(who),
+        med: name,
+        child: who,
+      }),
+      anchorMs: dueAt,
+      countDown: true,
+      childId,
+    });
+  };
+
+  for (const s of neededMeds(entries, now)) {
+    if (!inWindow(s.dueInMs)) continue;
+    add(childOfEntry.get(s.entryId), s.name, s.dueAt, 'notifications.titleMedDue');
+  }
+  for (const s of eligibleMeds(entries, now)) {
+    if (!inWindow(s.dueInMs)) continue;
+    add(childOfEntry.get(s.entryId), s.name, s.dueAt, 'notifications.titleMedReady');
+  }
+  for (const s of medLimitSummaries(entries, now)) {
+    if (!inWindow(s.dueInMs)) continue;
+    add(s.childId, s.name, s.dueAt, 'notifications.titleMedReady');
+  }
+
+  return [...byKey.values()];
 }
 
 /**

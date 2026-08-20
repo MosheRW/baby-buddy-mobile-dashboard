@@ -1,5 +1,7 @@
 import {
   buildNotifications,
+  buildOngoingMedChronometers,
+  buildOngoingTimerChronometers,
   buildOngoingTimerNotifications,
   intervalStep,
   nextWeeklySlot,
@@ -88,6 +90,7 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     diaperInterval: { enabled: false },
     foodMin: { enabled: false },
     liveTimer: { enabled: false },
+    liveMed: { enabled: false },
     // Off in the shared helper so the existing exact-count assertions aren't
     // perturbed; the weekly-summary block enables it explicitly.
     weeklySummary: { enabled: false, weekday: 0, hour: 9 },
@@ -728,5 +731,130 @@ describe('buildOngoingTimerNotifications', () => {
     );
     expect(note.body).not.toContain('·');
     expect(note.body).toContain('Running for');
+  });
+});
+
+describe('buildOngoingTimerChronometers', () => {
+  const runningTimer = (over: Partial<RunningTimer> = {}): RunningTimer => ({
+    type: 'feeding',
+    childId: 'c1',
+    startedAt: NOW - 5 * MINUTE,
+    ...over,
+  });
+  const liveSettings = (over: Partial<NotificationSettings> = {}) =>
+    settings({ liveTimer: { enabled: true }, ...over });
+
+  it('is empty when the master switch or the live-timer case is off', () => {
+    expect(
+      buildOngoingTimerChronometers({
+        timers: [runningTimer()],
+        children: CHILDREN,
+        settings: liveSettings({ masterEnabled: false }),
+      }),
+    ).toEqual([]);
+    expect(
+      buildOngoingTimerChronometers({
+        timers: [runningTimer()],
+        children: CHILDREN,
+        settings: settings(),
+      }),
+    ).toEqual([]);
+  });
+
+  it('anchors the chronometer at the timer start and counts up', () => {
+    const started = NOW - 5 * MINUTE;
+    const [spec] = buildOngoingTimerChronometers({
+      timers: [runningTimer({ startedAt: started })],
+      children: CHILDREN,
+      settings: liveSettings(),
+    });
+    expect(spec.key).toBe('ongoing:feeding:c1');
+    expect(spec.anchorMs).toBe(started);
+    expect(spec.countDown).toBe(false);
+    // The OS draws the clock, so the text is only the child name — no duration.
+    expect(spec.title).toBe('Feeding timer running');
+    expect(spec.text).toBe('Emma');
+    expect(spec.text).not.toMatch(/\d/);
+  });
+
+  it('uses the no-child text when the child is unknown', () => {
+    const [spec] = buildOngoingTimerChronometers({
+      timers: [runningTimer({ childId: 'ghost' })],
+      children: CHILDREN,
+      settings: liveSettings(),
+    });
+    expect(spec.text).toBe('Running');
+  });
+});
+
+describe('buildOngoingMedChronometers', () => {
+  const liveMedOn = (over: Partial<NotificationSettings> = {}) =>
+    settings({ liveMed: { enabled: true }, ...over });
+
+  // A scheduled med taken 7h50m ago on an 8h cycle → due in 10 min (inside the
+  // 60-min live window).
+  const dueSoon = () => med({ name: 'Tylenol', time: iso(NOW - (8 * HOUR - 10 * MINUTE)) });
+  // Taken 9h ago on an 8h cycle → overdue by 1h (still inside the 24h trail).
+  const overdue = () => med({ name: 'Tylenol', time: iso(NOW - 9 * HOUR) });
+  // Taken 1h ago on an 8h cycle → due in 7h (outside the 60-min lead window).
+  const farOff = () => med({ name: 'Tylenol', time: iso(NOW - 1 * HOUR) });
+
+  it('is empty when the master switch or the live-med case is off', () => {
+    expect(
+      buildOngoingMedChronometers(
+        { entries: [dueSoon()], children: CHILDREN, settings: liveMedOn({ masterEnabled: false }) },
+        NOW,
+      ),
+    ).toEqual([]);
+    expect(
+      buildOngoingMedChronometers(
+        { entries: [dueSoon()], children: CHILDREN, settings: settings() },
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('counts down toward the due time for a dose about to come due', () => {
+    const [spec] = buildOngoingMedChronometers(
+      { entries: [dueSoon()], children: CHILDREN, settings: liveMedOn() },
+      NOW,
+    );
+    expect(spec.key).toBe('ongoing-med:c1:tylenol');
+    expect(spec.anchorMs).toBe(NOW + 10 * MINUTE);
+    expect(spec.countDown).toBe(true);
+    expect(spec.title).toBe('Medication due');
+    expect(spec.text).toContain('Tylenol');
+    expect(spec.text).toContain('Emma');
+  });
+
+  it('still shows an overdue dose (anchor in the past) within the trailing window', () => {
+    const [spec] = buildOngoingMedChronometers(
+      { entries: [overdue()], children: CHILDREN, settings: liveMedOn() },
+      NOW,
+    );
+    expect(spec.anchorMs).toBe(NOW - 1 * HOUR);
+    expect(spec.countDown).toBe(true);
+  });
+
+  it('omits a dose that is not yet near due', () => {
+    expect(
+      buildOngoingMedChronometers(
+        { entries: [farOff()], children: CHILDREN, settings: liveMedOn() },
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('dedupes to one countdown per (child, medicine)', () => {
+    const specs = buildOngoingMedChronometers(
+      {
+        entries: [dueSoon(), med({ name: 'Tylenol', time: iso(NOW - (8 * HOUR - 5 * MINUTE)) })],
+        children: CHILDREN,
+        settings: liveMedOn(),
+      },
+      NOW,
+    );
+    expect(specs).toHaveLength(1);
+    expect(specs[0].key).toBe('ongoing-med:c1:tylenol');
   });
 });

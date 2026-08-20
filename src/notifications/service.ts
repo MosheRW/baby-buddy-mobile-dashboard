@@ -37,7 +37,7 @@ const CHANNEL_ID = 'reminders';
  * are re-issued roughly once a minute to refresh the elapsed label, and firing a
  * sound each time would be intolerable.
  */
-const ONGOING_CHANNEL_ID = 'ongoing';
+export const ONGOING_CHANNEL_ID = 'ongoing';
 /** Every ongoing notification's identifier starts with this (see buildOngoing…). */
 const ONGOING_PREFIX = 'ongoing:';
 

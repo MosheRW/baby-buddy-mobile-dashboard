@@ -28,6 +28,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { refreshServerData, useChildren, useEntries } from '../data/queries';
 import {
   buildNotifications,
+  buildOngoingMedChronometers,
+  buildOngoingTimerChronometers,
   buildOngoingTimerNotifications,
   withDisclaimer,
   type NotificationSettings,
@@ -38,6 +40,7 @@ import { useKidsStore } from '../stores/kidsStore';
 import { useTimerStore } from '../stores/timerStore';
 import { visibleChildren } from '../lib/visibility';
 import * as service from '../notifications/service';
+import * as chronometer from '../notifications/chronometer';
 import {
   getBackgroundStatusAsync,
   registerBackgroundTaskAsync,
@@ -62,6 +65,7 @@ export function useNotificationSync(): void {
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
   const liveTimer = useNotificationStore((s) => s.liveTimer);
+  const liveMed = useNotificationStore((s) => s.liveMed);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
   const backgroundRefresh = useNotificationStore((s) => s.backgroundRefresh.enabled);
@@ -82,6 +86,7 @@ export function useNotificationSync(): void {
       diaperInterval,
       foodMin,
       liveTimer,
+      liveMed,
       weeklySummary,
       perChild,
     }),
@@ -93,6 +98,7 @@ export function useNotificationSync(): void {
       diaperInterval,
       foodMin,
       liveTimer,
+      liveMed,
       weeklySummary,
       perChild,
     ],
@@ -242,12 +248,34 @@ export function useNotificationSync(): void {
     return () => service.setDeliveryValidator(null);
   }, [validate]);
 
-  // Ongoing running-timer notifications live on their own track: they're
-  // presented *now* (not future-scheduled), so they can't share the plan above.
-  // The body carries a minute-granular elapsed label, which is why this rebuilds
-  // on the same foreground/60s `tick` — each minute it re-issues with fresh text.
+  // Live "right now" notifications — running-timer stopwatches and medication
+  // countdowns — live on their own track: they're presented *now* (not
+  // future-scheduled), so they can't share the plan above.
+  //
+  // Two implementations, chosen once by `chronometer.isSupported()`:
+  //  - Native chronometer present (a dev/EAS build with the local module): a true
+  //    OS-drawn per-second clock. Nothing here re-issues to advance it — the OS
+  //    ticks it — so this only re-runs when the *set* or the labels change. This
+  //    also powers the medication due/overdue countdown, which has no fallback.
+  //  - Fallback (Expo Go / web): the minute-granular `syncOngoingAsync` track,
+  //    whose elapsed label is baked into the body and refreshed on the 60s `tick`.
+  const liveSupported = chronometer.isSupported();
   const lastOngoingSig = useRef<string>('');
   useEffect(() => {
+    if (liveSupported) {
+      const specs = [
+        ...buildOngoingTimerChronometers({ timers, children: children ?? [], settings }),
+        ...buildOngoingMedChronometers({ entries: entries ?? [], children: children ?? [], settings }),
+      ];
+      // anchorMs isn't in the signature: it's fixed for the life of a spec (a
+      // timer's start / a dose's due time), and the OS ticks the clock off it, so
+      // it never needs a re-present to stay current.
+      const sig = JSON.stringify(specs.map((s) => [s.key, s.title, s.text, s.countDown]));
+      if (sig === lastOngoingSig.current) return;
+      lastOngoingSig.current = sig;
+      void chronometer.syncChronometerAsync(specs);
+      return;
+    }
     const ongoing = buildOngoingTimerNotifications({
       timers,
       children: children ?? [],
@@ -257,5 +285,5 @@ export function useNotificationSync(): void {
     if (sig === lastOngoingSig.current) return;
     lastOngoingSig.current = sig;
     void service.syncOngoingAsync(ongoing);
-  }, [children, timers, settings, tick]);
+  }, [liveSupported, entries, children, timers, settings, tick]);
 }

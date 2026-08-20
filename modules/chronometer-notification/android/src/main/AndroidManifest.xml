@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    POST_NOTIFICATIONS (Android 13+) is already declared and requested by
+    expo-notifications; this module reuses that grant. NotificationManagerCompat
+    silently no-ops if notifications are disabled, so no extra guard is needed.
+  -->
+</manifest>
