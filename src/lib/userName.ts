@@ -13,11 +13,17 @@
 
 /**
  * Make user input safe as a Django username: collapse whitespace runs to a
- * single `_` and drop leading/trailing whitespace. Other characters are left
- * alone — the server is the authority on the rest of its own validation.
+ * single `_` and drop leading/trailing whitespace. Any `_` left at the very
+ * start or end — including ones the live "space → _" field produced from an
+ * edge space — is trimmed too, so " grand ma " becomes `grand_ma`, not
+ * `_grand_ma_`. Other characters are left alone; the server is the authority
+ * on the rest of its own validation.
  */
 export function sanitizeUsername(input: string): string {
-  return input.trim().replace(/\s+/g, '_');
+  return input
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 /** Render a stored username for humans: underscores read as spaces. */

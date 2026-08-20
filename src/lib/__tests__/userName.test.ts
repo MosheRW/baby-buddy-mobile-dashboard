@@ -20,8 +20,16 @@ describe('sanitizeUsername', () => {
     expect(sanitizeUsername('moshe')).toBe('moshe');
   });
 
+  it('strips leading/trailing underscores an edge space produced', () => {
+    // The live field folds every space to '_', so an edge space arrives here as
+    // an edge '_'; submit must not persist it (" grandma " → grandma).
+    expect(sanitizeUsername('_grandma_')).toBe('grandma');
+    expect(sanitizeUsername('_grand_ma_')).toBe('grand_ma');
+  });
+
   it('handles an empty string', () => {
     expect(sanitizeUsername('   ')).toBe('');
+    expect(sanitizeUsername('___')).toBe('');
   });
 });
 

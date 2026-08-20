@@ -16,7 +16,7 @@ import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../
 import type { MainStackParamList } from '../../navigation/types';
 import { useAuthStore, useUiStore } from '../../stores';
 import { useFieldChain } from '../../hooks/useFieldChain';
-import { sanitizeUsername } from '../../lib/userName';
+import { displayUserName, sanitizeUsername } from '../../lib/userName';
 import { signInWithPassword } from '../../api/auth';
 import { errorMessage, request } from '../../api/client';
 import { profileResponseSchema } from '../../api/schemas';
@@ -93,7 +93,11 @@ export function ShareInstanceScreen({ navigation }: Props) {
   const [newName, setNewName] = useState('');
   const [newFirstName, setNewFirstName] = useState('');
   const [newLastName, setNewLastName] = useState('');
-  const [newStaff, setNewStaff] = useState(true);
+  // Staff (admin) is opt-in: a new caregiver defaults to a non-admin account,
+  // and turning this on trips the staff-grant warning below. Making it the
+  // default would fire that warning on every create and hand out admin rights
+  // no one asked for.
+  const [newStaff, setNewStaff] = useState(false);
   const [newPassword, setNewPassword] = useState(() => generatePassword());
   const [created, setCreated] = useState<CreatedCaregiver[]>([]);
   // The QR now opens in a modal; `payload` non-null means the modal is open.
@@ -271,7 +275,7 @@ export function ShareInstanceScreen({ navigation }: Props) {
       setNewPassword(generatePassword());
       setAddOpen(false);
       setSelected(username);
-      setCaption(t('share.qrCaptionCaregiver', { name: username }));
+      setCaption(t('share.qrCaptionCaregiver', { name: displayUserName(username) }));
 
       if (token) {
         setPayload({ kind: 'token', url: session.baseUrl, token, mode: joinMode });
@@ -321,7 +325,7 @@ export function ShareInstanceScreen({ navigation }: Props) {
     }
     setError(null);
     setSelected(username);
-    setCaption(t('share.qrCaptionCaregiver', { name: username }));
+    setCaption(t('share.qrCaptionCaregiver', { name: displayUserName(username) }));
   };
 
   // Closing the QR modal also clears the row highlight — the mark tracks "whose
@@ -484,7 +488,11 @@ export function ShareInstanceScreen({ navigation }: Props) {
                       value={newName}
                       // Django usernames can't hold spaces — fold them to '_'
                       // as the caregiver types, so what they see is what is saved.
-                      onChangeText={(text) => setNewName(text.replace(/\s+/g, '_'))}
+                      // Leading whitespace is dropped rather than turned into a
+                      // leading '_'; sanitizeUsername strips any edge '_' on submit.
+                      onChangeText={(text) =>
+                        setNewName(text.replace(/^\s+/, '').replace(/\s+/g, '_'))
+                      }
                     />
                     <TextField
                       {...chain.fieldProps(1)}
@@ -681,7 +689,7 @@ const makeStyles = ({ colors }: AppTheme) =>
     },
     backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.55)',
+      backgroundColor: colors.scrim,
       alignItems: 'center',
       justifyContent: 'center',
       padding: spacing['2xl'],

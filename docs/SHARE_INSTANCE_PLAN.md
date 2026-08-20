@@ -17,8 +17,17 @@ session** — this is true of *both* the REST API and the web UI:
   `user/add-device/` (`UserAddDevice`) builds a QR of the **current** user's session
   cookies, again `request.user` only.
 
-So "admin picks user X and reads X's token" is impossible **even by scraping** — no
-such page exists.
+So through the *profile / user-management* surfaces, "admin picks user X and reads X's
+token" is impossible — no such page exists there.
+
+> **Superseded during implementation.** There **is** one more surface: the Django
+> **admin** authtoken page, `/admin/authtoken/tokenproxy/`, lists every DRF token —
+> and Baby Buddy's `api_key` *is* a DRF authtoken `Token`. So a **superuser** admin can
+> read any existing user's token by scraping that page (`listUserTokens`,
+> `src/api/adminWeb.ts`). This is what the shipped code does, and it widens the scope
+> boundary below: for a superuser, existing users become shareable via a token QR too,
+> not only users we created this session. It stays gated on admin access and degrades
+> silently (no token QR offered) when that page isn't reachable.
 
 ### How we get a token anyway: create the user, then log in as them
 
@@ -57,10 +66,13 @@ defines the honest scope boundary below.
 - ✅ **Share a user we created** — we know the password, so we can mint their key. This
   is the primary flow.
 - ✅ **Share the admin's own account** — trivial, it's the current session's key.
-- ❌ **Share an arbitrary pre-existing user** (created in Baby Buddy elsewhere) — we
-  don't know their password and no page reveals their key. The user list will show
-  these, but "generate QR" is only offered for accounts we can authenticate as (ones we
-  created, tracked locally). Surface this clearly rather than failing at QR time.
+- ⚠️ **Share an arbitrary pre-existing user** (created in Baby Buddy elsewhere) —
+  possible **only for a superuser**, via the admin authtoken page above
+  (`listUserTokens` populates a token for the row). Without that access we don't know
+  their password and no other page reveals their key, so "generate QR" is offered for a
+  pre-existing user **only** when its token was readable; otherwise the row shows but
+  can't be shared. `canShowQr` encodes exactly this. Surface it clearly rather than
+  failing at QR time.
 
 ## Confirmed Baby Buddy web surface (from source, master branch)
 
