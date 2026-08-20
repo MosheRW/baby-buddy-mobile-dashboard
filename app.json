@@ -2,7 +2,7 @@
   "expo": {
     "name": "Baby Buddy",
     "slug": "baby-buddy-native",
-    "version": "2026.07.28-2",
+    "version": "2026.08.20-issue-34-rewrite-8acf7e",
     "orientation": "portrait",
     "icon": "./assets/play_store_icon_512.png",
     "userInterfaceStyle": "automatic",

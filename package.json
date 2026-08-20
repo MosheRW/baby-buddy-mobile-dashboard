@@ -1,6 +1,6 @@
 {
   "name": "baby-buddy-native",
-  "version": "2026.07.28-3",
+   "version": "2026.08.20-issue-34-rewrite-8acf7e",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
