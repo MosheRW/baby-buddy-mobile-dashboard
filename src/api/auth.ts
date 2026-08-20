@@ -17,6 +17,7 @@
 import type { LoginMode, Session } from './types';
 import { profileResponseSchema, profileSchema } from './schemas';
 import { ApiError, AuthError, NetworkError, joinUrl, rawRequest, request } from './client';
+import { extractCsrfToken } from './webForm';
 
 /** Raised when the password flow can't complete and the user should paste a key. */
 export class PasswordLoginUnavailable extends Error {
@@ -46,13 +47,14 @@ export async function signInWithToken(
     last_name: profile_.user?.last_name,
     api_key: profile_.api_key,
   };
-  return { mode, baseUrl, token, userName: displayName(profile), language: profile_.language };
-}
-
-/** Pull Django's CSRF token out of the login page's hidden input. */
-function extractCsrfToken(html: string): string | null {
-  const m = /name=["']csrfmiddlewaretoken["']\s+value=["']([^"']+)["']/.exec(html);
-  return m ? m[1] : null;
+  return {
+    mode,
+    baseUrl,
+    token,
+    userName: displayName(profile),
+    language: profile_.language,
+    isStaff: profile_.user?.is_staff,
+  };
 }
 
 /**
@@ -107,9 +109,17 @@ export async function signInWithPassword(
       redirect: 'follow',
     });
     postStatus = res.status;
-    // A failed login re-renders the form (200) instead of redirecting away.
+    // A failed login re-renders the login form (200); a success redirects away
+    // to a page with no such form. Detect the login form *specifically* — both a
+    // username input and a password input. The old check ("has a CSRF token" AND
+    // "contains the word password") also matched a *successful* landing page —
+    // its logout form carries a CSRF token and its account menu says "password" —
+    // so it reported every successful login as a failure. That single false
+    // positive is why the password path never worked against a live server.
     const bodyText = await res.text();
-    if (extractCsrfToken(bodyText) && /password/i.test(bodyText)) {
+    const backOnLoginForm =
+      /name=["']username["']/i.test(bodyText) && /type=["']password["']/i.test(bodyText);
+    if (backOnLoginForm) {
       throw new AuthError('Incorrect username or password.');
     }
   } catch (err) {
@@ -145,6 +155,7 @@ export async function signInWithPassword(
     token: profile.api_key,
     userName: displayName(profile),
     language: profile.language,
+    isStaff: profile.user?.is_staff,
   };
 }
 

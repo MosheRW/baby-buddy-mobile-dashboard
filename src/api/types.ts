@@ -220,4 +220,11 @@ export interface Session {
    * user picks one explicitly in Settings.
    */
   language?: string;
+  /**
+   * Whether this account is a Baby Buddy staff/admin user (`user.is_staff` on
+   * `/api/profile`). Gates the caregiver-sharing UI, which drives staff-only web
+   * pages. Absent on sessions persisted before this field existed — those simply
+   * see no sharing UI until the next fresh login.
+   */
+  isStaff?: boolean;
 }

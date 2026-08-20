@@ -136,7 +136,11 @@ export const profileResponseSchema = z.object({
   language: z.string().optional(),
   timezone: z.string().optional(),
   user: z.object({
-    email: z.email().optional(),
+    // Not `z.email()`: users with no email come back as `""`, which a strict
+    // email check rejects — and that would fail the whole profile parse (→ a
+    // scanned token QR erroring with "unexpected response shape"). We don't use
+    // the email anyway, so accept any string.
+    email: z.string().optional(),
     first_name: z.string().optional(),
     id: z.number().optional(),
     is_staff: z.boolean().optional(),
@@ -152,6 +156,12 @@ export const profileSchema = z.object({
   last_name: z.string().optional(),
   api_key: z.string().optional(),
   language: z.string().optional(),
+  /** Nested user object (real shape), read only for `is_staff` — additive/optional. */
+  user: z
+    .object({
+      is_staff: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export type ChildDto = z.infer<typeof childSchema>;
