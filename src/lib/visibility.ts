@@ -9,6 +9,7 @@
  * store extends `KidsVisibilityState` with actions + persistence.
  */
 import type { Child } from '../api/types';
+import { DYNAMIC_ACCENT_HUE } from '../theme/accent';
 
 /** 0 = Sunday … 6 = Saturday, matching `Date.getDay()`. */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -87,20 +88,42 @@ export function groupForChild(
   return groupId ? state.groups[groupId] : undefined;
 }
 
+/** Live Material You state, threaded in so this stays a pure function of its args. */
+export interface DynamicAccentState {
+  /** The phone's current system accent hue, or `null` off-Android/unsupported. */
+  systemHue: number | null;
+  /** The Settings "match phone color scheme" toggle — fills in the *default* hue only. */
+  applyAsDefault: boolean;
+}
+
 /**
  * The accent hue to paint this child with. Precedence:
- * child override → group colour → the child's own default `hue`. Takes only the
- * colour slices so a card can subscribe to those without re-rendering on every
- * unrelated visibility change.
+ * child override → group colour → (dynamic colour default) → the child's own
+ * default `hue`. Takes only the colour slices so a card can subscribe to
+ * those without re-rendering on every unrelated visibility change.
+ *
+ * An explicit per-child/group "match phone" pick (`DYNAMIC_ACCENT_HUE`)
+ * always resolves to the live system hue and always wins, regardless of the
+ * global toggle — it's an explicit choice, not a default. `applyAsDefault`
+ * only ever substitutes for the bottom-of-chain fixed `child.hue`, so it can
+ * never override a caregiver's explicit swatch pick ("fill in defaults only").
  */
 export function effectiveHue(
   child: Child,
   state: Pick<KidsVisibilityState, 'childAccent' | 'childGroupId' | 'groups'>,
+  dynamic: DynamicAccentState,
 ): number {
-  const override = state.childAccent[child.id];
+  const resolve = (hue: number | undefined): number | undefined =>
+    hue === DYNAMIC_ACCENT_HUE ? (dynamic.systemHue ?? undefined) : hue;
+
+  const override = resolve(state.childAccent[child.id]);
   if (override != null) return override;
+
   const group = groupForChild(child.id, state);
-  if (group?.accentHue != null) return group.accentHue;
+  const groupOverride = resolve(group?.accentHue);
+  if (groupOverride != null) return groupOverride;
+
+  if (dynamic.applyAsDefault && dynamic.systemHue != null) return dynamic.systemHue;
   return child.hue;
 }
 

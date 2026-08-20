@@ -10,6 +10,7 @@ import { Chip } from '../../components';
 import {
   ACCENT_SWATCHES,
   accentColors,
+  DYNAMIC_ACCENT_HUE,
   radii,
   spacing,
   useTheme,
@@ -23,14 +24,36 @@ interface AccentPickerProps {
   onChange: (hue: number | null) => void;
   /** Localised label for the "auto / no override" option. */
   autoLabel: string;
+  /**
+   * The phone's current Material You hue, or `undefined` to hide the "match
+   * phone" chip entirely (non-Android callers). `null` means Android but no
+   * hue available yet — the chip still renders so it can be selected ahead
+   * of a hue becoming available.
+   */
+  dynamicHue?: number | null;
+  /** Localised label for the "match my phone" option. Required when `dynamicHue` is passed. */
+  dynamicLabel?: string;
 }
 
-export function AccentPicker({ value, onChange, autoLabel }: AccentPickerProps) {
+export function AccentPicker({
+  value,
+  onChange,
+  autoLabel,
+  dynamicHue,
+  dynamicLabel,
+}: AccentPickerProps) {
   const { scheme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.wrap}>
       <Chip label={autoLabel} active={value == null} onPress={() => onChange(null)} />
+      {dynamicHue !== undefined ? (
+        <Chip
+          label={dynamicLabel ?? ''}
+          active={value === DYNAMIC_ACCENT_HUE}
+          onPress={() => onChange(DYNAMIC_ACCENT_HUE)}
+        />
+      ) : null}
       {ACCENT_SWATCHES.map(({ id, hue }) => {
         const selected = value === hue;
         const accent = accentColors(hue, scheme);

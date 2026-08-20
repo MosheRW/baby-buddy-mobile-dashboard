@@ -39,7 +39,8 @@ import { foodTrend, foodTrendLabel } from '../../lib/feed';
 import { DEFAULT_FOOD_INTERVAL_MINUTES } from '../../lib/notifications';
 import { elapsedClock, TIMER_TYPES } from '../../lib/timers';
 import { formatWidgetSpan, type TimeFormat } from '../../lib/timeFormat';
-import { useKidsStore, useNotificationStore, useSettingsStore, useTimerStore } from '../../stores';
+import { useKidsStore, useNotificationStore, useSettingsStore, useThemeStore, useTimerStore } from '../../stores';
+import { useDynamicAccentHue } from '../../theme/dynamicColor';
 
 interface ChildCardProps {
   child: Child;
@@ -99,7 +100,16 @@ export const ChildCard = React.memo(function ChildCard({
   const childAccent = useKidsStore((s) => s.childAccent);
   const childGroupId = useKidsStore((s) => s.childGroupId);
   const groups = useKidsStore((s) => s.groups);
-  const accent = accentColors(effectiveHue(child, { childAccent, childGroupId, groups }), scheme);
+  const systemHue = useDynamicAccentHue();
+  const dynamicColorEnabled = useThemeStore((s) => s.dynamicColorEnabled);
+  const accent = accentColors(
+    effectiveHue(
+      child,
+      { childAccent, childGroupId, groups },
+      { systemHue, applyAsDefault: dynamicColorEnabled },
+    ),
+    scheme,
+  );
 
   // Live mm:ss labels for this child's running timers, keyed by entry type.
   const timers = useTimerStore((s) => s.timers);

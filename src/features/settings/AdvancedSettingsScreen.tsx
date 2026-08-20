@@ -8,12 +8,14 @@ import { ChevronLeftGlyph } from '../../components/glyphs';
 import {
   accentColors,
   avatarTint,
+  DYNAMIC_ACCENT_HUE,
   fontSize,
   spacing,
   useTheme,
   useThemedStyles,
   type AppTheme,
 } from '../../theme';
+import { useDynamicAccentHue } from '../../theme/dynamicColor';
 import type { MainStackParamList } from '../../navigation/types';
 import { useKidsStore } from '../../stores';
 import { useDashboardData } from '../../data/queries';
@@ -33,10 +35,16 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
   const addGroup = useKidsStore((s) => s.addGroup);
   const shakeReveal = useKidsStore((s) => s.shakeReveal);
   const setShakeReveal = useKidsStore((s) => s.setShakeReveal);
+  const systemHue = useDynamicAccentHue();
 
   const groupList = Object.values(groups).sort((a, b) => a.order - b.order);
   const memberCount = (groupId: string) =>
     Object.values(childGroupId).filter((g) => g === groupId).length;
+  // A group's "match phone" pick previews the live system hue, falling back to
+  // the neutral dot (like "no accent set") if it's momentarily unavailable —
+  // mirrors `effectiveHue`'s fall-through, without needing a `Child` to resolve.
+  const groupDotHue = (accentHue: number | undefined) =>
+    accentHue === DYNAMIC_ACCENT_HUE ? (systemHue ?? undefined) : accentHue;
 
   const createGroup = () => {
     const id = addGroup(t('advanced.newGroupName'));
@@ -136,10 +144,10 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
                   style={[
                     styles.dot,
                     {
-                      backgroundColor:
-                        group.accentHue != null
-                          ? accentColors(group.accentHue, scheme).name
-                          : colors.neutral,
+                      backgroundColor: (() => {
+                        const dotHue = groupDotHue(group.accentHue);
+                        return dotHue != null ? accentColors(dotHue, scheme).name : colors.neutral;
+                      })(),
                     },
                   ]}
                 />

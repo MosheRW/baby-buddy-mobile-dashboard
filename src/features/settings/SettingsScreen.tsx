@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -71,6 +71,8 @@ export function SettingsScreen({ navigation }: Props) {
   const activeLanguage = useEffectiveLanguage();
   const themePreference = useThemeStore((s) => s.preference);
   const setThemePreference = useThemeStore((s) => s.setPreference);
+  const dynamicColorEnabled = useThemeStore((s) => s.dynamicColorEnabled);
+  const setDynamicColorEnabled = useThemeStore((s) => s.setDynamicColorEnabled);
 
   const defaultMl = (id: string, fallback: number) => defaults[id] ?? fallback;
 
@@ -150,6 +152,24 @@ export function SettingsScreen({ navigation }: Props) {
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
               {t('settings.appearanceSystemHint')}
             </AppText>
+          ) : null}
+          {/* Material You is Android-12+ only — meaningless elsewhere, so hidden rather than disabled. */}
+          {Platform.OS === 'android' ? (
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleText}>
+                <AppText size={fontSize.body} weight="700">
+                  {t('settings.dynamicColor')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('settings.dynamicColorHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={dynamicColorEnabled}
+                onValueChange={setDynamicColorEnabled}
+                accessibilityLabel={t('settings.dynamicColor')}
+              />
+            </View>
           ) : null}
         </Card>
 

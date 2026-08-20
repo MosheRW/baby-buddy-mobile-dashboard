@@ -5,8 +5,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider, useAppFonts } from './src/theme';
-import { useAuthStore } from './src/stores';
+import { ThemeProvider, useAppFonts, type Scheme } from './src/theme';
+import { DynamicAccentProvider, useDynamicAccentHue } from './src/theme/dynamicColor';
+import { useAuthStore, useThemeStore } from './src/stores';
 import { queryClient } from './src/data/queryClient';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { useSyncAppLanguage } from './src/hooks/useAppLanguage';
@@ -53,15 +54,31 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider scheme={scheme}>
-          <SafeAreaProvider>
-            {/* `style` names the status-bar *content* colour, so it's the
-                inverse of the surface behind it. */}
-            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-            <RootNavigator />
-          </SafeAreaProvider>
-        </ThemeProvider>
+        <DynamicAccentProvider>
+          <ThemedAppShell scheme={scheme} />
+        </DynamicAccentProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/**
+ * Split out so `useDynamicAccentHue()` can read the context `DynamicAccentProvider`
+ * establishes above it.
+ */
+function ThemedAppShell({ scheme }: { scheme: Scheme }) {
+  const dynamicColorEnabled = useThemeStore((s) => s.dynamicColorEnabled);
+  const systemHue = useDynamicAccentHue();
+  const accentHue = dynamicColorEnabled ? systemHue : null;
+
+  return (
+    <ThemeProvider scheme={scheme} accentHue={accentHue}>
+      <SafeAreaProvider>
+        {/* `style` names the status-bar *content* colour, so it's the
+            inverse of the surface behind it. */}
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+        <RootNavigator />
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
