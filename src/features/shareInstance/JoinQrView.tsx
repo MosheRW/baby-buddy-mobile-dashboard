@@ -16,13 +16,19 @@ export function JoinQrView({ payload, caption }: { payload: JoinPayload; caption
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   // The QR renders on a light quiet-zone regardless of theme (scanners want dark
-  // modules on a light field), so the code is always foreground-on-white.
+  // modules on a light field), so the code is always foreground-on-white. Those
+  // two fixed values live in the palette (`qr*`) so the exception is auditable.
   const value = useMemo(() => encodeJoin(payload), [payload]);
 
   return (
     <Card style={styles.card}>
       <View style={styles.qrWrap}>
-        <QRCode value={value} size={220} backgroundColor="#FFFFFF" color="#000000" />
+        <QRCode
+          value={value}
+          size={220}
+          backgroundColor={colors.qrBackground}
+          color={colors.qrForeground}
+        />
       </View>
       {caption ? (
         <AppText size={fontSize.body} weight="700" style={styles.caption}>
@@ -45,7 +51,7 @@ const makeStyles = ({ colors }: AppTheme) =>
     qrWrap: {
       padding: spacing.lg,
       borderRadius: radii.control,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.qrBackground,
     },
     caption: {
       textAlign: 'center',
