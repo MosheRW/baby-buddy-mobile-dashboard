@@ -261,8 +261,20 @@ export function useNotificationSync(): void {
   //    whose elapsed label is baked into the body and refreshed on the 60s `tick`.
   const liveSupported = chronometer.isSupported();
   const lastOngoingSig = useRef<string>('');
+  // On a build that upgrades from the minute-granular track to the native
+  // chronometer, the old `expo-notifications` ongoing entries can survive the
+  // update and would sit alongside the new native ones (same timer shown twice),
+  // and the native branch never touches the expo track to clear them. Clear it
+  // exactly once when the native track takes over. Safe by construction: the
+  // native chronometer notifications reconstruct with a *foreign* identifier, so
+  // `syncOngoingAsync([])`'s ONGOING_PREFIX scan never matches (or dismisses) them.
+  const legacyOngoingCleared = useRef(false);
   useEffect(() => {
     if (liveSupported) {
+      if (!legacyOngoingCleared.current) {
+        legacyOngoingCleared.current = true;
+        void service.syncOngoingAsync([]);
+      }
       const specs = [
         ...buildOngoingTimerChronometers({ timers, children: children ?? [], settings }),
         ...buildOngoingMedChronometers({ entries: entries ?? [], children: children ?? [], settings }),

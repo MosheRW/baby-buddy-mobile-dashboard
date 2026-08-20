@@ -23,6 +23,16 @@ const OWNED_PREFIXES = [CHRONO_TIMER_PREFIX, CHRONO_MED_PREFIX];
 const isOwned = (id: string) => OWNED_PREFIXES.some((p) => id.startsWith(p));
 
 /**
+ * Monotonic reconcile generation. Reconciles are launched fire-and-forget from a
+ * React effect, so two can overlap; without this an older call could reach its
+ * dismiss pass holding a stale `wanted` set and cancel a notification the newer
+ * call just presented. Each call stamps itself and bails out of the dismiss pass
+ * once a newer call has started — the newer one is authoritative and will
+ * reconcile the full set itself.
+ */
+let generation = 0;
+
+/**
  * Whether native chronometer notifications are available on this build. When
  * false the caller keeps using the `expo-notifications` ongoing track (elapsed
  * label refreshed on the JS tick) instead.
@@ -40,6 +50,7 @@ export function isSupported(): boolean {
 export async function syncChronometerAsync(specs: ChronometerSpec[]): Promise<void> {
   const mod = ChronometerNotification;
   if (!mod) return;
+  const myGeneration = ++generation;
   try {
     const wanted = new Set(specs.map((s) => s.key));
     for (const s of specs) {
@@ -55,10 +66,15 @@ export async function syncChronometerAsync(specs: ChronometerSpec[]): Promise<vo
         ongoing: true,
       });
     }
+    // A newer reconcile started while we awaited — it owns the authoritative
+    // `wanted` set now, so skip our dismiss pass rather than cancel something it
+    // just presented against a set we've since gone stale on.
+    if (myGeneration !== generation) return;
     // Dismiss ours that are no longer live. Scoped to our prefixes so a foreign
     // notification is never touched (and `getActiveIds` already filters to this
     // module's notifications).
     const active = await mod.getActiveIds();
+    if (myGeneration !== generation) return;
     for (const id of active) {
       if (isOwned(id) && !wanted.has(id)) await mod.dismiss(id);
     }

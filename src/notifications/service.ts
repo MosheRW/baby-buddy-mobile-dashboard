@@ -407,6 +407,14 @@ export async function getDeliveredAsync(): Promise<DeliveredNotification[]> {
       // The ongoing running-timer notifications share the tray but aren't
       // "reminders that fired" — keep them out of the in-app carousel.
       .filter((n) => !n.id.startsWith(ONGOING_PREFIX))
+      // The native chronometer track (timers + med countdowns) is posted outside
+      // expo-notifications, so `getPresentedNotificationsAsync` reconstructs it
+      // with a *foreign* identifier — `expo-notifications://foreign_notifications?
+      // tag=ongoing:…&id=…` — that doesn't start with ONGOING_PREFIX. Excluding
+      // the foreign scheme keeps those live notifications out of the carousel (and
+      // out of its validator, which would otherwise dismiss them as unknown/stale).
+      // getActiveNotifications is app-scoped, so every foreign id here is ours.
+      .filter((n) => !n.id.includes('foreign_notifications'))
       // Newest first, so the most recently fired reminder leads the carousel.
       .sort((a, b) => b.deliveredAt - a.deliveredAt);
   } catch (err) {

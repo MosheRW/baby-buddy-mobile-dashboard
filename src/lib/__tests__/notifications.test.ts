@@ -857,4 +857,25 @@ describe('buildOngoingMedChronometers', () => {
     expect(specs).toHaveLength(1);
     expect(specs[0].key).toBe('ongoing-med:c1:tylenol');
   });
+
+  it('gives each child their own countdown for the same-named medicine', () => {
+    // Both kids on Tylenol, both due soon. neededMeds dedupes by name globally,
+    // so a naive merged pass would drop one child; per-child scoping keeps both.
+    const specs = buildOngoingMedChronometers(
+      {
+        entries: [
+          med({ name: 'Tylenol', childId: 'c1', time: iso(NOW - (8 * HOUR - 10 * MINUTE)) }),
+          med({ name: 'Tylenol', childId: 'c2', time: iso(NOW - (8 * HOUR - 20 * MINUTE)) }),
+        ],
+        children: [child('c1', 'Emma'), child('c2', 'Noah')],
+        settings: liveMedOn(),
+      },
+      NOW,
+    );
+    expect(specs.map((s) => s.key).sort()).toEqual([
+      'ongoing-med:c1:tylenol',
+      'ongoing-med:c2:tylenol',
+    ]);
+    expect(specs.find((s) => s.childId === 'c2')?.anchorMs).toBe(NOW + 20 * MINUTE);
+  });
 });

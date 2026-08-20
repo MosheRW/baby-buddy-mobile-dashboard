@@ -667,24 +667,15 @@ export function buildOngoingMedChronometers(
   const { entries, children, settings } = input;
   if (!settings.masterEnabled || !settings.liveMed.enabled) return [];
 
-  const childName = new Map(children.map((c) => [c.id, c.name]));
-  const childOfEntry = new Map(entries.map((e) => [e.id, e.childId]));
   const nameKey = (s: string) => s.trim().toLowerCase();
   const inWindow = (dueInMs: number) => dueInMs <= LIVE_MED_LEAD_MS && dueInMs >= -LIVE_MED_TRAIL_MS;
 
   // Keyed so duplicates across sources (a medicine both scheduled and limited,
   // say) collapse; the first one wins, which is fine since they share a dueAt.
   const byKey = new Map<string, ChronometerSpec>();
-  const add = (
-    childId: string | undefined,
-    name: string,
-    dueAt: number,
-    titleKey: string,
-  ): void => {
-    if (!childId) return;
+  const add = (childId: string, who: string, name: string, dueAt: number, titleKey: string): void => {
     const key = `${CHRONO_MED_PREFIX}${childId}:${nameKey(name)}`;
     if (byKey.has(key)) return;
-    const who = childName.get(childId);
     byKey.set(key, {
       key,
       title: i18n.t(titleKey),
@@ -699,17 +690,22 @@ export function buildOngoingMedChronometers(
     });
   };
 
-  for (const s of neededMeds(entries, now)) {
-    if (!inWindow(s.dueInMs)) continue;
-    add(childOfEntry.get(s.entryId), s.name, s.dueAt, 'notifications.titleMedDue');
-  }
-  for (const s of eligibleMeds(entries, now)) {
-    if (!inWindow(s.dueInMs)) continue;
-    add(childOfEntry.get(s.entryId), s.name, s.dueAt, 'notifications.titleMedReady');
-  }
-  for (const s of medLimitSummaries(entries, now)) {
-    if (!inWindow(s.dueInMs)) continue;
-    add(s.childId, s.name, s.dueAt, 'notifications.titleMedReady');
+  // Per child, not over the merged list: `neededMeds`/`eligibleMeds` dedupe by
+  // medicine name *globally*, so running them on all children at once would drop
+  // a second child's same-named dose entirely. Scoping the source rows to one
+  // child first preserves the one-countdown-per-(child, medicine) contract.
+  for (const child of children) {
+    const mine = entries.filter((e) => e.childId === child.id);
+    const who = child.name;
+    for (const s of neededMeds(mine, now)) {
+      if (inWindow(s.dueInMs)) add(child.id, who, s.name, s.dueAt, 'notifications.titleMedDue');
+    }
+    for (const s of eligibleMeds(mine, now)) {
+      if (inWindow(s.dueInMs)) add(child.id, who, s.name, s.dueAt, 'notifications.titleMedReady');
+    }
+    for (const s of medLimitSummaries(mine, now)) {
+      if (inWindow(s.dueInMs)) add(child.id, who, s.name, s.dueAt, 'notifications.titleMedReady');
+    }
   }
 
   return [...byKey.values()];
