@@ -9,6 +9,8 @@ import { useApplyDefaultVisibility } from '../hooks/useApplyDefaultVisibility';
 import { useShakeReveal } from '../hooks/useShakeReveal';
 import type { MainStackParamList } from './types';
 import { LoginScreen } from '../features/auth/LoginScreen';
+import { ScanLoginScreen } from '../features/shareInstance/ScanLoginScreen';
+import { ShareInstanceScreen } from '../features/shareInstance/ShareInstanceScreen';
 import { DashboardScreen } from '../features/dashboard/DashboardScreen';
 import { LogEntryScreen } from '../features/logEntry/LogEntryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
@@ -69,6 +71,7 @@ export function RootNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Notifications" component={NotificationSettingsScreen} />
             <Stack.Screen name="AdvancedSettings" component={AdvancedSettingsScreen} />
+            <Stack.Screen name="ShareInstance" component={ShareInstanceScreen} />
             <Stack.Screen name="KidEditor" component={KidEditorScreen} />
             <Stack.Screen name="GroupEditor" component={GroupEditorScreen} />
             <Stack.Screen
@@ -100,7 +103,10 @@ export function RootNavigator() {
             />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="ScanLogin" component={ScanLoginScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

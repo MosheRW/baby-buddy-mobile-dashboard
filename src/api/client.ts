@@ -22,11 +22,27 @@ export class ApiError extends Error {
   }
 }
 
-/** 401/403 — a bad or revoked token. Callers sign the user out on this. */
+/** 401 — a bad or revoked token. Callers sign the user out on this. */
 export class AuthError extends ApiError {
   constructor(message = 'Your session is no longer valid. Please log in again.') {
     super(401, message);
     this.name = 'AuthError';
+  }
+}
+
+/**
+ * 403 — authenticated, but not allowed to perform *this* action. On a
+ * self-hosted Baby Buddy this is usually a caregiver who lacks the Django model
+ * permission for writes (reads need none, so the dashboard loads fine and only
+ * the first create/edit/delete fails). It is deliberately **not** an AuthError:
+ * the token is valid, so the remedy is a permission grant, not a re-login, and
+ * callers must not sign the user out — that would turn "you can't delete this"
+ * into a baffling logout.
+ */
+export class ForbiddenError extends ApiError {
+  constructor(message = "You don't have permission to do that on this server.") {
+    super(403, message);
+    this.name = 'ForbiddenError';
   }
 }
 
@@ -147,6 +163,15 @@ export async function rawRequest(options: RequestOptions): Promise<unknown> {
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
+      // Never send cookies on a REST call. The password-login bootstrap
+      // (webForm.ts) seats Django `sessionid`/`csrftoken` cookies in RN's
+      // shared jar; if they ride along here, DRF's SessionAuthentication (tried
+      // before TokenAuthentication) picks them up and enforces CSRF on unsafe
+      // methods — so a token-authenticated DELETE/POST/PATCH fails with
+      // "CSRF Failed: CSRF token missing." Omitting credentials keeps the API
+      // purely token-authenticated and stateless. The web-form flows keep their
+      // own cookie-carrying fetches; only this REST path opts out.
+      credentials: 'omit',
     });
   } catch (err) {
     // An abort from our own timer is a timeout; anything else is a transport failure.
@@ -160,7 +185,13 @@ export async function rawRequest(options: RequestOptions): Promise<unknown> {
   // Keep the clock offset fresh from every response, including error ones.
   recordServerClock(response.headers.get('date'));
 
-  if (response.status === 401 || response.status === 403) throw new AuthError();
+  if (response.status === 401) throw new AuthError();
+  if (response.status === 403) {
+    // Valid token, forbidden action — surface the server's reason if it gave
+    // one, but never as an AuthError (see ForbiddenError).
+    const detail = await response.text().catch(() => '');
+    throw new ForbiddenError(extractDetail(detail));
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
@@ -171,11 +202,13 @@ export async function rawRequest(options: RequestOptions): Promise<unknown> {
   return response.json().catch(() => null);
 }
 
-/** Turn a DRF error body into something worth showing a caregiver. */
-function describeError(status: number, detail: string): string {
-  if (status === 404) return 'Not found on the server.';
-  if (status >= 500) return 'The server had an error. Try again in a moment.';
-  // DRF validation errors are {"field": ["msg"]} — surface the first message.
+/**
+ * Pull the first human-readable message out of a DRF error body. Validation
+ * errors are `{"field": ["msg"]}` and permission/auth errors are
+ * `{"detail": "msg"}` — both are covered by taking the first string value.
+ * Returns undefined when the body isn't JSON or carries no message.
+ */
+function extractDetail(detail: string): string | undefined {
   try {
     const parsed: unknown = JSON.parse(detail);
     if (parsed && typeof parsed === 'object') {
@@ -185,9 +218,16 @@ function describeError(status: number, detail: string): string {
       }
     }
   } catch {
-    // Not JSON — fall through.
+    // Not JSON — no message to extract.
   }
-  return `Request failed (${status}).`;
+  return undefined;
+}
+
+/** Turn a DRF error body into something worth showing a caregiver. */
+function describeError(status: number, detail: string): string {
+  if (status === 404) return 'Not found on the server.';
+  if (status >= 500) return 'The server had an error. Try again in a moment.';
+  return extractDetail(detail) ?? `Request failed (${status}).`;
 }
 
 /**

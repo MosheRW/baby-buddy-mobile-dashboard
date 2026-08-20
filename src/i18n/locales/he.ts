@@ -69,6 +69,7 @@ export const he = {
     startOffline: 'התחלה ללא חיבור',
     continueOffline: 'המשך ללא חיבור',
     offlineExistingData: 'נתונים לא מקוונים מוכנים עבור {{names}}.',
+    scanQr: 'סרוק קוד QR להתחברות',
   },
 
   dashboard: {
@@ -284,6 +285,8 @@ export const he = {
   logEntry: {
     editTitle: 'עריכת רשומה',
     newTitle: 'רשומה חדשה',
+    readOnlyOthers: 'רק המטפל/ת שרשמו את זה יכולים לערוך או למחוק.',
+    readOnlyOthersBy: 'רק {{name}}, שרשמו את זה, יכולים לערוך או למחוק.',
     close: 'סגירה',
     time: 'שעה',
     endTime: 'שעת סיום',
@@ -384,6 +387,60 @@ export const he = {
     shakeHint: 'נערו את המכשיר כדי להציג ילדים מוסתרים לזמן מה.',
     shakeDuration: 'חשיפה למשך',
     shakeMinSuffix: ' דק׳',
+  },
+
+  share: {
+    // שורת ניווט במסך ההגדרות (מנהלים בלבד).
+    navTitle: 'שיתוף השרת',
+    navHint: 'הוספת מטפלים ושיתוף קוד QR להתחברות.',
+    // מסך.
+    title: 'שיתוף',
+    checking: 'בודק את ההרשאות שלך…',
+    // אימות מחדש כדי לפתוח את מושב הניהול.
+    unlockTitle: 'אשר שאתה מנהל',
+    unlockHint: 'ניהול מטפלים משתמש בדפים למנהלים בלבד. הזן את הסיסמה כדי להמשיך.',
+    unlock: 'פתח',
+    enterAdminCredentials: 'הזן שם משתמש וסיסמה.',
+    notAdmin: 'חשבון זה אינו מנהל בשרת הזה.',
+    // שיתוף ההתחברות של המנהל עצמו.
+    ownLoginTitle: 'שתף את ההתחברות שלך',
+    ownLoginHint: 'כל מי שיסרוק יתחבר בתור שלך.',
+    showOwnQr: 'הצג קוד QR שלי',
+    // הוספת מטפל.
+    addTitle: 'הוספת מטפל',
+    caregiverName: 'שם משתמש',
+    caregiverNamePlaceholder: 'סבתא',
+    caregiverFirstName: 'שם פרטי',
+    caregiverLastName: 'שם משפחה',
+    caregiverPassword: 'סיסמה',
+    staffToggle: 'מנהל (צוות)',
+    staffHint: 'משתמשי צוות יכולים לנהל את השרת ואת שאר המטפלים.',
+    staffWarnTitle: 'בדרך כלל אין צורך בהרשאת מנהל',
+    staffWarnBody:
+      'מטפל רגיל כבר יכול לתעד הכול עבור כל הילדים. הרשאת מנהל מאפשרת גם לנהל משתמשים ולשנות הגדרות שרת. תן אותה רק אם זו הכוונה.',
+    staffWarnDontAsk: 'אל תזהיר אותי שוב ב-15 הדקות הקרובות',
+    staffWarnContinue: 'צור כמנהל',
+    addCaregiver: 'צור והצג QR',
+    enterCaregiver: 'הזן שם משתמש וסיסמה.',
+    tokenCreateFailed:
+      'המטפל נוצר, אך לא ניתן היה ליצור טוקן התחברות. ודא שלחשבון שלך יש הרשאות ניהול, ואז הקש על המשתמש ברשימה.',
+    // כיתובי QR ואזהרה.
+    qrCaptionOwn: 'סרוק כדי להתחבר בתור שלך',
+    qrCaptionCaregiver: 'סרוק כדי להתחבר בתור {{name}}',
+    qrWarning: 'קוד זה מכיל פרטי התחברות פעילים. הצג אותו רק לאנשים שאתה סומך עליהם.',
+    // רשימת מי שנוסף במושב זה.
+    createdTitle: 'נוספו במושב זה',
+    showQr: 'הצג QR',
+    // רשימת המשתמשים הקיימים.
+    usersTitle: 'כל המשתמשים',
+    noUsers: 'לא נמצאו משתמשים.',
+    usersHint: 'ניתן ליצור QR רק למטפלים שאתה מוסיף כאן (הסיסמה שלהם ידועה).',
+    usersTokenHint: 'הקש על משתמש כדי להציג את קוד ה-QR שלו. משתמשים ללא טוקן צריכים להתחבר פעם אחת קודם.',
+    // סורק.
+    scanTitle: 'סרוק כדי להתחבר',
+    scanHint: 'כוון את המצלמה לקוד QR של התחברות ל-Baby Buddy.',
+    cameraNeeded: 'נדרשת גישה למצלמה כדי לסרוק קוד QR.',
+    grantCamera: 'אפשר גישה למצלמה',
   },
 
   schedule: {

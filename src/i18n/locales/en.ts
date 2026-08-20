@@ -70,6 +70,7 @@ export const en = {
     startOffline: 'Start offline',
     continueOffline: 'Continue offline',
     offlineExistingData: 'Offline data ready for {{names}}.',
+    scanQr: 'Scan a sign-in QR code',
   },
 
   dashboard: {
@@ -284,6 +285,8 @@ export const en = {
   logEntry: {
     editTitle: 'Edit entry',
     newTitle: 'New entry',
+    readOnlyOthers: 'Only the caregiver who logged this can edit or delete it.',
+    readOnlyOthersBy: 'Only {{name}}, who logged this, can edit or delete it.',
     close: 'Close',
     time: 'Time',
     endTime: 'End time',
@@ -387,6 +390,60 @@ export const en = {
     shakeHint: 'Shake the device to show hidden children for a while.',
     shakeDuration: 'Reveal for',
     shakeMinSuffix: ' min',
+  },
+
+  share: {
+    // Settings-screen navigation row (admin only).
+    navTitle: 'Share this server',
+    navHint: 'Add caregivers and share a sign-in QR code.',
+    // Screen.
+    title: 'Share',
+    checking: 'Checking your access…',
+    // Unlock (re-authenticate to open the admin web session).
+    unlockTitle: 'Confirm you’re an admin',
+    unlockHint: 'Managing caregivers uses admin-only pages. Enter your password to continue.',
+    unlock: 'Unlock',
+    enterAdminCredentials: 'Enter your username and password.',
+    notAdmin: 'This account isn’t an admin on this server.',
+    // Share the admin's own login.
+    ownLoginTitle: 'Share your own sign-in',
+    ownLoginHint: 'Anyone who scans this signs in as you.',
+    showOwnQr: 'Show my sign-in QR',
+    // Add a caregiver.
+    addTitle: 'Add a caregiver',
+    caregiverName: 'Username',
+    caregiverNamePlaceholder: 'grandma',
+    caregiverFirstName: 'First name',
+    caregiverLastName: 'Last name',
+    caregiverPassword: 'Password',
+    staffToggle: 'Admin (staff)',
+    staffHint: 'Staff users can manage the server and other caregivers.',
+    staffWarnTitle: 'Admin usually isn’t needed',
+    staffWarnBody:
+      'A regular caregiver can already log everything for every child. Admin also lets them manage users and change server settings. Grant it only if you mean to.',
+    staffWarnDontAsk: 'Don’t warn me again for 15 minutes',
+    staffWarnContinue: 'Create as admin',
+    addCaregiver: 'Create and show QR',
+    enterCaregiver: 'Enter a username and password.',
+    tokenCreateFailed:
+      'The caregiver was created, but a sign-in token could not be generated. Check that your account has admin rights, then tap the user in the list.',
+    // QR captions + warning.
+    qrCaptionOwn: 'Scan to sign in as you',
+    qrCaptionCaregiver: 'Scan to sign in as {{name}}',
+    qrWarning: 'This code contains a live sign-in credential. Only show it to people you trust.',
+    // Created-this-session list.
+    createdTitle: 'Added this session',
+    showQr: 'Show QR',
+    // Existing users list.
+    usersTitle: 'All users',
+    noUsers: 'No users found.',
+    usersHint: 'A QR can only be made for caregivers you add here (their password is known).',
+    usersTokenHint: 'Tap a user to show their sign-in QR. Users without a token yet must sign in once first.',
+    // Scanner.
+    scanTitle: 'Scan to sign in',
+    scanHint: 'Point the camera at a Baby Buddy sign-in QR code.',
+    cameraNeeded: 'Camera access is needed to scan a QR code.',
+    grantCamera: 'Allow camera',
   },
 
   schedule: {

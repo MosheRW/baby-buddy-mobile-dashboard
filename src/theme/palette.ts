@@ -67,6 +67,16 @@ export interface Palette {
 
   /** Dimming layer behind a transparent-modal sheet. */
   scrim: string;
+
+  /**
+   * QR code modules and their quiet-zone. Deliberately **theme-independent**
+   * black-on-white in both schemes: scanners expect dark modules on a light
+   * field, and a dark-mode-tinted QR reads unreliably. Centralized here so the
+   * one place a component may show "raw" black/white is auditable, per the
+   * no-hardcoded-hex convention.
+   */
+  qrForeground: string;
+  qrBackground: string;
 }
 
 export interface TintPair {
@@ -122,6 +132,9 @@ const lightColors: Palette = {
   feverOk: '#4E8A5B',
 
   scrim: 'rgba(0,0,0,0.4)',
+
+  qrForeground: '#000000',
+  qrBackground: '#FFFFFF',
 };
 
 // Tile background tints are deepened a notch from the prototype's near-white
@@ -182,6 +195,10 @@ const darkColors: Palette = {
   feverOk: '#71B27E',
 
   scrim: 'rgba(0,0,0,0.6)',
+
+  // Intentionally identical to light — a QR must scan the same in either theme.
+  qrForeground: '#000000',
+  qrBackground: '#FFFFFF',
 };
 
 const darkTints: Tints = {

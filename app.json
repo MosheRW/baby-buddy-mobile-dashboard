@@ -20,7 +20,8 @@
       "splash": {
         "image": "./assets/splash_1080x2340.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +32,13 @@
       "expo-secure-store",
       "expo-notifications",
       "@react-native-community/datetimepicker",
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Baby Buddy to use the camera to scan a sign-in QR code."
+        }
+      ]
     ]
   }
 }

@@ -21,6 +21,14 @@ interface UiState {
   /** Reveal hidden children for `durationMs` from now. */
   revealHidden: (durationMs: number) => void;
   clearReveal: () => void;
+  /**
+   * ms timestamp until which the "admin isn't necessary" warning stays hidden
+   * (the sharing screen's "don't warn me again for 15 minutes"). Session-only
+   * like the reveal window: a relaunch should start warning again, since the
+   * whole point is to make granting admin a deliberate act.
+   */
+  staffWarningHiddenUntil: number | null;
+  suppressStaffWarning: (durationMs: number) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -29,4 +37,7 @@ export const useUiStore = create<UiState>((set) => ({
   revealHiddenUntil: null,
   revealHidden: (durationMs) => set({ revealHiddenUntil: Date.now() + durationMs }),
   clearReveal: () => set({ revealHiddenUntil: null }),
+  staffWarningHiddenUntil: null,
+  suppressStaffWarning: (durationMs) =>
+    set({ staffWarningHiddenUntil: Date.now() + durationMs }),
 }));

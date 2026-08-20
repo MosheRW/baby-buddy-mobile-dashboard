@@ -31,6 +31,7 @@ import { hiddenCount, visibleChildren } from '../../lib/visibility';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
+import { displayUserName } from '../../lib/userName';
 import { notificationAction } from '../../lib/notifications';
 import {
   useDeliveredNotifications,
@@ -56,6 +57,13 @@ export function DashboardScreen({ navigation }: Props) {
   const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
   const markInactiveDaysPromptSeen = useSettingsStore((s) => s.markInactiveDaysPromptSeen);
   const userName = useAuthStore((s) => s.session?.userName);
+  const isStaff = useAuthStore((s) => s.session?.isStaff);
+  // Drives the feed's "edit/delete only your own entries" guard. Memoized so the
+  // memoized ActivityFeed sees a stable prop across the 60s tick re-renders.
+  const currentUser = useMemo(
+    () => (userName ? { userName, isStaff } : undefined),
+    [userName, isStaff],
+  );
   const welcomeDismissed = useUiStore((s) => s.welcomeDismissed);
   const dismissWelcome = useUiStore((s) => s.dismissWelcome);
   const revealHiddenUntil = useUiStore((s) => s.revealHiddenUntil);
@@ -351,7 +359,10 @@ export function DashboardScreen({ navigation }: Props) {
           <View>
             <AppText size={fontSize.screenTitle} weight="800">
               {userName
-                ? t('dashboard.greetingWithName', { greeting: greeting(now), name: userName })
+                ? t('dashboard.greetingWithName', {
+                    greeting: greeting(now),
+                    name: displayUserName(userName),
+                  })
                 : greeting(now)}
             </AppText>
             <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
@@ -442,6 +453,7 @@ export function DashboardScreen({ navigation }: Props) {
         <ActivityFeed
           entries={feedEntries}
           now={now}
+          currentUser={currentUser}
           onEditEntry={openEdit}
           onDeleteEntry={confirmDelete}
         />

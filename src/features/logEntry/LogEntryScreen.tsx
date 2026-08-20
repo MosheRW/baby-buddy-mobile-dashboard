@@ -19,6 +19,8 @@ import {
 } from '../../lib/formDraft';
 import { isTimerType, type TimerType } from '../../lib/timers';
 import { recentTagSuggestions } from '../../lib/tags';
+import { canModifyEntry } from '../../lib/entryOwnership';
+import { displayUserName } from '../../lib/userName';
 import { errorMessage, serverNow } from '../../api/client';
 import { useDashboardData, useSaveEntry } from '../../data/queries';
 import { useAuthStore, useFormStore, useSettingsStore, useTimerStore } from '../../stores';
@@ -84,6 +86,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
   const timerNow = useTimerTick();
 
   const userName = useAuthStore((s) => s.session?.userName) ?? 'you';
+  const isStaff = useAuthStore((s) => s.session?.isStaff);
 
   // Timer UI only appears while creating a timed entry. `timerType` is the
   // narrowed type or null, so the strip, end-time field and split-save below can
@@ -248,6 +251,12 @@ export function LogEntryScreen({ route, navigation }: Props) {
   const fieldProps = { draft, patch, childId, mode, now: timerNow };
   const childEntries = entriesForChild(entries, childId);
 
+  // Defense-in-depth for the "edit only your own entries" rule (the feed
+  // already hides edit/delete on others' rows, so this normally isn't reached).
+  // Editing an existing entry is blocked unless it's yours or you're staff;
+  // creating a new one is always allowed.
+  const canEditEntry = !editingEntry || canModifyEntry(editingEntry, { userName, isStaff });
+
   // Suggestions look across all children — a caregiver's tag vocabulary is
   // theirs — but never re-offer a tag already on this draft.
   const tagSuggestions = recentTagSuggestions(entries, type, { exclude: draft.tags });
@@ -371,8 +380,22 @@ export function LogEntryScreen({ route, navigation }: Props) {
                 {errorMessage(saveEntry.error)}
               </AppText>
             ) : null}
+            {!canEditEntry ? (
+              <AppText
+                size={fontSize.metaSm}
+                weight="700"
+                color={colors.textMuted}
+                style={styles.saveError}
+              >
+                {editingEntry?.creator
+                  ? t('logEntry.readOnlyOthersBy', {
+                      name: displayUserName(editingEntry.creator),
+                    })
+                  : t('logEntry.readOnlyOthers')}
+              </AppText>
+            ) : null}
             <View style={styles.footer}>
-              {isEdit ? (
+              {isEdit && canEditEntry ? (
                 <ActionButton
                   label={t('common.delete')}
                   variant="danger"
@@ -409,7 +432,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
                   label={saveEntry.isPending ? t('common.saving') : t('common.save')}
                   variant="accent"
                   flex={2}
-                  disabled={saveEntry.isPending}
+                  disabled={saveEntry.isPending || !canEditEntry}
                   onPress={() => save()}
                 />
               )}
