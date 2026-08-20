@@ -86,9 +86,19 @@ export function parseUserList(html: string): AdminUser[] {
 }
 
 /**
- * Build the `UserAddForm` POST body for a non-admin, read+write caregiver.
- * `is_staff` and `is_read_only` are Django checkboxes — omitting them submits
- * them as false, which is exactly what we want. `is_active` must be present.
+ * Build the `UserAddForm` POST body for a read+write caregiver.
+ *
+ * Baby Buddy's user form has **no granular permission tier**: its `save()` sets
+ * `is_superuser = True` for every account whose `is_read_only` box is unchecked
+ * (and `False` + membership of the `read_only` group when it's checked). So
+ * *omitting* `is_read_only` here is exactly what gives a new caregiver full
+ * read/write/delete access — a writing caregiver is, at the Django level, a
+ * superuser. There is no "can write but only see, not manage" option on the
+ * server; the app's own `canModifyEntry` guard is what keeps caregivers to
+ * their own entries (see src/lib/entryOwnership.ts).
+ *
+ * `is_staff` (Django admin-site access) is a separate, opt-in checkbox — also
+ * omitted unless requested. `is_active` must be present.
  */
 export function buildCreateUserForm(csrf: string, input: CreateUserInput): Record<string, string> {
   const form: Record<string, string> = {

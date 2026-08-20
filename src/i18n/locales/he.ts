@@ -285,6 +285,8 @@ export const he = {
   logEntry: {
     editTitle: 'עריכת רשומה',
     newTitle: 'רשומה חדשה',
+    readOnlyOthers: 'רק המטפל/ת שרשמו את זה יכולים לערוך או למחוק.',
+    readOnlyOthersBy: 'רק {{name}}, שרשמו את זה, יכולים לערוך או למחוק.',
     close: 'סגירה',
     time: 'שעה',
     endTime: 'שעת סיום',

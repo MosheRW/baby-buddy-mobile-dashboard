@@ -285,6 +285,8 @@ export const en = {
   logEntry: {
     editTitle: 'Edit entry',
     newTitle: 'New entry',
+    readOnlyOthers: 'Only the caregiver who logged this can edit or delete it.',
+    readOnlyOthersBy: 'Only {{name}}, who logged this, can edit or delete it.',
     close: 'Close',
     time: 'Time',
     endTime: 'End time',

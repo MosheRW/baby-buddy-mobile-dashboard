@@ -12,6 +12,7 @@ import {
   type FeedFilter,
 } from '../../lib/feed';
 import { filterByTag, selectableTagLabels } from '../../lib/tags';
+import { canModifyEntry, type EntryOwner } from '../../lib/entryOwnership';
 import { displayUserName } from '../../lib/userName';
 import {
   entryDurationLabel,
@@ -28,6 +29,8 @@ interface ActivityFeedProps {
   entries: Entry[];
   /** Advancing clock from the dashboard's 60s tick, for relative-time labels. */
   now: number;
+  /** Current user, for the "edit/delete only your own entries" guard. */
+  currentUser: EntryOwner | undefined;
   onEditEntry: (entry: Entry) => void;
   onDeleteEntry: (entry: Entry) => void;
 }
@@ -43,6 +46,7 @@ interface ActivityFeedProps {
 export const ActivityFeed = React.memo(function ActivityFeed({
   entries,
   now,
+  currentUser,
   onEditEntry,
   onDeleteEntry,
 }: ActivityFeedProps) {
@@ -125,6 +129,7 @@ export const ActivityFeed = React.memo(function ActivityFeed({
                 entry={entry}
                 now={now}
                 dailyNorm={dailyNorm}
+                canModify={canModifyEntry(entry, currentUser)}
                 onEdit={onEditEntry}
                 onDelete={onDeleteEntry}
                 onTagPress={setTagFilter}
@@ -146,6 +151,7 @@ const FeedRow = React.memo(function FeedRow({
   entry,
   now,
   dailyNorm,
+  canModify,
   onEdit,
   onDelete,
   onTagPress,
@@ -154,6 +160,8 @@ const FeedRow = React.memo(function FeedRow({
   now: number;
   /** Per-day intake norm when excluding inactive days; else undefined. */
   dailyNorm?: number;
+  /** Whether this user may edit/delete the row (own entry, or staff). */
+  canModify: boolean;
   onEdit: (entry: Entry) => void;
   onDelete: (entry: Entry) => void;
   onTagPress: (tag: string) => void;
@@ -175,6 +183,42 @@ const FeedRow = React.memo(function FeedRow({
   // digital/text setting, so it reads the same in both modes.
   const duration = entryDurationLabel(entry, 'text');
 
+  // The body is shared between the editable (Pressable) and read-only (View)
+  // wrappers below, so it's built once here.
+  const rowBody = (
+    <>
+      <View style={styles.titleRow}>
+        <AppText size={fontSize.bodySm} weight="700">
+          {entryTitle(entry)}
+        </AppText>
+        {visual.tempDotColor ? (
+          <View style={[styles.tempDot, { backgroundColor: visual.tempDotColor }]} />
+        ) : null}
+      </View>
+
+      <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+        {entryTimeLabel(entry.time, now)}
+        {duration ? ` · ${duration}` : ''}
+      </AppText>
+
+      {entry.note ? (
+        <AppText size={fontSize.meta} weight="600" color={colors.textSecondary}>
+          {entry.note}
+        </AppText>
+      ) : null}
+
+      <DiaperAdornments visual={visual} />
+
+      {gauge != null ? (
+        <View style={styles.gaugeTrack}>
+          <View
+            style={[styles.gaugeFill, { width: `${gauge}%`, backgroundColor: visual.accent }]}
+          />
+        </View>
+      ) : null}
+    </>
+  );
+
   return (
     <Card
       elevation="feedRow"
@@ -188,50 +232,36 @@ const FeedRow = React.memo(function FeedRow({
         <EntryGlyph kind={visual.glyph} size={18} color={visual.accent} />
       </View>
 
-      <Pressable style={styles.rowText} onPress={() => onEdit(entry)} accessibilityRole="button">
-        <View style={styles.titleRow}>
-          <AppText size={fontSize.bodySm} weight="700">
-            {entryTitle(entry)}
-          </AppText>
-          {visual.tempDotColor ? (
-            <View style={[styles.tempDot, { backgroundColor: visual.tempDotColor }]} />
-          ) : null}
+      {/* The row body opens the editor — but only for an entry this user may
+          edit. For someone else's entry (a non-staff caregiver) it's a plain,
+          non-pressable View: everything worth seeing is already shown inline. */}
+      {canModify ? (
+        <Pressable style={styles.rowText} onPress={() => onEdit(entry)} accessibilityRole="button">
+          {rowBody}
+        </Pressable>
+      ) : (
+        <View style={styles.rowText}>{rowBody}</View>
+      )}
+
+      {/* Edit/delete are hidden entirely on entries this user can't modify. */}
+      {canModify ? (
+        <View style={styles.actions}>
+          <RowButton
+            label={t('dashboard.editEntry')}
+            onPress={() => onEdit(entry)}
+            bg={colors.neutral}
+          >
+            <PencilGlyph size={14} color={colors.textSecondary} />
+          </RowButton>
+          <RowButton
+            label={t('dashboard.deleteEntry')}
+            onPress={() => onDelete(entry)}
+            bg={tints.overdue.bg}
+          >
+            <TrashGlyph size={14} color={tints.overdue.fg} />
+          </RowButton>
         </View>
-
-        <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-          {entryTimeLabel(entry.time, now)}
-          {duration ? ` · ${duration}` : ''}
-        </AppText>
-
-        {entry.note ? (
-          <AppText size={fontSize.meta} weight="600" color={colors.textSecondary}>
-            {entry.note}
-          </AppText>
-        ) : null}
-
-        <DiaperAdornments visual={visual} />
-
-        {gauge != null ? (
-          <View style={styles.gaugeTrack}>
-            <View
-              style={[styles.gaugeFill, { width: `${gauge}%`, backgroundColor: visual.accent }]}
-            />
-          </View>
-        ) : null}
-      </Pressable>
-
-      <View style={styles.actions}>
-        <RowButton label={t('dashboard.editEntry')} onPress={() => onEdit(entry)} bg={colors.neutral}>
-          <PencilGlyph size={14} color={colors.textSecondary} />
-        </RowButton>
-        <RowButton
-          label={t('dashboard.deleteEntry')}
-          onPress={() => onDelete(entry)}
-          bg={tints.overdue.bg}
-        >
-          <TrashGlyph size={14} color={tints.overdue.fg} />
-        </RowButton>
-      </View>
+      ) : null}
 
       {author || tags.length > 0 ? (
         <View style={styles.tagRow}>

@@ -54,12 +54,26 @@ defines the honest scope boundary below.
   existing `signInWithPassword` itself — so we don't mint a token at generation time and
   never hit the admin/new-user cookie-jar collision. The token shape reuses
   `signInWithToken`. Scanner branches on which fields are present.
-- **New caregiver = read+write, non-admin:** `is_staff=false`, `is_read_only=false`.
-- **"Edit only their own entries" is client-side only.** Baby Buddy has **no** server
-  permission for per-entry ownership — any non-readonly user can edit any entry, and all
-  caregivers share the same children/data. So we enforce it in *our* UI (Batch C): show
-  edit/delete only when the entry's author tag matches the current user. Any other Baby
-  Buddy client bypasses it — document this limitation, don't imply server enforcement.
+- **New caregiver = read+write:** `is_staff=false`, `is_read_only=false`.
+  - **Correction found while wiring the write-permission fix (issue #34 follow-up).**
+    Baby Buddy's user form is **binary**, not tiered: `BabyBuddyUserForm.save()`
+    (babybuddy/forms.py) sets `user.is_superuser = True` for *every* non-read-only
+    account, and `is_superuser = False` + `read_only` group membership when read-only is
+    checked. Its API permission class (`api/permissions.BabyBuddyDjangoModelPermissions`)
+    then requires per-model `view/add/change/delete` for each method — which a superuser
+    bypasses entirely and a read-only user (view-only group) fails on writes. **Net:** a
+    caregiver who can write at all *is* a Django superuser. Omitting `is_read_only` (what
+    `buildCreateUserForm` does) already grants full read/write/delete — no extra group or
+    permission step is needed. There is **no** "read+write but not admin" server tier.
+    `is_staff` only toggles Django admin-site access on top and stays opt-in.
+- **"Edit only their own entries" is client-side only — now implemented.** Because a
+  writing caregiver is a superuser, the server can't restrict per-entry ownership: any
+  writer can edit any entry, and all caregivers share the same children/data. So we
+  enforce it in *our* UI via the pure `canModifyEntry` (src/lib/entryOwnership.ts): the
+  feed hides edit/delete (and makes the row non-tappable) on entries whose `by {creator}`
+  author tag isn't the current user's, and the log-entry screen refuses to save/delete
+  them as a backstop. **Staff** accounts (the manager) may modify anyone's entry. Any
+  other Baby Buddy client bypasses this — it's a UI guard, not server enforcement.
 
 ## Scope boundary (what "share" can and cannot do)
 

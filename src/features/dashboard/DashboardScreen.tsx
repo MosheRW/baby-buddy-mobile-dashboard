@@ -57,6 +57,13 @@ export function DashboardScreen({ navigation }: Props) {
   const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
   const markInactiveDaysPromptSeen = useSettingsStore((s) => s.markInactiveDaysPromptSeen);
   const userName = useAuthStore((s) => s.session?.userName);
+  const isStaff = useAuthStore((s) => s.session?.isStaff);
+  // Drives the feed's "edit/delete only your own entries" guard. Memoized so the
+  // memoized ActivityFeed sees a stable prop across the 60s tick re-renders.
+  const currentUser = useMemo(
+    () => (userName ? { userName, isStaff } : undefined),
+    [userName, isStaff],
+  );
   const welcomeDismissed = useUiStore((s) => s.welcomeDismissed);
   const dismissWelcome = useUiStore((s) => s.dismissWelcome);
   const revealHiddenUntil = useUiStore((s) => s.revealHiddenUntil);
@@ -446,6 +453,7 @@ export function DashboardScreen({ navigation }: Props) {
         <ActivityFeed
           entries={feedEntries}
           now={now}
+          currentUser={currentUser}
           onEditEntry={openEdit}
           onDeleteEntry={confirmDelete}
         />
