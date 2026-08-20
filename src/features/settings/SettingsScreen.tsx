@@ -29,6 +29,7 @@ import { useLocalDataStore } from '../../data/localDataStore';
 import { useEffectiveLanguage } from '../../hooks/useAppLanguage';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../i18n';
 import { queryKeys, useDashboardData } from '../../data/queries';
+import { performLogout } from '../../data/logout';
 import { DateTimeField } from '../logEntry/DateTimeField';
 import type { TimeFormat } from '../../lib/timeFormat';
 
@@ -56,7 +57,7 @@ export function SettingsScreen({ navigation }: Props) {
   const { scheme, colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const session = useAuthStore((s) => s.session);
-  const signOut = useAuthStore((s) => s.signOut);
+  const queryClient = useQueryClient();
   const isLocal = session?.mode === 'local';
   const { children } = useDashboardData();
   const defaults = useSettingsStore((s) => s.defaultFoodMl);
@@ -130,6 +131,31 @@ export function SettingsScreen({ navigation }: Props) {
             </View>
           </Card>
         </Pressable>
+
+        {/* Any real staff session — direct Baby Buddy or via the Home Assistant
+            ingress (which serves the same admin web pages under session.baseUrl).
+            Offline mode has no server to manage. */}
+        {session?.isStaff && session.mode !== 'local' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('share.navTitle')}
+            onPress={() => navigation.navigate('ShareInstance')}
+          >
+            <Card style={styles.navRow}>
+              <View style={styles.navText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('share.navTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('share.navHint')}
+                </AppText>
+              </View>
+              <View style={styles.chevron}>
+                <ChevronLeftGlyph size={20} color={colors.textMuted} />
+              </View>
+            </Card>
+          </Pressable>
+        ) : null}
 
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
@@ -287,7 +313,7 @@ export function SettingsScreen({ navigation }: Props) {
           variant="danger"
           fullWidth
           onPress={() => {
-            signOut();
+            performLogout(queryClient);
           }}
         />
       </ScrollView>

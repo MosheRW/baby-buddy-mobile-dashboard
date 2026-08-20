@@ -35,15 +35,19 @@ export interface GroupEditorParams {
   groupId: string;
 }
 
-/** All stack screens. `Login` shows only while unauthenticated; the rest only
- * while authenticated (React Navigation's conditional-screens pattern). */
+/** All stack screens. `Login`/`ScanLogin` show only while unauthenticated; the
+ * rest only while authenticated (React Navigation's conditional-screens pattern). */
 export type MainStackParamList = {
   Login: undefined;
+  /** Camera QR scanner reached from the login screen (unauthenticated). */
+  ScanLogin: undefined;
   Dashboard: undefined;
   LogEntry: LogEntryParams;
   Settings: undefined;
   Notifications: undefined;
   AdvancedSettings: undefined;
+  /** Admin-only: manage caregivers and generate join QR codes (Issue #34). */
+  ShareInstance: undefined;
   KidEditor: KidEditorParams;
   GroupEditor: GroupEditorParams;
   DeleteConfirm: DeleteConfirmParams;

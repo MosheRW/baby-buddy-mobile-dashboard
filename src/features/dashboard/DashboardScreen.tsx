@@ -31,6 +31,7 @@ import { hiddenCount, visibleChildren } from '../../lib/visibility';
 import { useMinuteTick, useTimerTick } from '../../hooks/useTick';
 import { useTimerActions } from '../../hooks/useTimers';
 import { entryTitle } from '../../lib/entryDisplay';
+import { displayUserName } from '../../lib/userName';
 import { notificationAction } from '../../lib/notifications';
 import {
   useDeliveredNotifications,
@@ -351,7 +352,10 @@ export function DashboardScreen({ navigation }: Props) {
           <View>
             <AppText size={fontSize.screenTitle} weight="800">
               {userName
-                ? t('dashboard.greetingWithName', { greeting: greeting(now), name: userName })
+                ? t('dashboard.greetingWithName', {
+                    greeting: greeting(now),
+                    name: displayUserName(userName),
+                  })
                 : greeting(now)}
             </AppText>
             <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>

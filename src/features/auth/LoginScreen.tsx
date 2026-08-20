@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ActionButton, AppText, SegmentedToggle, TextField } from '../../components';
 import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
+import type { MainStackParamList } from '../../navigation/types';
 import type { LoginMode } from '../../api/types';
 import { useAuthStore } from '../../stores';
 import { useLocalDataStore } from '../../data/localDataStore';
 import { PasswordLoginUnavailable, signInWithPassword, signInWithToken } from '../../api/auth';
 import { errorMessage, normalizeBaseUrl } from '../../api/client';
 import { USE_MOCK_DATA } from '../../data/dataSource';
+import { useFieldChain } from '../../hooks/useFieldChain';
 import { DateTimeField } from '../logEntry/DateTimeField';
 
 /** Author name stamped on entries logged in offline mode (single-user). */
@@ -22,7 +25,7 @@ const LOCAL_USER = 'Me';
  * server that won't return the key, or the web build where cookies are blocked
  * cross-origin — the screen falls back to asking for the key directly.
  */
-export function LoginScreen() {
+export function LoginScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -112,6 +115,9 @@ export function LoginScreen() {
 
   const showKeyField = useApiKey || isHa;
 
+  // Return-key navigation: username → password → submit.
+  const credentialsChain = useFieldChain(2, () => void submit());
+
   const ctaLabel = () => {
     if (busy) return t('login.connecting');
     if (isLocal) return hasLocalData ? t('login.continueOffline') : t('login.startOffline');
@@ -120,11 +126,13 @@ export function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {/* `padding` on Android too — see ShareInstanceScreen. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+        >
           <View style={styles.logo} />
           <AppText size={fontSize.screenTitle} weight="800" style={styles.title}>
             {t('login.title')}
@@ -208,6 +216,7 @@ export function LoginScreen() {
             ) : (
               <>
                 <TextField
+                  {...credentialsChain.fieldProps(0)}
                   label={t('login.username')}
                   placeholder={t('login.usernamePlaceholder')}
                   autoCapitalize="none"
@@ -216,6 +225,7 @@ export function LoginScreen() {
                   onChangeText={setUsername}
                 />
                 <TextField
+                  {...credentialsChain.fieldProps(1)}
                   label={t('login.password')}
                   placeholder={t('login.passwordPlaceholder')}
                   secureTextEntry
@@ -264,11 +274,25 @@ export function LoginScreen() {
               />
             </View>
           ) : null}
+
+          {!isLocal ? (
+            <View style={styles.switcher}>
+              <ActionButton
+                label={t('login.scanQr')}
+                variant="neutral"
+                fullWidth
+                disabled={busy}
+                onPress={() => navigation.navigate('ScanLogin')}
+              />
+            </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+type Props = NativeStackScreenProps<MainStackParamList, 'Login'>;
 
 const makeStyles = ({ colors }: AppTheme) =>
   StyleSheet.create({

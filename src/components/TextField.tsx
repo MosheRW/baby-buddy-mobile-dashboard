@@ -21,14 +21,22 @@ interface TextFieldProps extends TextInputProps {
 /**
  * White input: 14px radius, 14×16 padding, 13px 600-weight text.
  * Pass `label` to render the standard FieldLabel above it.
+ *
+ * Forwards its ref to the underlying `TextInput` so a multi-field form can move
+ * focus from one field to the next on the keyboard's return key (see
+ * `useFieldChain`).
  */
-export function TextField({ label, multilineFixed, style, ...rest }: TextFieldProps) {
+export const TextField = React.forwardRef<TextInput, TextFieldProps>(function TextField(
+  { label, multilineFixed, style, ...rest },
+  ref,
+) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <View>
       {label ? <FieldLabel>{label}</FieldLabel> : null}
       <TextInput
+        ref={ref}
         placeholderTextColor={colors.textMuted}
         style={[styles.input, multilineFixed && styles.multiline, style]}
         multiline={multilineFixed || rest.multiline}
@@ -36,7 +44,7 @@ export function TextField({ label, multilineFixed, style, ...rest }: TextFieldPr
       />
     </View>
   );
-}
+});
 
 const makeStyles = ({ colors }: AppTheme) =>
   StyleSheet.create({

@@ -12,6 +12,7 @@ import {
   type FeedFilter,
 } from '../../lib/feed';
 import { filterByTag, selectableTagLabels } from '../../lib/tags';
+import { displayUserName } from '../../lib/userName';
 import {
   entryDurationLabel,
   entryTitle,
@@ -237,7 +238,9 @@ const FeedRow = React.memo(function FeedRow({
           {author ? (
             <View style={[styles.tagChip, styles.authorChip]}>
               <AppText size={fontSize.micro} weight="700" color={colors.textMuted}>
-                {author.label}
+                {/* Display only — the stored label keeps its underscores, since
+                    the "by {creator}" tag is wire format parsed by prefix. */}
+                {displayUserName(author.label)}
               </AppText>
             </View>
           ) : null}
