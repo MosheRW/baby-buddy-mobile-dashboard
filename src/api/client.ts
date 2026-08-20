@@ -163,6 +163,15 @@ export async function rawRequest(options: RequestOptions): Promise<unknown> {
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
+      // Never send cookies on a REST call. The password-login bootstrap
+      // (webForm.ts) seats Django `sessionid`/`csrftoken` cookies in RN's
+      // shared jar; if they ride along here, DRF's SessionAuthentication (tried
+      // before TokenAuthentication) picks them up and enforces CSRF on unsafe
+      // methods — so a token-authenticated DELETE/POST/PATCH fails with
+      // "CSRF Failed: CSRF token missing." Omitting credentials keeps the API
+      // purely token-authenticated and stateless. The web-form flows keep their
+      // own cookie-carrying fetches; only this REST path opts out.
+      credentials: 'omit',
     });
   } catch (err) {
     // An abort from our own timer is a timeout; anything else is a transport failure.

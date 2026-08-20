@@ -68,3 +68,17 @@ describe('rawRequest error classification', () => {
     await expect(rawRequest({ ...opts, method: 'DELETE' })).resolves.toBeNull();
   });
 });
+
+describe('rawRequest is stateless (no cookies)', () => {
+  it("omits credentials so a leaked Django session cookie can't trigger CSRF", async () => {
+    mockFetchOnce({ status: 204 });
+    await rawRequest({ ...opts, method: 'DELETE' });
+    const init = (global.fetch as jest.Mock).mock.calls[0][1];
+    // The password-login bootstrap leaves sessionid/csrftoken in RN's cookie
+    // jar; without this, DRF SessionAuthentication would enforce CSRF on the
+    // token-authenticated DELETE and reject it.
+    expect(init.credentials).toBe('omit');
+    // And the request is authenticated by token header, not cookies.
+    expect(init.headers.Authorization).toBe('Token t');
+  });
+});
