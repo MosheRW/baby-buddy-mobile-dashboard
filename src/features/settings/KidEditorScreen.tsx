@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Card, Chip, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
+import { useDynamicColorSupported } from '../../theme/dynamicColor';
 import type { MainStackParamList } from '../../navigation/types';
 import { useKidsStore } from '../../stores';
 import { useDashboardData } from '../../data/queries';
@@ -21,6 +22,7 @@ export function KidEditorScreen({ navigation, route }: Props) {
   const { childId } = route.params;
   const { children } = useDashboardData();
   const child = children.find((c) => c.id === childId);
+  const dynamicSupported = useDynamicColorSupported();
 
   const hidden = useKidsStore((s) => s.hidden);
   const setHidden = useKidsStore((s) => s.setHidden);
@@ -77,6 +79,7 @@ export function KidEditorScreen({ navigation, route }: Props) {
               value={childAccent[childId] ?? null}
               onChange={(hue) => setChildAccent(childId, hue)}
               autoLabel={t('advanced.accentAuto')}
+              matchPhoneLabel={dynamicSupported ? t('advanced.accentMatchPhone') : undefined}
             />
           </Card>
 

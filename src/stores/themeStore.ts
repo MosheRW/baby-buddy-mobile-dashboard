@@ -19,6 +19,9 @@ export const THEME_PREFERENCES: ThemePreference[] = ['system', 'light', 'dark'];
 interface ThemeState {
   preference: ThemePreference;
   setPreference: (preference: ThemePreference) => void;
+  /** Match the app's accent to the phone's Material You wallpaper colour (Android 12+ only). Default on. */
+  dynamicColorEnabled: boolean;
+  setDynamicColorEnabled: (enabled: boolean) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -26,6 +29,8 @@ export const useThemeStore = create<ThemeState>()(
     (set) => ({
       preference: 'system',
       setPreference: (preference) => set({ preference }),
+      dynamicColorEnabled: true,
+      setDynamicColorEnabled: (dynamicColorEnabled) => set({ dynamicColorEnabled }),
     }),
     {
       name: 'theme',

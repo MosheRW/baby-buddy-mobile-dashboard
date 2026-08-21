@@ -1,4 +1,5 @@
 import type { Child } from '../api/types';
+import { DYNAMIC_ACCENT_HUE } from '../theme/accent';
 import {
   effectiveHue,
   hiddenCount,
@@ -6,9 +7,12 @@ import {
   isScheduleActive,
   newChildIds,
   visibleChildren,
+  type DynamicAccentState,
   type KidsVisibilityState,
   type VisibilitySchedule,
 } from './visibility';
+
+const NO_DYNAMIC: DynamicAccentState = { systemHue: null, applyAsDefault: false };
 
 function child(id: string, hue = 100): Child {
   return {
@@ -87,19 +91,57 @@ describe('isScheduleActive', () => {
 describe('effectiveHue', () => {
   it('prefers the child override, then the group colour, then the default hue', () => {
     const c = child('a', 100);
-    expect(effectiveHue(c, emptyState())).toBe(100);
+    expect(effectiveHue(c, emptyState(), NO_DYNAMIC)).toBe(100);
 
     const grouped = emptyState({
       childGroupId: { a: 'g1' },
       groups: { g1: { id: 'g1', name: 'A', accentHue: 200, order: 0 } },
     });
-    expect(effectiveHue(c, grouped)).toBe(200);
+    expect(effectiveHue(c, grouped, NO_DYNAMIC)).toBe(200);
 
     const overridden = emptyState({
       ...grouped,
       childAccent: { a: 320 },
     });
-    expect(effectiveHue(c, overridden)).toBe(320);
+    expect(effectiveHue(c, overridden, NO_DYNAMIC)).toBe(320);
+  });
+
+  it('resolves an explicit per-child "match phone" pick to the live system hue', () => {
+    const c = child('a', 100);
+    const state = emptyState({ childAccent: { a: DYNAMIC_ACCENT_HUE } });
+    expect(effectiveHue(c, state, { systemHue: 210, applyAsDefault: false })).toBe(210);
+  });
+
+  it('falls through to the next tier when the system hue is unknown', () => {
+    const c = child('a', 100);
+    const state = emptyState({ childAccent: { a: DYNAMIC_ACCENT_HUE } });
+    expect(effectiveHue(c, state, NO_DYNAMIC)).toBe(100);
+  });
+
+  it('resolves an explicit group-level "match phone" pick to the live system hue', () => {
+    const c = child('a', 100);
+    const state = emptyState({
+      childGroupId: { a: 'g1' },
+      groups: { g1: { id: 'g1', name: 'A', accentHue: DYNAMIC_ACCENT_HUE, order: 0 } },
+    });
+    expect(effectiveHue(c, state, { systemHue: 55, applyAsDefault: false })).toBe(55);
+  });
+
+  it('applies the global default only when neither child nor group has an explicit accent', () => {
+    const c = child('a', 100);
+    expect(effectiveHue(c, emptyState(), { systemHue: 42, applyAsDefault: true })).toBe(42);
+  });
+
+  it('never lets the global default override an explicit manual swatch pick', () => {
+    const c = child('a', 100);
+    const state = emptyState({ childAccent: { a: 320 } });
+    expect(effectiveHue(c, state, { systemHue: 42, applyAsDefault: true })).toBe(320);
+
+    const grouped = emptyState({
+      childGroupId: { a: 'g1' },
+      groups: { g1: { id: 'g1', name: 'A', accentHue: 200, order: 0 } },
+    });
+    expect(effectiveHue(c, grouped, { systemHue: 42, applyAsDefault: true })).toBe(200);
   });
 });
 

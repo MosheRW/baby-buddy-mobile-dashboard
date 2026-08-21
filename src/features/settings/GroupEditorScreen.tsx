@@ -13,6 +13,7 @@ import {
   useThemedStyles,
   type AppTheme,
 } from '../../theme';
+import { useDynamicColorSupported } from '../../theme/dynamicColor';
 import type { MainStackParamList } from '../../navigation/types';
 import { useKidsStore } from '../../stores';
 import { useDashboardData } from '../../data/queries';
@@ -27,6 +28,7 @@ export function GroupEditorScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(makeStyles);
   const { groupId } = route.params;
   const { children } = useDashboardData();
+  const dynamicSupported = useDynamicColorSupported();
 
   const group = useKidsStore((s) => s.groups[groupId]);
   const childGroupId = useKidsStore((s) => s.childGroupId);
@@ -80,6 +82,7 @@ export function GroupEditorScreen({ navigation, route }: Props) {
               value={group.accentHue ?? null}
               onChange={(hue) => setGroupAccent(groupId, hue)}
               autoLabel={t('advanced.accentAuto')}
+              matchPhoneLabel={dynamicSupported ? t('advanced.accentMatchPhone') : undefined}
             />
           </Card>
 

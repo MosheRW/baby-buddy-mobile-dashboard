@@ -21,6 +21,7 @@
  */
 
 import React, { createContext, useContext, useLayoutEffect, useMemo } from 'react';
+import { brandAccentColor } from './accent';
 import { PALETTES, type Scheme, type ThemePalette } from './palette';
 import { setActiveScheme } from './scheme';
 
@@ -28,7 +29,16 @@ export type AppTheme = ThemePalette;
 
 const ThemeContext = createContext<AppTheme>(PALETTES.light);
 
-export function ThemeProvider({ scheme, children }: { scheme: Scheme; children: React.ReactNode }) {
+export function ThemeProvider({
+  scheme,
+  accentHue = null,
+  children,
+}: {
+  scheme: Scheme;
+  /** Material You hue override for `colors.accent`, or `null` for the fixed terracotta. */
+  accentHue?: number | null;
+  children: React.ReactNode;
+}) {
   // Mirrored into the module-level accessor twice, deliberately.
   //
   // During render, because pure helpers and glyph default props read it in
@@ -46,7 +56,20 @@ export function ThemeProvider({ scheme, children }: { scheme: Scheme; children: 
     setActiveScheme(scheme);
   }, [scheme]);
 
-  return <ThemeContext.Provider value={PALETTES[scheme]}>{children}</ThemeContext.Provider>;
+  const base = PALETTES[scheme];
+  // Only breaks `PALETTES`' frozen-singleton identity when a dynamic accent
+  // is actually active — the same cost a scheme switch already pays (a full
+  // `useThemedStyles` rebuild), paid only on a real colour change (app start,
+  // the Settings toggle, or an Android Activity recreation), never per-render.
+  const theme = useMemo<AppTheme>(
+    () =>
+      accentHue == null
+        ? base
+        : { ...base, colors: { ...base.colors, accent: brandAccentColor(accentHue, scheme) } },
+    [base, accentHue, scheme],
+  );
+
+  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }
 
 /** The active palette. Subscribes the component to scheme changes. */

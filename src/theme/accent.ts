@@ -31,6 +31,15 @@ export const ACCENT_SWATCHES: { id: string; hue: number }[] = [
   { id: 'pink', hue: 330 },
 ];
 
+/**
+ * Sentinel stored in `childAccent`/`group.accentHue` (both plain `number`, so
+ * this needs no new field or store migration) meaning "resolve to whatever
+ * the current Material You hue is" — resolved by `effectiveHue` in
+ * `src/lib/visibility.ts`, never by `accentColors`/`brandAccentColor`
+ * themselves, since neither of those know about the live system hue.
+ */
+export const DYNAMIC_ACCENT_HUE = -1;
+
 export interface AccentColors {
   /** Gradient stops for the card background (top-left → bottom-right). */
   gradientFrom: string;
@@ -81,4 +90,20 @@ export function accentColors(hue: number, scheme: Scheme = getScheme()): AccentC
     avatarBg: tint.bg,
     avatarFg: tint.fg,
   };
+}
+
+/**
+ * The app-wide brand accent (buttons, header, active chip states) for a given
+ * hue, used when Material You dynamic colour is active. S/L are tuned to
+ * reproduce the existing fixed terracotta as closely as possible — light
+ * `#E0906B` is ~H19 S65 L65, dark `#E9A588` is ~H18 S69 L72 — so swapping the
+ * hue changes only the hue, not the accent's saturation/brightness character.
+ *
+ * `onAccent` is deliberately not derived from hue here; callers keep the
+ * fixed palette value (white on light, near-black on dark), since that's a
+ * contrast decision, not a colour one.
+ */
+export function brandAccentColor(hue: number, scheme: Scheme): string {
+  const h = norm(hue);
+  return scheme === 'dark' ? `hsl(${h}, 69%, 72%)` : `hsl(${h}, 65%, 65%)`;
 }
