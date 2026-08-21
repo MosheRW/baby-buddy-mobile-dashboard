@@ -21,13 +21,18 @@
  * dynamic colour changes (an OS config change that can't be disabled), which
  * remounts the RN app and re-invokes `useMaterial3Theme()` — no polling.
  */
-import React, { createContext, useContext, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { isDynamicThemeSupported, useMaterial3Theme } from '@pchmn/expo-material3-theme';
+import { PALETTES } from './palette';
 
-/** The light palette's fixed terracotta accent — see `palette.ts`. */
-const TERRACOTTA_HEX = '#E0906B';
+/**
+ * Source colour handed to the Material You theme generator when the device has
+ * no dynamic palette. Derived from the light palette's own accent rather than a
+ * hardcoded literal, so it can't silently drift if that value ever changes.
+ */
+const FALLBACK_SOURCE_COLOR = PALETTES.light.colors.accent;
 
 /** Pure RGB→HSL, returning only the hue. */
 export function hexToHue(hex: string): number {
@@ -53,24 +58,45 @@ export function hexToHue(hex: string): number {
   return hue < 0 ? hue + 360 : hue;
 }
 
-const DynamicAccentContext = createContext<number | null>(null);
+interface DynamicAccentValue {
+  /** The phone's current system accent hue, or `null` off-Android / unsupported. */
+  hue: number | null;
+  /**
+   * Whether the OS actually exposes a Material You palette — true only on
+   * Android 12+ in a real build. Gating UI (the Settings toggle, the "match
+   * phone" chip) on this instead of just `Platform.OS === 'android'` keeps a
+   * dead, no-effect control off Android <12 and out of Expo Go.
+   */
+  supported: boolean;
+}
+
+/** Stable identity for the non-Android / no-context case, so consumers don't re-render needlessly. */
+const UNSUPPORTED: DynamicAccentValue = { hue: null, supported: false };
+
+const DynamicAccentContext = createContext<DynamicAccentValue>(UNSUPPORTED);
 
 /** The current system accent hue, or `null` off-Android / unsupported. */
 export function useDynamicAccentHue(): number | null {
-  return useContext(DynamicAccentContext);
+  return useContext(DynamicAccentContext).hue;
+}
+
+/** Whether the device can source an accent from Material You (Android 12+ real build). */
+export function useDynamicColorSupported(): boolean {
+  return useContext(DynamicAccentContext).supported;
 }
 
 function AndroidDynamicAccent({ children }: { children: ReactNode }) {
-  const { theme } = useMaterial3Theme({ fallbackSourceColor: TERRACOTTA_HEX });
+  const { theme } = useMaterial3Theme({ fallbackSourceColor: FALLBACK_SOURCE_COLOR });
   const supported = isDynamicThemeSupported && Constants.appOwnership !== 'expo';
   const hue = supported ? hexToHue(theme.light.primary) : null;
-  return <DynamicAccentContext.Provider value={hue}>{children}</DynamicAccentContext.Provider>;
+  const value = useMemo<DynamicAccentValue>(() => ({ hue, supported }), [hue, supported]);
+  return <DynamicAccentContext.Provider value={value}>{children}</DynamicAccentContext.Provider>;
 }
 
-/** Wrap the app in this to make `useDynamicAccentHue()` available. */
+/** Wrap the app in this to make `useDynamicAccentHue()` / `useDynamicColorSupported()` available. */
 export function DynamicAccentProvider({ children }: { children: ReactNode }) {
   if (Platform.OS !== 'android') {
-    return <DynamicAccentContext.Provider value={null}>{children}</DynamicAccentContext.Provider>;
+    return <DynamicAccentContext.Provider value={UNSUPPORTED}>{children}</DynamicAccentContext.Provider>;
   }
   return <AndroidDynamicAccent>{children}</AndroidDynamicAccent>;
 }

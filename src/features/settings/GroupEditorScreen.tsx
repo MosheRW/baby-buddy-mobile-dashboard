@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,7 @@ import {
   useThemedStyles,
   type AppTheme,
 } from '../../theme';
-import { useDynamicAccentHue } from '../../theme/dynamicColor';
+import { useDynamicColorSupported } from '../../theme/dynamicColor';
 import type { MainStackParamList } from '../../navigation/types';
 import { useKidsStore } from '../../stores';
 import { useDashboardData } from '../../data/queries';
@@ -28,7 +28,7 @@ export function GroupEditorScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(makeStyles);
   const { groupId } = route.params;
   const { children } = useDashboardData();
-  const systemHue = useDynamicAccentHue();
+  const dynamicSupported = useDynamicColorSupported();
 
   const group = useKidsStore((s) => s.groups[groupId]);
   const childGroupId = useKidsStore((s) => s.childGroupId);
@@ -82,8 +82,7 @@ export function GroupEditorScreen({ navigation, route }: Props) {
               value={group.accentHue ?? null}
               onChange={(hue) => setGroupAccent(groupId, hue)}
               autoLabel={t('advanced.accentAuto')}
-              dynamicHue={Platform.OS === 'android' ? systemHue : undefined}
-              dynamicLabel={t('advanced.accentMatchPhone')}
+              matchPhoneLabel={dynamicSupported ? t('advanced.accentMatchPhone') : undefined}
             />
           </Card>
 

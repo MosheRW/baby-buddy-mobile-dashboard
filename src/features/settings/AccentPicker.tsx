@@ -25,31 +25,23 @@ interface AccentPickerProps {
   /** Localised label for the "auto / no override" option. */
   autoLabel: string;
   /**
-   * The phone's current Material You hue, or `undefined` to hide the "match
-   * phone" chip entirely (non-Android callers). `null` means Android but no
-   * hue available yet — the chip still renders so it can be selected ahead
-   * of a hue becoming available.
+   * Localised label for the "match phone" (Material You) option. When set, the
+   * chip renders and binds to `DYNAMIC_ACCENT_HUE`; omit it to hide the option
+   * entirely (non-Android, or a device without Material You support). Making the
+   * label itself the presence signal means the chip can never render blank.
    */
-  dynamicHue?: number | null;
-  /** Localised label for the "match my phone" option. Required when `dynamicHue` is passed. */
-  dynamicLabel?: string;
+  matchPhoneLabel?: string;
 }
 
-export function AccentPicker({
-  value,
-  onChange,
-  autoLabel,
-  dynamicHue,
-  dynamicLabel,
-}: AccentPickerProps) {
+export function AccentPicker({ value, onChange, autoLabel, matchPhoneLabel }: AccentPickerProps) {
   const { scheme } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.wrap}>
       <Chip label={autoLabel} active={value == null} onPress={() => onChange(null)} />
-      {dynamicHue !== undefined ? (
+      {matchPhoneLabel != null ? (
         <Chip
-          label={dynamicLabel ?? ''}
+          label={matchPhoneLabel}
           active={value === DYNAMIC_ACCENT_HUE}
           onPress={() => onChange(DYNAMIC_ACCENT_HUE)}
         />
