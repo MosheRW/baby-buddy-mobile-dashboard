@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import {
   useThemedStyles,
   type AppTheme,
 } from '../../theme';
+import { useDynamicColorSupported } from '../../theme/dynamicColor';
 import type { Child } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import {
@@ -73,6 +74,7 @@ export function SettingsScreen({ navigation }: Props) {
   const setThemePreference = useThemeStore((s) => s.setPreference);
   const dynamicColorEnabled = useThemeStore((s) => s.dynamicColorEnabled);
   const setDynamicColorEnabled = useThemeStore((s) => s.setDynamicColorEnabled);
+  const dynamicColorSupported = useDynamicColorSupported();
 
   const defaultMl = (id: string, fallback: number) => defaults[id] ?? fallback;
 
@@ -154,7 +156,7 @@ export function SettingsScreen({ navigation }: Props) {
             </AppText>
           ) : null}
           {/* Material You is Android-12+ only — meaningless elsewhere, so hidden rather than disabled. */}
-          {Platform.OS === 'android' ? (
+          {dynamicColorSupported ? (
             <View style={styles.toggleRow}>
               <View style={styles.toggleText}>
                 <AppText size={fontSize.body} weight="700">
