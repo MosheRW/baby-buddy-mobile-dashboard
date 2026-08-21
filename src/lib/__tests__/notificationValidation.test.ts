@@ -70,6 +70,7 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     diaperInterval: { enabled: false },
     foodMin: { enabled: false },
     liveTimer: { enabled: false },
+    liveMed: { enabled: false },
     weeklySummary: { enabled: false, weekday: 0, hour: 9 },
     perChild: { c1: { diaperIntervalMinutes: DIAPER_INTERVAL } },
     ...over,

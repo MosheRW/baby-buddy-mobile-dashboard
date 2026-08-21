@@ -477,6 +477,8 @@ export const he = {
     forgottenSleepLabel: 'שינה',
     liveTitle: 'טיימרים פעילים',
     liveHint: 'השאירו התראה חיה במגירת ההתראות כל עוד טיימר פועל.',
+    liveMedTitle: 'ספירה לקראת מנה',
+    liveMedHint: 'הצגת ספירה חיה לקראת המנה הבאה, ולאחר מכן בכמה היא באיחור.',
     diaperTitle: 'החלפות חיתול',
     diaperHint: 'הזכירו לי כשעבר יותר מדי זמן מאז ההחלפה האחרונה.',
     foodTitle: 'מרווחי האכלה',
@@ -527,6 +529,11 @@ export const he = {
     liveTimerTitle: 'טיימר {{activity}} פעיל',
     liveTimerBody: '{{child}} · פועל כבר {{duration}}',
     liveTimerBody_noChild: 'פועל כבר {{duration}}',
+    // התראות כרונומטר חי: מערכת ההפעלה מציירת את השעון המתקתק, ולכן אלו רק שורת
+    // הטקסט הנלווית, ללא {{duration}}.
+    liveChronoRunning: 'פועל',
+    liveMedBody: '{{med}} · {{child}}',
+    liveMedBody_noChild: '{{med}}',
     diaperBody: 'לא הוחלף חיתול ל{{child}} כבר {{duration}}.',
     foodBody: '{{child}} לא אכל/ה כבר {{duration}}.',
     foodBodyMin: '{{child}} לא אכל/ה כבר {{duration}} — כדאי לתת לפחות {{min}} מ״ל.',

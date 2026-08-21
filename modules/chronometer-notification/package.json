@@ -1,0 +1,7 @@
+{
+  "name": "chronometer-notification",
+  "version": "0.1.0",
+  "description": "Android-native chronometer notifications for live timers and medication countdowns",
+  "main": "index.ts",
+  "private": true
+}

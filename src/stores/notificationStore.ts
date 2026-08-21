@@ -50,6 +50,7 @@ interface NotificationState {
   diaperInterval: { enabled: boolean };
   foodMin: { enabled: boolean };
   liveTimer: { enabled: boolean };
+  liveMed: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
   perChild: Record<string, PerChildThresholds>;
   /**
@@ -72,6 +73,7 @@ interface NotificationState {
   setForgottenTimerMinutes: (minutes: number) => void;
   setForgottenTimerSleepMinutes: (minutes: number) => void;
   setLiveTimerEnabled: (enabled: boolean) => void;
+  setLiveMedEnabled: (enabled: boolean) => void;
   setIntervalCaseEnabled: (id: IntervalCaseId, enabled: boolean) => void;
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
   updateWeeklySummary: (patch: Partial<WeeklySummarySettings>) => void;
@@ -104,6 +106,9 @@ export const useNotificationStore = create<NotificationState>()(
       foodMin: { enabled: false },
       // On by default — it's the point of this feature; the toggle is the opt-out.
       liveTimer: { enabled: true },
+      // On by default too; supplements the fire-once "due" alert with a live
+      // countdown. Only materializes on a build with the native chronometer module.
+      liveMed: { enabled: true },
       // On by default (it's the point of the feature); the toggle is the opt-out.
       // Sunday 9am is a natural "week in review" slot and the start of the week
       // in the he locale too.
@@ -141,6 +146,8 @@ export const useNotificationStore = create<NotificationState>()(
 
       setLiveTimerEnabled: (enabled) => set({ liveTimer: { enabled } }),
 
+      setLiveMedEnabled: (enabled) => set({ liveMed: { enabled } }),
+
       setIntervalCaseEnabled: (id, enabled) =>
         set(() => ({ [id]: { enabled } }) as Pick<NotificationState, IntervalCaseId>),
 
@@ -159,7 +166,7 @@ export const useNotificationStore = create<NotificationState>()(
     }),
     {
       name: 'notifications',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => asyncStorage),
       // permissionStatus / backgroundStatus are live OS state, not preferences —
       // never persist them.
@@ -208,6 +215,11 @@ export const useNotificationStore = create<NotificationState>()(
         if (version < 3 && state?.backgroundRefresh == null) {
           state = { ...state, backgroundRefresh: { enabled: false } };
         }
+        // v4 added the live medication countdown; pre-v4 state has no such
+        // preference, so seed it on (matching the default) — the toggle is the opt-out.
+        if (version < 4 && state?.liveMed == null) {
+          state = { ...state, liveMed: { enabled: true } };
+        }
         return state;
       },
     },
@@ -232,6 +244,7 @@ export function selectNotificationSettings(s: NotificationState): NotificationSe
     diaperInterval: s.diaperInterval,
     foodMin: s.foodMin,
     liveTimer: s.liveTimer,
+    liveMed: s.liveMed,
     weeklySummary: s.weeklySummary,
     perChild: s.perChild,
   };

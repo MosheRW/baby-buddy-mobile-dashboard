@@ -37,6 +37,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const medEligibility = useNotificationStore((s) => s.medEligibility);
   const forgottenTimer = useNotificationStore((s) => s.forgottenTimer);
   const liveTimer = useNotificationStore((s) => s.liveTimer);
+  const liveMed = useNotificationStore((s) => s.liveMed);
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
@@ -52,6 +53,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
     (s) => s.setForgottenTimerSleepMinutes,
   );
   const setLiveTimerEnabled = useNotificationStore((s) => s.setLiveTimerEnabled);
+  const setLiveMedEnabled = useNotificationStore((s) => s.setLiveMedEnabled);
   const setBackgroundRefreshEnabled = useNotificationStore((s) => s.setBackgroundRefreshEnabled);
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
   const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
@@ -224,6 +226,21 @@ export function NotificationSettingsScreen({ navigation }: Props) {
             <ToggleSwitch
               value={liveTimer.enabled}
               onValueChange={setLiveTimerEnabled}
+              disabled={!masterEnabled}
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('notifications.liveMedTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.liveMedHint')}
+              </AppText>
+            </View>
+            <ToggleSwitch
+              value={liveMed.enabled}
+              onValueChange={setLiveMedEnabled}
               disabled={!masterEnabled}
             />
           </View>
