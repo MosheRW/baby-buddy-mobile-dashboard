@@ -2,6 +2,7 @@ package expo.modules.chronometernotification
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.SystemClock
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -59,10 +60,19 @@ class ChronometerNotificationModule : Module() {
         if (ctx.applicationInfo.icon != 0) ctx.applicationInfo.icon
         else android.R.drawable.ic_dialog_info
 
+      // `RemoteViews.setChronometer` (like the underlying `Chronometer` widget)
+      // bases its ticking on `SystemClock.elapsedRealtime()`, not wall-clock time —
+      // passing `anchorMs` (epoch ms) straight through would show a wildly wrong
+      // elapsed/remaining time. Convert it to the elapsed-realtime instant that
+      // corresponds to the same wall-clock moment; `setWhen` below is unaffected,
+      // since the notification header's timestamp *is* wall-clock (epoch ms).
+      val elapsedBase =
+        SystemClock.elapsedRealtime() + (options.anchorMs.toLong() - System.currentTimeMillis())
+
       val views = RemoteViews(ctx.packageName, R.layout.notification_chronometer)
       views.setTextViewText(R.id.chrono_title, options.title)
       views.setTextViewText(R.id.chrono_subtitle, options.text)
-      views.setChronometer(R.id.chrono_clock, options.anchorMs.toLong(), null, true)
+      views.setChronometer(R.id.chrono_clock, elapsedBase, null, true)
       // Public API since 24; this module's minSdk is already 24 (see build.gradle).
       views.setChronometerCountDown(R.id.chrono_clock, options.countDown)
 
