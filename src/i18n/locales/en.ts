@@ -522,6 +522,13 @@ export const en = {
     titleTimerRunning: 'Timer still running',
     titleDiaperDue: 'Diaper check',
     titleFoodDue: 'Feeding reminder',
+    // Android notification action buttons (issue #43): "remind later" on the
+    // forgotten-timer/diaper/food reminders, plus a same-as-tap shortcut.
+    actionRemindLater: 'Remind later',
+    actionStopTimer: 'Stop timer',
+    actionAddNow: 'Add now',
+    snoozeTitle: 'Remind later delay',
+    snoozeHint: 'How long "Remind later" on a notification postpones it by.',
     medDueBefore: '{{med}} for {{child}} is due in {{duration}}.',
     medDueBefore_noChild: '{{med}} is due in {{duration}}.',
     medDueAt: '{{med}} for {{child}} is due now.',

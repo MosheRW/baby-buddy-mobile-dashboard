@@ -199,6 +199,17 @@ export interface NotificationBuildInput {
    * shows for an account that never created a group.
    */
   kidGroups?: Pick<KidsVisibilityState, 'childGroupId' | 'groups'>;
+  /**
+   * Active "remind later" snoozes, keyed by the same `PlannedNotification.key`
+   * the OS scheduled it under — set by the "remind later" notification action
+   * (see `service.addActionListener`). A snoozed key's `fireAt` is postponed to
+   * at least this timestamp; it never *brings forward* a reminder that would
+   * naturally fire later. Entries the caller no longer considers active (past
+   * their snooze time) should already be filtered out before calling — this
+   * function doesn't expire them itself, it only ever compares against `now`
+   * implicitly via the `fireAt > now` filter below.
+   */
+  snoozedUntil?: Record<string, number>;
 }
 
 /**
@@ -511,7 +522,15 @@ export function buildNotifications(
   input: NotificationBuildInput,
   now: number = Date.now(),
 ): PlannedNotification[] {
+  const snoozed = input.snoozedUntil ?? {};
   const planned = buildCandidates(input, now)
+    // A snooze only ever postpones — a key snoozed to a point *before* its
+    // natural fireAt would otherwise pull the reminder earlier, which isn't
+    // what "remind me later" means.
+    .map((n) => {
+      const until = snoozed[n.key];
+      return until != null && until > n.fireAt ? { ...n, fireAt: until } : n;
+    })
     .filter((n) => n.fireAt > now && (n.key === WEEKLY_KEY || n.fireAt <= now + HORIZON_MS))
     .sort((a, b) => a.fireAt - b.fireAt)
     .slice(0, MAX_PLANNED);

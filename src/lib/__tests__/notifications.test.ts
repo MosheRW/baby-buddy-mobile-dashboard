@@ -286,6 +286,72 @@ describe('buildNotifications — forgotten timers', () => {
   });
 });
 
+describe('buildNotifications — snoozedUntil', () => {
+  const timerOn = (thresholdMinutes = 30, sleepThresholdMinutes = 240) =>
+    settings({ forgottenTimer: { enabled: true, thresholdMinutes, sleepThresholdMinutes } });
+
+  const runningTimer = (over: Partial<RunningTimer> = {}): RunningTimer => ({
+    type: 'feeding',
+    childId: 'c1',
+    startedAt: NOW - 10 * MINUTE,
+    ...over,
+  });
+
+  it('postpones a candidate to the snooze time when it is later than the natural fireAt', () => {
+    const naturalFireAt = NOW - 10 * MINUTE + 30 * MINUTE; // NOW + 20m
+    const snoozeUntil = NOW + 45 * MINUTE;
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer()],
+        settings: timerOn(30),
+        snoozedUntil: { 'timer:feeding:c1': snoozeUntil },
+      }),
+      NOW,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].fireAt).toBe(snoozeUntil);
+    expect(plan[0].fireAt).toBeGreaterThan(naturalFireAt);
+  });
+
+  it('ignores a snooze earlier than the natural fireAt — never pulls a reminder forward', () => {
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer()],
+        settings: timerOn(30),
+        snoozedUntil: { 'timer:feeding:c1': NOW + 1 * MINUTE },
+      }),
+      NOW,
+    );
+    expect(plan[0].fireAt).toBe(NOW - 10 * MINUTE + 30 * MINUTE);
+  });
+
+  it('brings back an already-past candidate that was snoozed into the future', () => {
+    // Past its natural threshold, so with no snooze it would be dropped entirely.
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer({ startedAt: NOW - 50 * MINUTE })],
+        settings: timerOn(30),
+        snoozedUntil: { 'timer:feeding:c1': NOW + 15 * MINUTE },
+      }),
+      NOW,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].fireAt).toBe(NOW + 15 * MINUTE);
+  });
+
+  it('leaves other keys unaffected', () => {
+    const plan = buildNotifications(
+      input({
+        timers: [runningTimer()],
+        settings: timerOn(30),
+        snoozedUntil: { 'diaper:c1': NOW + 999 * MINUTE },
+      }),
+      NOW,
+    );
+    expect(plan[0].fireAt).toBe(NOW - 10 * MINUTE + 30 * MINUTE);
+  });
+});
+
 describe('buildNotifications — diaper interval', () => {
   const diaperOn = (thresholds?: { diaperIntervalMinutes?: number }) =>
     settings({

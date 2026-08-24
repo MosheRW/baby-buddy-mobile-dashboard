@@ -2,6 +2,7 @@ package expo.modules.chronometernotification
 
 import android.app.NotificationManager
 import android.content.Context
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import expo.modules.kotlin.exception.Exceptions
@@ -43,11 +44,27 @@ class ChronometerNotificationModule : Module() {
     Name("ChronometerNotification")
 
     // Present or update one chronometer notification. Idempotent per `id`.
+    //
+    // Draws the clock via a custom `RemoteViews` (`notification_chronometer.xml`)
+    // inside `DecoratedCustomViewStyle`, rather than `setUsesChronometer` on the
+    // builder directly — the builder-level chronometer renders as small text
+    // wedged next to the app name/timestamp, which read as "the smallest detail"
+    // of the notification. The custom view puts the same OS-ticked `Chronometer`
+    // widget front and center, big, the way Android's own Clock app does for a
+    // running timer — while `DecoratedCustomViewStyle` still wraps it with the
+    // system's standard icon/app-name header and (if ever added) action buttons.
     AsyncFunction("present") { options: PresentOptions ->
       val ctx = context
       val iconRes =
         if (ctx.applicationInfo.icon != 0) ctx.applicationInfo.icon
         else android.R.drawable.ic_dialog_info
+
+      val views = RemoteViews(ctx.packageName, R.layout.notification_chronometer)
+      views.setTextViewText(R.id.chrono_title, options.title)
+      views.setTextViewText(R.id.chrono_subtitle, options.text)
+      views.setChronometer(R.id.chrono_clock, options.anchorMs.toLong(), null, true)
+      // Public API since 24; this module's minSdk is already 24 (see build.gradle).
+      views.setChronometerCountDown(R.id.chrono_clock, options.countDown)
 
       val builder = NotificationCompat.Builder(ctx, options.channelId)
         .setSmallIcon(iconRes)
@@ -59,10 +76,10 @@ class ChronometerNotificationModule : Module() {
         // only the first show may alert; the ticking itself is silent.
         .setOnlyAlertOnce(true)
         .setShowWhen(true)
-        .setUsesChronometer(true)
         .setWhen(options.anchorMs.toLong())
-        // NotificationCompat guards this to API 24+ internally.
-        .setChronometerCountDown(options.countDown)
+        .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+        .setCustomContentView(views)
+        .setCustomBigContentView(views)
         .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
 
       NotificationManagerCompat.from(ctx).notify(options.id, NOTIFICATION_ID, builder.build())
