@@ -25,6 +25,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { refreshServerData, useChildren, useEntries } from '../data/queries';
 import {
   buildNotifications,
@@ -69,9 +70,11 @@ export function useNotificationSync(): void {
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
   const backgroundRefresh = useNotificationStore((s) => s.backgroundRefresh.enabled);
+  const snoozedUntil = useNotificationStore((s) => s.snoozedUntil);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
   const setBackgroundStatus = useNotificationStore((s) => s.setBackgroundStatus);
   const me = useAuthStore((s) => s.session?.userName);
+  const { i18n: i18nInstance } = useTranslation();
 
   // One settings object, memoized on the individual store slices and shared by the
   // scheduled plan, the ongoing-timer plan and the delivery validator — the three
@@ -113,11 +116,14 @@ export function useNotificationSync(): void {
 
   const [tick, setTick] = useState(0);
 
-  // Register handler/channel and reflect the live OS permission state once.
+  // Register handler/channel and reflect the live OS permission state once,
+  // and re-register the notification-action categories whenever the active
+  // language changes (their button titles are localized at registration time).
   useEffect(() => {
     void service.initAsync();
+    void service.registerCategoriesAsync();
     void service.getPermissionStatusAsync().then(setPermissionStatus);
-  }, [setPermissionStatus]);
+  }, [setPermissionStatus, i18nInstance.language]);
 
   // Opt-in background refresh: register the WorkManager task while enabled (and the
   // master switch is on), unregister otherwise. `getBackgroundStatusAsync` reflects
@@ -196,6 +202,13 @@ export function useNotificationSync(): void {
       Date.now(),
       false,
     );
+    // Only snoozes still in the future affect the plan; an expired one is
+    // simply inert (never actively pruned from the store — see `snoozedUntil`).
+    // Computed here rather than memoized on render, since it depends on the
+    // current wall-clock time.
+    const activeSnoozes = Object.fromEntries(
+      Object.entries(snoozedUntil).filter(([, until]) => until > Date.now()),
+    );
     const plan = buildNotifications({
       entries: entries ?? [],
       timers,
@@ -207,6 +220,7 @@ export function useNotificationSync(): void {
       // Anything planned without a confirmed fetch is disclaimed: it may fire with
       // the app dead, where the delivery gate can't run.
       unverified: serverConfirmed !== true,
+      snoozedUntil: activeSnoozes,
     });
     // Body is part of the signature so the weekly summary re-syncs when its
     // trailing-week counts change — its fireAt stays fixed all week, but the
@@ -228,6 +242,7 @@ export function useNotificationSync(): void {
     groups,
     childSchedule,
     tick,
+    snoozedUntil,
   ]);
 
   // Delivery-time validation: hand the native service a gate it can call as each

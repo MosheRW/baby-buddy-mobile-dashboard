@@ -61,6 +61,22 @@ interface NotificationState {
    * `src/notifications/backgroundTask.ts`.
    */
   backgroundRefresh: { enabled: boolean };
+  /**
+   * Minutes to postpone a reminder by when the user taps "remind later" on the
+   * forgotten-timer / diaper / food-min notifications (see
+   * `src/notifications/service.ts`'s action categories). One global value —
+   * these are all "time since X" nudges, so a single snooze length is enough.
+   */
+  snoozeMinutes: number;
+  /**
+   * Active snoozes, keyed by the `PlannedNotification.key` the reminder was
+   * scheduled under, value = the epoch ms it's postponed to. Read by
+   * `useNotificationSync` and folded into `buildNotifications` via
+   * `NotificationBuildInput.snoozedUntil`. Persisted so a snooze survives the
+   * app being killed before it re-fires; entries past their time are simply
+   * ignored by the planner rather than actively pruned (see `snoozeNotification`).
+   */
+  snoozedUntil: Record<string, number>;
   /** Live OS permission state — not persisted. */
   permissionStatus: PermissionStatus;
   /** Live background-task availability — not persisted. */
@@ -78,6 +94,9 @@ interface NotificationState {
   setPerChildThreshold: (childId: string, patch: Partial<PerChildThresholds>) => void;
   updateWeeklySummary: (patch: Partial<WeeklySummarySettings>) => void;
   setBackgroundRefreshEnabled: (enabled: boolean) => void;
+  setSnoozeMinutes: (minutes: number) => void;
+  /** Postpone one reminder's next fire to `untilMs` — see `snoozedUntil`. */
+  snoozeNotification: (key: string, untilMs: number) => void;
   setPermissionStatus: (status: PermissionStatus) => void;
   setBackgroundStatus: (status: BackgroundStatus) => void;
 }
@@ -116,6 +135,8 @@ export const useNotificationStore = create<NotificationState>()(
       perChild: {},
       // Opt-in: costs battery, so the user turns it on deliberately.
       backgroundRefresh: { enabled: false },
+      snoozeMinutes: 15,
+      snoozedUntil: {},
       permissionStatus: 'undetermined',
       backgroundStatus: 'unknown',
 
@@ -161,12 +182,17 @@ export const useNotificationStore = create<NotificationState>()(
 
       setBackgroundRefreshEnabled: (enabled) => set({ backgroundRefresh: { enabled } }),
 
+      setSnoozeMinutes: (minutes) => set({ snoozeMinutes: minutes }),
+
+      snoozeNotification: (key, untilMs) =>
+        set((state) => ({ snoozedUntil: { ...state.snoozedUntil, [key]: untilMs } })),
+
       setPermissionStatus: (status) => set({ permissionStatus: status }),
       setBackgroundStatus: (status) => set({ backgroundStatus: status }),
     }),
     {
       name: 'notifications',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => asyncStorage),
       // permissionStatus / backgroundStatus are live OS state, not preferences —
       // never persist them.
@@ -219,6 +245,11 @@ export const useNotificationStore = create<NotificationState>()(
         // preference, so seed it on (matching the default) — the toggle is the opt-out.
         if (version < 4 && state?.liveMed == null) {
           state = { ...state, liveMed: { enabled: true } };
+        }
+        // v5 added the "remind later" notification action; pre-v5 state has
+        // neither field, so seed the default snooze length and an empty map.
+        if (version < 5 && state?.snoozeMinutes == null) {
+          state = { ...state, snoozeMinutes: 15, snoozedUntil: {} };
         }
         return state;
       },

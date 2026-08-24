@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Custom notification content for the live chronometer notifications (issue
+  #43): the elapsed/remaining time is the point of this notification, so it's
+  drawn big and centered — like Android's own Clock app timer notification —
+  instead of `setUsesChronometer`'s small text next to the app name/timestamp.
+  Inflated by `NotificationCompat.DecoratedCustomViewStyle`, which wraps this in
+  the system's standard icon/app-name/timestamp header and (when present)
+  action buttons, so this layout only needs the content area.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:paddingTop="2dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/chrono_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary" />
+
+    <Chronometer
+        android:id="@+id/chrono_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textSize="40sp"
+        android:fontFamily="sans-serif-light"
+        android:textColor="?android:attr/textColorPrimary" />
+
+    <TextView
+        android:id="@+id/chrono_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textSize="13sp"
+        android:textColor="?android:attr/textColorSecondary" />
+</LinearLayout>

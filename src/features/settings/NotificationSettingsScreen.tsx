@@ -11,6 +11,7 @@ import { useNotificationStore, useSettingsStore } from '../../stores';
 import {
   DEFAULT_DIAPER_INTERVAL_MINUTES,
   DEFAULT_FOOD_INTERVAL_MINUTES,
+  intervalStep,
   type TimingPrefs,
 } from '../../lib/notifications';
 import { countdownLabel } from '../../lib/medication';
@@ -42,6 +43,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const foodMin = useNotificationStore((s) => s.foodMin);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
   const perChild = useNotificationStore((s) => s.perChild);
+  const snoozeMinutes = useNotificationStore((s) => s.snoozeMinutes);
 
   const setMasterEnabled = useNotificationStore((s) => s.setMasterEnabled);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
@@ -58,6 +60,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
   const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
   const updateWeeklySummary = useNotificationStore((s) => s.updateWeeklySummary);
+  const setSnoozeMinutes = useNotificationStore((s) => s.setSnoozeMinutes);
 
   const onToggleMaster = async (next: boolean) => {
     setMasterEnabled(next);
@@ -211,6 +214,28 @@ export function NotificationSettingsScreen({ navigation }: Props) {
               </View>
             </View>
           ) : null}
+        </Card>
+
+        <Card style={styles.section}>
+          <View style={styles.rowText}>
+            <AppText size={fontSize.bodySm} weight="800">
+              {t('notifications.snoozeTitle')}
+            </AppText>
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {t('notifications.snoozeHint')}
+            </AppText>
+          </View>
+          <View style={styles.field}>
+            <Stepper
+              value={snoozeMinutes}
+              onChange={setSnoozeMinutes}
+              step={intervalStep(snoozeMinutes)}
+              min={1}
+              format={formatMinutes}
+              hoursMinutes
+              disabled={!masterEnabled}
+            />
+          </View>
         </Card>
 
         <Card style={styles.section}>

@@ -5,8 +5,10 @@ import { useTheme } from '../theme';
 import { useAuthStore } from '../stores';
 import { useTimerSync } from '../hooks/useTimers';
 import { useNotificationSync } from '../hooks/useNotifications';
+import { useNotificationActions } from '../hooks/useNotificationActions';
 import { useApplyDefaultVisibility } from '../hooks/useApplyDefaultVisibility';
 import { useShakeReveal } from '../hooks/useShakeReveal';
+import { navigationRef } from './navigationRef';
 import type { MainStackParamList } from './types';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { ScanLoginScreen } from '../features/shareInstance/ScanLoginScreen';
@@ -52,13 +54,15 @@ export function RootNavigator() {
   useTimerSync();
   // Keeps the OS's scheduled reminders in step with data + settings.
   useNotificationSync();
+  // Handles "remind later"/"stop timer"/"add now" notification-action taps.
+  useNotificationActions();
   // Starts newly-appearing children hidden when that's the chosen default.
   useApplyDefaultVisibility();
   // Shake to temporarily reveal hidden children.
   useShakeReveal();
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {session ? (
           <>

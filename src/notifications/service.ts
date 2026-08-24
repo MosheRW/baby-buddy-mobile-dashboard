@@ -22,6 +22,7 @@
  */
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import i18n from '../i18n';
 import { withDisclaimer } from '../lib/notifications';
 import type { OngoingNotification, PlannedNotification } from '../lib/notifications';
 import type { PermissionStatus } from '../stores/notificationStore';
@@ -40,6 +41,77 @@ const CHANNEL_ID = 'reminders';
 export const ONGOING_CHANNEL_ID = 'ongoing';
 /** Every ongoing notification's identifier starts with this (see buildOngoing…). */
 const ONGOING_PREFIX = 'ongoing:';
+
+// --- Notification action buttons (issue #43) --------------------------------
+//
+// Android notification action buttons, via expo-notifications' category API.
+// Two categories cover the three reminder cases that got a request for buttons:
+//  - a forgotten timer ("the timer is still running") → remind later / stop timer
+//  - diaper-interval / food-min ("diaper check" / "feeding reminder") → remind
+//    later / add now
+// "Stop timer" and "add now" do exactly what tapping the reminder in the in-app
+// carousel already does (open the prefilled log-entry form) — see
+// `notificationAction` in `src/lib/notifications.ts` and `useNotificationActions`,
+// which both button identifiers are routed through. "Remind later" never opens
+// the app (`opensAppToForeground: false`): it just needs the JS response
+// listener to run long enough to record a snooze, which only happens while the
+// app's JS context is alive (foregrounded, or backgrounded but not yet killed —
+// the same class of gap `useNotificationSync` already documents for delivery
+// validation). A tap while the process is fully dead has nothing to run it, so
+// the action falls back to the OS's default "dismiss the notification".
+const TIMER_RUNNING_CATEGORY = 'timer-running';
+const CARE_REMINDER_CATEGORY = 'care-reminder';
+export const ACTION_REMIND_LATER = 'remind-later';
+export const ACTION_STOP_TIMER = 'stop-timer';
+export const ACTION_ADD_NOW = 'add-now';
+
+/** Which category (if any) a scheduled reminder's key should carry. */
+function categoryFor(key: string): string | undefined {
+  if (key.startsWith('timer:')) return TIMER_RUNNING_CATEGORY;
+  if (key.startsWith('diaper:') || key.startsWith('food:')) return CARE_REMINDER_CATEGORY;
+  return undefined;
+}
+
+/**
+ * (Re)register the two Android notification categories with their action
+ * buttons. Idempotent — safe to call on every launch and again whenever the
+ * active language changes, since a category's button titles are fixed at
+ * registration time and won't otherwise pick up a later language switch (the
+ * same reason the `reminders`/`ongoing` channel *names* are English-only and
+ * never revisited).
+ */
+export async function registerCategoriesAsync(): Promise<void> {
+  const N = nm();
+  if (!N || Platform.OS !== 'android') return;
+  try {
+    await N.setNotificationCategoryAsync(TIMER_RUNNING_CATEGORY, [
+      {
+        identifier: ACTION_REMIND_LATER,
+        buttonTitle: i18n.t('notifications.actionRemindLater'),
+        options: { opensAppToForeground: false },
+      },
+      {
+        identifier: ACTION_STOP_TIMER,
+        buttonTitle: i18n.t('notifications.actionStopTimer'),
+        options: { opensAppToForeground: true },
+      },
+    ]);
+    await N.setNotificationCategoryAsync(CARE_REMINDER_CATEGORY, [
+      {
+        identifier: ACTION_REMIND_LATER,
+        buttonTitle: i18n.t('notifications.actionRemindLater'),
+        options: { opensAppToForeground: false },
+      },
+      {
+        identifier: ACTION_ADD_NOW,
+        buttonTitle: i18n.t('notifications.actionAddNow'),
+        options: { opensAppToForeground: true },
+      },
+    ]);
+  } catch (err) {
+    console.warn('[notifications] category registration failed:', err);
+  }
+}
 
 /** Lazily loaded native module — `undefined` = not tried, `null` = unavailable. */
 let cached: NotificationsModule | null | undefined;
@@ -237,6 +309,7 @@ export async function initAsync(): Promise<void> {
         importance: N.AndroidImportance.LOW,
       });
     }
+    await registerCategoriesAsync();
   } catch (err) {
     console.warn('[notifications] init failed:', err);
   }
@@ -284,12 +357,14 @@ export async function syncScheduledAsync(planned: PlannedNotification[]): Promis
     // reconciliation trivially correct.
     await N.cancelAllScheduledNotificationsAsync();
     for (const p of planned) {
+      const category = categoryFor(p.key);
       await N.scheduleNotificationAsync({
         identifier: p.key,
         content: {
           title: p.title,
           body: p.body,
           data: p.childId ? { childId: p.childId } : {},
+          ...(category ? { categoryIdentifier: category } : {}),
         },
         trigger: {
           type: N.SchedulableTriggerInputTypes.DATE,
@@ -459,6 +534,74 @@ export function addDeliveredListener(onDelivered: () => void): () => void {
   } catch (err) {
     console.warn('[notifications] listener failed:', err);
     return () => {};
+  }
+}
+
+/**
+ * One notification-action interaction, normalized away from the SDK's
+ * `NotificationResponse` shape. `id` is the OS identifier — for our own
+ * reminders, the `PlannedNotification.key` they were scheduled under.
+ * `actionIdentifier` is either one of `ACTION_REMIND_LATER`/`ACTION_STOP_TIMER`/
+ * `ACTION_ADD_NOW`, or the SDK's default-tap identifier (ignored by
+ * `useNotificationActions`, which only reacts to the three named ones — a plain
+ * body tap keeps its existing behaviour, handled by the in-app carousel).
+ */
+export interface NotificationActionEvent {
+  actionIdentifier: string;
+  id: string;
+  childId?: string;
+}
+
+function normalizeResponse(response: unknown): NotificationActionEvent | null {
+  const r = response as {
+    actionIdentifier?: string;
+    notification?: { request?: { identifier?: string; content?: Record<string, unknown> } };
+  };
+  const id = r?.notification?.request?.identifier;
+  if (!id) return null;
+  const data = (r.notification?.request?.content?.data ?? {}) as { childId?: unknown };
+  return {
+    actionIdentifier: r.actionIdentifier ?? '',
+    id,
+    childId: typeof data.childId === 'string' ? data.childId : undefined,
+  };
+}
+
+/**
+ * Subscribe to notification-action interactions (a tap on "remind later",
+ * "stop timer", "add now", or the notification body). Returns an unsubscribe
+ * function; a no-op where notifications are unsupported.
+ */
+export function addActionListener(handler: (event: NotificationActionEvent) => void): () => void {
+  const N = nm();
+  if (!N) return () => {};
+  try {
+    const sub = N.addNotificationResponseReceivedListener((response) => {
+      const event = normalizeResponse(response);
+      if (event) handler(event);
+    });
+    return () => sub.remove();
+  } catch (err) {
+    console.warn('[notifications] action listener failed:', err);
+    return () => {};
+  }
+}
+
+/**
+ * The response that launched the app (cold start from a notification tap), if
+ * any. `addNotificationResponseReceivedListener` only fires for interactions
+ * that happen while the listener is already registered, so a cold start needs
+ * this separate one-shot check on mount.
+ */
+export async function getLastActionAsync(): Promise<NotificationActionEvent | null> {
+  const N = nm();
+  if (!N) return null;
+  try {
+    const response = await N.getLastNotificationResponseAsync();
+    return response ? normalizeResponse(response) : null;
+  } catch (err) {
+    console.warn('[notifications] last action read failed:', err);
+    return null;
   }
 }
 
