@@ -13,6 +13,17 @@ export interface LogEntryParams {
    * tapping a med row on the dashboard opens a pre-filled repeat dose.
    */
   prefillMedEntryId?: string;
+  /**
+   * Open the form with a modal already up, for the notification action buttons
+   * that need one (issue #45). `cancelTimer` asks the caregiver to confirm
+   * discarding the running timer of `type` — nothing is saved if they do.
+   */
+  confirm?: 'cancelTimer';
+  /**
+   * Open the form with the quantity prompt up, so "end feeding" from a
+   * notification asks for the amount before the caregiver saves.
+   */
+  focus?: 'amount';
 }
 
 export interface DeleteConfirmParams {

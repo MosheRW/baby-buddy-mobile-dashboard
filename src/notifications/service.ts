@@ -24,7 +24,12 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import i18n from '../i18n';
 import { withDisclaimer } from '../lib/notifications';
-import type { OngoingNotification, PlannedNotification } from '../lib/notifications';
+import type {
+  NotificationActionId,
+  OngoingNotification,
+  PlannedNotification,
+} from '../lib/notifications';
+import { TIMER_TYPES, type TimerType } from '../lib/timers';
 import type { PermissionStatus } from '../stores/notificationStore';
 
 type NotificationsModule = typeof import('expo-notifications');
@@ -42,72 +47,110 @@ export const ONGOING_CHANNEL_ID = 'ongoing';
 /** Every ongoing notification's identifier starts with this (see buildOngoing…). */
 const ONGOING_PREFIX = 'ongoing:';
 
-// --- Notification action buttons (issue #43) --------------------------------
+// --- Notification action buttons -------------------------------------------
 //
 // Android notification action buttons, via expo-notifications' category API.
-// Two categories cover the three reminder cases that got a request for buttons:
-//  - a forgotten timer ("the timer is still running") → remind later / stop timer
-//  - diaper-interval / food-min ("diaper check" / "feeding reminder") → remind
-//    later / add now
-// "Stop timer" and "add now" do exactly what tapping the reminder in the in-app
-// carousel already does (open the prefilled log-entry form) — see
-// `notificationAction` in `src/lib/notifications.ts` and `useNotificationActions`,
-// which both button identifiers are routed through. "Remind later" never opens
-// the app (`opensAppToForeground: false`): it just needs the JS response
-// listener to run long enough to record a snooze, which only happens while the
-// app's JS context is alive (foregrounded, or backgrounded but not yet killed —
-// the same class of gap `useNotificationSync` already documents for delivery
-// validation). A tap while the process is fully dead has nothing to run it, so
-// the action falls back to the OS's default "dismiss the notification".
-const TIMER_RUNNING_CATEGORY = 'timer-running';
-const CARE_REMINDER_CATEGORY = 'care-reminder';
+// **Which** buttons a reminder gets is not decided here — the pure planner picks
+// them per case and phase (`PlannedNotification.actions`, see
+// `src/lib/notifications.ts`), because the choice depends on which *other*
+// offsets the user enabled and that isn't recoverable from the notification key.
+//
+// This module's job is the mapping onto the platform: a category is identified by
+// the action tuple it registers (`'ok|remind-on-time'`), so two cases that happen
+// to want the same buttons share one registration and there is no per-case
+// category table to keep in sync. Registration has to happen at init — before any
+// plan exists — so `ACTION_SETS` below enumerates every tuple the planner can
+// produce rather than being derived from a live plan.
+//
+// `opensAppToForeground` splits the actions in two: `ok` / `remind-later` /
+// `remind-on-time` only need the JS response listener to run long enough to write
+// store state (or nothing at all), which happens while the app's JS context is
+// alive — foregrounded, or backgrounded but not yet killed. A tap after the
+// process is fully dead just dismisses. The rest navigate, so they must open the
+// app. (Same class of gap `useNotificationSync` documents for delivery validation.)
 export const ACTION_REMIND_LATER = 'remind-later';
-export const ACTION_STOP_TIMER = 'stop-timer';
 export const ACTION_ADD_NOW = 'add-now';
+export const ACTION_OK = 'ok';
+export const ACTION_REMIND_ON_TIME = 'remind-on-time';
+/**
+ * Retired in favour of the per-timer `end-<type>` buttons, but still handled by
+ * `useNotificationActions`: a reminder scheduled by an earlier build can be
+ * sitting in the tray with this identifier on it.
+ */
+export const ACTION_STOP_TIMER = 'stop-timer';
 
-/** Which category (if any) a scheduled reminder's key should carry. */
-function categoryFor(key: string): string | undefined {
-  if (key.startsWith('timer:')) return TIMER_RUNNING_CATEGORY;
-  if (key.startsWith('diaper:') || key.startsWith('food:')) return CARE_REMINDER_CATEGORY;
-  return undefined;
+/** Actions that only write local state, so they must not foreground the app. */
+const SILENT_ACTIONS: readonly string[] = [ACTION_OK, ACTION_REMIND_LATER, ACTION_REMIND_ON_TIME];
+
+/** Every action tuple `buildCandidates` can attach to a reminder. */
+const ACTION_SETS: NotificationActionId[][] = [
+  [ACTION_OK],
+  [ACTION_OK, ACTION_REMIND_ON_TIME],
+  [ACTION_ADD_NOW],
+  [ACTION_ADD_NOW, ACTION_REMIND_LATER],
+  [ACTION_ADD_NOW, ACTION_REMIND_ON_TIME],
+  [ACTION_OK, ACTION_ADD_NOW, ACTION_REMIND_LATER],
+  ...TIMER_TYPES.map((type): NotificationActionId[] => [`cancel-${type}`, `end-${type}`]),
+];
+
+/** The category identifier for an action tuple — the tuple itself, stringified. */
+function categoryId(actions: NotificationActionId[]): string {
+  return actions.join('|');
+}
+
+/** Split `cancel-sleep` / `end-tummyTime` back into their two halves. */
+function timerAction(action: string): { verb: 'cancel' | 'end'; type: TimerType } | null {
+  const [verb, type] = action.split('-');
+  if ((verb !== 'cancel' && verb !== 'end') || !type) return null;
+  return (TIMER_TYPES as readonly string[]).includes(type)
+    ? { verb, type: type as TimerType }
+    : null;
+}
+
+/** The localized button title for one action id. */
+function buttonTitle(action: NotificationActionId): string {
+  const timer = timerAction(action);
+  if (timer) {
+    return i18n.t(
+      timer.verb === 'cancel' ? 'notifications.actionCancelTimer' : 'notifications.actionEndTimer',
+      {
+        activity: i18n.t(`timer.typeLabel.${timer.type}`),
+      },
+    );
+  }
+  if (action === ACTION_REMIND_LATER) return i18n.t('notifications.actionRemindLater');
+  if (action === ACTION_ADD_NOW) return i18n.t('notifications.actionAddNow');
+  if (action === ACTION_REMIND_ON_TIME) return i18n.t('notifications.actionRemindOnTime');
+  return i18n.t('notifications.actionOk');
+}
+
+/** Which category (if any) a planned reminder should carry. */
+function categoryFor(planned: PlannedNotification): string | undefined {
+  const actions = planned.actions;
+  return actions && actions.length > 0 ? categoryId(actions) : undefined;
 }
 
 /**
- * (Re)register the two Android notification categories with their action
- * buttons. Idempotent — safe to call on every launch and again whenever the
- * active language changes, since a category's button titles are fixed at
- * registration time and won't otherwise pick up a later language switch (the
- * same reason the `reminders`/`ongoing` channel *names* are English-only and
- * never revisited).
+ * (Re)register every Android notification category with its action buttons.
+ * Idempotent — safe to call on every launch and again whenever the active
+ * language changes, since a category's button titles are fixed at registration
+ * time and won't otherwise pick up a later language switch (the same reason the
+ * `reminders`/`ongoing` channel *names* are English-only and never revisited).
  */
 export async function registerCategoriesAsync(): Promise<void> {
   const N = nm();
   if (!N || Platform.OS !== 'android') return;
   try {
-    await N.setNotificationCategoryAsync(TIMER_RUNNING_CATEGORY, [
-      {
-        identifier: ACTION_REMIND_LATER,
-        buttonTitle: i18n.t('notifications.actionRemindLater'),
-        options: { opensAppToForeground: false },
-      },
-      {
-        identifier: ACTION_STOP_TIMER,
-        buttonTitle: i18n.t('notifications.actionStopTimer'),
-        options: { opensAppToForeground: true },
-      },
-    ]);
-    await N.setNotificationCategoryAsync(CARE_REMINDER_CATEGORY, [
-      {
-        identifier: ACTION_REMIND_LATER,
-        buttonTitle: i18n.t('notifications.actionRemindLater'),
-        options: { opensAppToForeground: false },
-      },
-      {
-        identifier: ACTION_ADD_NOW,
-        buttonTitle: i18n.t('notifications.actionAddNow'),
-        options: { opensAppToForeground: true },
-      },
-    ]);
+    for (const actions of ACTION_SETS) {
+      await N.setNotificationCategoryAsync(
+        categoryId(actions),
+        actions.map((action) => ({
+          identifier: action,
+          buttonTitle: buttonTitle(action),
+          options: { opensAppToForeground: !SILENT_ACTIONS.includes(action) },
+        })),
+      );
+    }
   } catch (err) {
     console.warn('[notifications] category registration failed:', err);
   }
@@ -357,13 +400,16 @@ export async function syncScheduledAsync(planned: PlannedNotification[]): Promis
     // reconciliation trivially correct.
     await N.cancelAllScheduledNotificationsAsync();
     for (const p of planned) {
-      const category = categoryFor(p.key);
+      const category = categoryFor(p);
       await N.scheduleNotificationAsync({
         identifier: p.key,
         content: {
           title: p.title,
           body: p.body,
-          data: p.childId ? { childId: p.childId } : {},
+          data: {
+            ...(p.childId ? { childId: p.childId } : {}),
+            ...(p.prefillMedEntryId ? { prefillMedEntryId: p.prefillMedEntryId } : {}),
+          },
           ...(category ? { categoryIdentifier: category } : {}),
         },
         trigger: {
@@ -476,22 +522,24 @@ export async function getDeliveredAsync(): Promise<DeliveredNotification[]> {
   if (!N) return [];
   try {
     const list = await N.getPresentedNotificationsAsync();
-    return list
-      .map(normalizeDelivered)
-      .filter((n): n is DeliveredNotification => n != null)
-      // The ongoing running-timer notifications share the tray but aren't
-      // "reminders that fired" — keep them out of the in-app carousel.
-      .filter((n) => !n.id.startsWith(ONGOING_PREFIX))
-      // The native chronometer track (timers + med countdowns) is posted outside
-      // expo-notifications, so `getPresentedNotificationsAsync` reconstructs it
-      // with a *foreign* identifier — `expo-notifications://foreign_notifications?
-      // tag=ongoing:…&id=…` — that doesn't start with ONGOING_PREFIX. Excluding
-      // the foreign scheme keeps those live notifications out of the carousel (and
-      // out of its validator, which would otherwise dismiss them as unknown/stale).
-      // getActiveNotifications is app-scoped, so every foreign id here is ours.
-      .filter((n) => !n.id.includes('foreign_notifications'))
-      // Newest first, so the most recently fired reminder leads the carousel.
-      .sort((a, b) => b.deliveredAt - a.deliveredAt);
+    return (
+      list
+        .map(normalizeDelivered)
+        .filter((n): n is DeliveredNotification => n != null)
+        // The ongoing running-timer notifications share the tray but aren't
+        // "reminders that fired" — keep them out of the in-app carousel.
+        .filter((n) => !n.id.startsWith(ONGOING_PREFIX))
+        // The native chronometer track (timers + med countdowns) is posted outside
+        // expo-notifications, so `getPresentedNotificationsAsync` reconstructs it
+        // with a *foreign* identifier — `expo-notifications://foreign_notifications?
+        // tag=ongoing:…&id=…` — that doesn't start with ONGOING_PREFIX. Excluding
+        // the foreign scheme keeps those live notifications out of the carousel (and
+        // out of its validator, which would otherwise dismiss them as unknown/stale).
+        // getActiveNotifications is app-scoped, so every foreign id here is ours.
+        .filter((n) => !n.id.includes('foreign_notifications'))
+        // Newest first, so the most recently fired reminder leads the carousel.
+        .sort((a, b) => b.deliveredAt - a.deliveredAt)
+    );
   } catch (err) {
     console.warn('[notifications] read delivered failed:', err);
     return [];
@@ -541,15 +589,17 @@ export function addDeliveredListener(onDelivered: () => void): () => void {
  * One notification-action interaction, normalized away from the SDK's
  * `NotificationResponse` shape. `id` is the OS identifier — for our own
  * reminders, the `PlannedNotification.key` they were scheduled under.
- * `actionIdentifier` is either one of `ACTION_REMIND_LATER`/`ACTION_STOP_TIMER`/
- * `ACTION_ADD_NOW`, or the SDK's default-tap identifier (ignored by
- * `useNotificationActions`, which only reacts to the three named ones — a plain
- * body tap keeps its existing behaviour, handled by the in-app carousel).
+ * `actionIdentifier` is either one of the `NotificationActionId`s the planner
+ * attached, or the SDK's default-tap identifier (ignored by
+ * `useNotificationActions`, which only reacts to the named ones — a plain body
+ * tap keeps its existing behaviour, handled by the in-app carousel).
  */
 export interface NotificationActionEvent {
   actionIdentifier: string;
   id: string;
   childId?: string;
+  /** See `PlannedNotification.prefillMedEntryId` — medication reminders only. */
+  prefillMedEntryId?: string;
 }
 
 function normalizeResponse(response: unknown): NotificationActionEvent | null {
@@ -559,18 +609,23 @@ function normalizeResponse(response: unknown): NotificationActionEvent | null {
   };
   const id = r?.notification?.request?.identifier;
   if (!id) return null;
-  const data = (r.notification?.request?.content?.data ?? {}) as { childId?: unknown };
+  const data = (r.notification?.request?.content?.data ?? {}) as {
+    childId?: unknown;
+    prefillMedEntryId?: unknown;
+  };
   return {
     actionIdentifier: r.actionIdentifier ?? '',
     id,
     childId: typeof data.childId === 'string' ? data.childId : undefined,
+    prefillMedEntryId:
+      typeof data.prefillMedEntryId === 'string' ? data.prefillMedEntryId : undefined,
   };
 }
 
 /**
- * Subscribe to notification-action interactions (a tap on "remind later",
- * "stop timer", "add now", or the notification body). Returns an unsubscribe
- * function; a no-op where notifications are unsupported.
+ * Subscribe to notification-action interactions (a tap on any of the action
+ * buttons, or on the notification body). Returns an unsubscribe function; a
+ * no-op where notifications are unsupported.
  */
 export function addActionListener(handler: (event: NotificationActionEvent) => void): () => void {
   const N = nm();

@@ -296,6 +296,15 @@ export const en = {
     addTagOffer: '+ {{tag}}',
     saveDetails: 'Save details',
     saveAndEnd: 'Save and end {{activity}}',
+    // The two modals a notification action button can open this form with
+    // (issue #45): "cancel <timer>" asks for confirmation before discarding a
+    // running timer, "end feeding" asks for the amount before saving.
+    cancelTimerTitle: 'Discard the {{activity}} timer?',
+    cancelTimerBody: 'The timer stops and nothing is saved.',
+    cancelTimerConfirm: 'Discard timer',
+    cancelTimerKeep: 'Keep running',
+    quantityTitle: 'How much did {{child}} take?',
+    quantityDone: 'Done',
     activity: {
       feeding: 'feeding',
       sleep: 'sleep',
@@ -441,7 +450,8 @@ export const en = {
     usersTitle: 'All users',
     noUsers: 'No users found.',
     usersHint: 'A QR can only be made for caregivers you add here (their password is known).',
-    usersTokenHint: 'Tap a user to show their sign-in QR. Users without a token yet must sign in once first.',
+    usersTokenHint:
+      'Tap a user to show their sign-in QR. Users without a token yet must sign in once first.',
     // Scanner.
     scanTitle: 'Scan to sign in',
     scanHint: 'Point the camera at a Baby Buddy sign-in QR code.',
@@ -522,11 +532,16 @@ export const en = {
     titleTimerRunning: 'Timer still running',
     titleDiaperDue: 'Diaper check',
     titleFoodDue: 'Feeding reminder',
-    // Android notification action buttons (issue #43): "remind later" on the
-    // forgotten-timer/diaper/food reminders, plus a same-as-tap shortcut.
+    // Android notification action buttons. Which of these a reminder shows is
+    // decided by the planner (see `NotificationActionId`), per case and phase.
     actionRemindLater: 'Remind later',
-    actionStopTimer: 'Stop timer',
     actionAddNow: 'Add now',
+    actionOk: 'OK',
+    actionRemindOnTime: 'Remind me on time',
+    // {{activity}} is the timer's own label (timer.typeLabel.*), so one string
+    // covers sleep / feeding / tummy time and stays grammatical when translated.
+    actionCancelTimer: 'Cancel {{activity}}',
+    actionEndTimer: 'End {{activity}}',
     snoozeTitle: 'Remind later delay',
     snoozeHint: 'How long "Remind later" on a notification postpones it by.',
     medDueBefore: '{{med}} for {{child}} is due in {{duration}}.',
@@ -554,8 +569,15 @@ export const en = {
     liveMedBody: '{{med}} · {{child}}',
     liveMedBody_noChild: '{{med}}',
     diaperBody: "{{child}} hasn't had a diaper change in {{duration}}.",
+    // The feeding-gap bodies. `foodBody*` is the "at" phase and keeps the
+    // original wording (duration = the child's feeding interval); the before/
+    // after variants are relative to that deadline, like the medication ones.
     foodBody: "{{child}} hasn't been fed in {{duration}}.",
     foodBodyMin: "{{child}} hasn't been fed in {{duration}} — aim for at least {{min}}ml.",
+    foodBefore: '{{child}} is due for a feed in {{duration}}.',
+    foodBeforeMin: '{{child}} is due for a feed in {{duration}} — aim for at least {{min}}ml.',
+    foodAfter: '{{child}} was due for a feed {{duration}} ago.',
+    foodAfterMin: '{{child}} was due for a feed {{duration}} ago — aim for at least {{min}}ml.',
     titleWeekly: 'Your week in review',
     weeklyBody:
       "You logged {{mine}} of {{total}} entries this week — {{share}}% of the family's total. {{breakdown}}",

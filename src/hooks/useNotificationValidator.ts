@@ -17,10 +17,8 @@ import { useCallback } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { Child, Entry } from '../api/types';
 import { queryKeys, refreshServerData } from '../data/queries';
-import {
-  validateNotification,
-  type NotificationVerdict,
-} from '../lib/notificationValidation';
+import { validateNotification, type NotificationVerdict } from '../lib/notificationValidation';
+import { activeDeferrals } from '../lib/notifications';
 import { reconcileTimers, type RunningTimer } from '../lib/timers';
 import { selectNotificationSettings, useNotificationStore } from '../stores/notificationStore';
 import { useAuthStore } from '../stores/authStore';
@@ -49,6 +47,7 @@ export type ValidateNotificationFn = (
 /** Validate against whatever is currently in the query cache. */
 function validateFromCache(client: QueryClient, id: string, body: string): LiveValidation {
   const timerState = useTimerStore.getState();
+  const notifState = useNotificationStore.getState();
   return validateNotification({
     key: id,
     body,
@@ -62,7 +61,13 @@ function validateFromCache(client: QueryClient, id: string, body: string): LiveV
       client.getQueryData<RunningTimer[]>(queryKeys.timers) ?? [],
       timerState.stopping,
     ),
-    settings: selectNotificationSettings(useNotificationStore.getState()),
+    settings: selectNotificationSettings(notifState),
+    // `remindOnTime` *adds* a candidate (an on-time reminder for an anchor whose
+    // "at" offset is switched off), so leaving it out here would make every
+    // promoted reminder validate as `stale` and get suppressed the moment it
+    // arrives. `snoozedUntil` needs no such care — it only shifts a candidate's
+    // fireAt, and `buildCandidates` doesn't apply it at all.
+    remindOnTime: activeDeferrals(notifState.remindOnTime),
     me: useAuthStore.getState().session?.userName,
   });
 }

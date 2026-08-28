@@ -31,6 +31,36 @@ describe('i18n Hebrew', () => {
     expect(ageLabel('2024-07-19', Date.parse('2026-07-19T12:00:00Z'))).toBe('בן שנתיים');
   });
 
+  // The notification copy added with the phase-aware action buttons (issue #45).
+  // Structural parity is covered by locale-parity.test.ts; this checks the values
+  // actually render — interpolation included — with Hebrew active.
+  it('renders the notification action buttons in Hebrew', () => {
+    expect(i18n.t('notifications.actionOk')).toBe('אישור');
+    expect(i18n.t('notifications.actionRemindOnTime')).toBe('תזכיר לי בזמן');
+    expect(
+      i18n.t('notifications.actionCancelTimer', { activity: i18n.t('timer.typeLabel.sleep') }),
+    ).toBe('ביטול שינה');
+    expect(
+      i18n.t('notifications.actionEndTimer', { activity: i18n.t('timer.typeLabel.tummyTime') }),
+    ).toBe('סיום זמן בטן');
+  });
+
+  it('renders the feeding-gap phases in Hebrew', () => {
+    const args = { child: 'אמה', duration: '15 דק׳', min: 120 };
+    expect(i18n.t('notifications.foodBefore', args)).toBe('ההאכלה של אמה מתקרבת — בעוד 15 דק׳.');
+    expect(i18n.t('notifications.foodAfter', args)).toBe(
+      'ההאכלה של אמה הייתה אמורה להיות לפני 15 דק׳.',
+    );
+    expect(i18n.t('notifications.foodAfterMin', args)).toContain('120');
+  });
+
+  it('renders the log-entry modals in Hebrew', () => {
+    expect(
+      i18n.t('logEntry.cancelTimerTitle', { activity: i18n.t('logEntry.activity.sleep') }),
+    ).toBe('לבטל את טיימר השינה?');
+    expect(i18n.t('logEntry.quantityTitle', { child: 'אמה' })).toContain('אמה');
+  });
+
   it('interpolates medication status', () => {
     const status = {
       name: 'x',

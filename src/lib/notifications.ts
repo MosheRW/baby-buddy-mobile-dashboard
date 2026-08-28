@@ -13,10 +13,12 @@
  *    `neededMeds` / `eligibleMeds` / `medLimitSummaries` (src/lib/medication.ts).
  *  - forgotten timers → `startedAt + threshold`.
  *
- * All five cases are wired here: scheduled meds, medication eligibility, and
- * forgotten timers use the before/at/after timing model; diaper-interval and
- * food-min are per-child "time since the last one" reminders (a single fire at
- * the deadline, like the forgotten-timer case — no before/at/after).
+ * All five cases are wired here: scheduled meds, medication eligibility and
+ * food-min use the before/at/after timing model; forgotten timers and the
+ * diaper interval are single-fire deadlines. Each planned reminder also carries
+ * the action buttons it should offer (`NotificationActionId`) — chosen here
+ * because the choice depends on the phase and on which *other* offsets are
+ * enabled, neither of which the native service can recover from the key.
  */
 import i18n from '../i18n';
 import type { Child, Entry, EntryType } from '../api/types';
@@ -58,7 +60,6 @@ const HORIZON_MS = 48 * 60 * MINUTE;
 export const WEEKLY_KEY = 'weekly';
 /** OS-scheduled-notification budgets are finite; keep the list bounded. */
 const MAX_PLANNED = 64;
-
 
 /**
  * Adaptive step size (minutes) for the time-interval steppers: single minutes
@@ -128,7 +129,13 @@ export interface NotificationSettings {
    */
   forgottenTimer: { enabled: boolean; thresholdMinutes: number; sleepThresholdMinutes: number };
   diaperInterval: { enabled: boolean };
-  foodMin: { enabled: boolean };
+  /**
+   * Feeding-gap reminders. Unlike the diaper case this carries the full
+   * before/at/after timing model (issue #45), so a caregiver can be nudged
+   * *ahead* of the next expected feed and again once it is overdue. The anchor
+   * is the child's last feed plus their feeding interval.
+   */
+  foodMin: CaseSettings;
   /**
    * The persistent "a timer is running right now" notification — one ongoing
    * (non-dismissable) notification per running timer, presented immediately and
@@ -139,14 +146,16 @@ export interface NotificationSettings {
    */
   liveTimer: { enabled: boolean };
   /**
-   * The ongoing, live-counting medication notification — a per-medicine
-   * notification that counts *down* to the next due time and then *up* as
-   * "overdue by …", drawn by the OS chronometer so it ticks every second at no
-   * JS/battery cost. It **supplements** the fire-once "due now" alert (which the
-   * user still wants); the countdown appears once a dose enters its live window
-   * (see `LIVE_MED_LEAD_MS`). Like `liveTimer`, this only materializes when the
-   * native chronometer module is present (a dev/EAS build); on Expo Go/web it's a
-   * no-op and only the fire-once alert remains. See `buildOngoingMedChronometers`.
+   * The ongoing, live-counting medication notification — for a **scheduled** dose
+   * only, counting *down* to its clock time, drawn by the OS chronometer so it
+   * ticks every second at no JS/battery cost. It appears only in the final
+   * `LIVE_MED_LEAD_MS` before the dose and is dropped once due — never a negative
+   * clock, never lingering. As-needed and 24h-cap meds get **no** live countdown
+   * (they have no appointed time — just their fire-once "allowed again" alert). It
+   * **supplements** the fire-once "due now" alert (which the user still wants).
+   * Like `liveTimer`, this only materializes when the native chronometer module is
+   * present (a dev/EAS build); on Expo Go/web it's a no-op and only the fire-once
+   * alert remains. See `buildOngoingMedChronometers`.
    */
   liveMed: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
@@ -154,6 +163,24 @@ export interface NotificationSettings {
 }
 
 // --- Output -----------------------------------------------------------------
+
+/**
+ * The buttons a delivered reminder offers. Chosen here, in the planner, rather
+ * than by the native service: which buttons apply depends on the case *and* the
+ * phase *and* which other offsets the user has enabled, all of which are in
+ * scope here and none of which are recoverable from the notification key alone.
+ * `src/notifications/service.ts` turns a set of these into an Android category.
+ *
+ *  - `ok`             — acknowledge; dismisses without opening the app.
+ *  - `remind-later`   — postpone by `notificationStore.snoozeMinutes`.
+ *  - `remind-on-time` — offered on a *before* reminder when the *at* offset is
+ *                       switched off, so "shortly before" isn't the only warning.
+ *  - `add-now`        — open the prefilled log-entry form.
+ *  - `cancel-<type>`  — open the running timer's form with the discard confirmation.
+ *  - `end-<type>`     — open the running timer's form to stop and save it.
+ */
+export type NotificationActionId =
+  'ok' | 'remind-later' | 'remind-on-time' | 'add-now' | `cancel-${TimerType}` | `end-${TimerType}`;
 
 export interface PlannedNotification {
   /**
@@ -165,6 +192,15 @@ export interface PlannedNotification {
   fireAt: number;
   title: string;
   body: string;
+  /** Action buttons to attach; absent/empty = a plain, button-less reminder. */
+  actions?: NotificationActionId[];
+  /**
+   * Medication reminders only: the dose this reminder is about, so "add now"
+   * opens a pre-filled repeat instead of a blank medication form — the same
+   * thing tapping the dashboard's med row does. Absent on the 24h-limit case,
+   * whose summaries carry no source entry.
+   */
+  prefillMedEntryId?: string;
   childId?: string;
 }
 
@@ -210,6 +246,17 @@ export interface NotificationBuildInput {
    * implicitly via the `fireAt > now` filter below.
    */
   snoozedUntil?: Record<string, number>;
+  /**
+   * Keys the user promoted with "remind me on time" — the map is keyed by the
+   * **at-phase** key (`…:at`) they asked for, value = an epoch ms after which the
+   * request is spent and can be pruned by the caller.
+   *
+   * Modeled here rather than as a one-off native reschedule because the next full
+   * sync clears and re-schedules everything: a reminder the planner doesn't know
+   * about would simply vanish. Presence of the key makes the `at` candidate be
+   * emitted even though `timing.at` is off; see `expand`'s `forceAt`.
+   */
+  remindOnTime?: Record<string, number>;
 }
 
 /**
@@ -228,14 +275,22 @@ export function withDisclaimer(body: string): string {
 
 type OffsetKind = 'before' | 'at' | 'after';
 
-/** Expand a timing spec around an anchor into its enabled fire points. */
-function expand(timing: TimingPrefs, anchor: number): { kind: OffsetKind; fireAt: number }[] {
+/**
+ * Expand a timing spec around an anchor into its enabled fire points. `forceAt`
+ * emits the "at" point even when the offset is switched off — the user asked for
+ * it on this specific anchor via "remind me on time" (see `remindOnTime`).
+ */
+function expand(
+  timing: TimingPrefs,
+  anchor: number,
+  forceAt = false,
+): { kind: OffsetKind; fireAt: number }[] {
   const out: { kind: OffsetKind; fireAt: number }[] = [];
   // A zero lead/lag would collapse onto the "at" point — skip it rather than
   // emit two notifications at the same instant.
   if (timing.before && timing.beforeMinutes > 0)
     out.push({ kind: 'before', fireAt: anchor - timing.beforeMinutes * MINUTE });
-  if (timing.at) out.push({ kind: 'at', fireAt: anchor });
+  if (timing.at || forceAt) out.push({ kind: 'at', fireAt: anchor });
   if (timing.after && timing.afterMinutes > 0)
     out.push({ kind: 'after', fireAt: anchor + timing.afterMinutes * MINUTE });
   return out;
@@ -258,12 +313,43 @@ const ELIG_KIND_KEY: Record<OffsetKind, string> = {
   after: 'eligAfter',
 };
 
+/**
+ * Which buttons each phase of a medication reminder carries (issue #45).
+ * The two conditionals are the whole point: "remind me on time" is only useful
+ * when there *is* no on-time reminder coming, and "remind me later" would be
+ * redundant on the "at" alert when an "after" one is already queued.
+ */
+function medActions(kind: OffsetKind, timing: TimingPrefs): NotificationActionId[] {
+  if (kind === 'before') return timing.at ? ['ok'] : ['ok', 'remind-on-time'];
+  if (kind === 'at') return timing.after ? ['add-now'] : ['add-now', 'remind-later'];
+  return ['add-now', 'remind-later'];
+}
+
+/**
+ * The feeding-gap equivalent. Same conditional rules, but the leading button is
+ * "add now" rather than "ok" in every phase — a feed being due is always
+ * actionable, where a dose that isn't due yet is only an acknowledgement.
+ */
+function foodActions(kind: OffsetKind, timing: TimingPrefs): NotificationActionId[] {
+  if (kind === 'before') return timing.at ? ['add-now'] : ['add-now', 'remind-on-time'];
+  if (kind === 'at') return timing.after ? ['add-now'] : ['add-now', 'remind-later'];
+  return ['add-now', 'remind-later'];
+}
+
+/** The diaper case has no phases, so one fixed set. */
+const DIAPER_ACTIONS: NotificationActionId[] = ['ok', 'add-now', 'remind-later'];
+
 /** i18next appends `_noChild` when no child name resolved. */
 function childContext(child: string | undefined) {
   return child ? undefined : 'noChild';
 }
 
-function medBody(kind: OffsetKind, med: string, child: string | undefined, minutes: number): string {
+function medBody(
+  kind: OffsetKind,
+  med: string,
+  child: string | undefined,
+  minutes: number,
+): string {
   return i18n.t(`notifications.${MED_KIND_KEY[kind]}`, {
     context: childContext(child),
     med,
@@ -283,6 +369,29 @@ function eligibleBody(
     med,
     child,
     duration: countdownLabel(minutes * MINUTE),
+  });
+}
+
+/**
+ * Feeding-gap copy. The `at` phase keeps the original "hasn't been fed in
+ * {{duration}}" wording, where the duration is the child's feeding interval;
+ * before/after are relative to that deadline, like the medication bodies. The
+ * `…Min` variants add the target amount when one is configured.
+ */
+function foodBody(
+  kind: OffsetKind,
+  child: string,
+  intervalMinutes: number,
+  offsetMinutes: number,
+  minMl: number,
+): string {
+  const suffix = minMl > 0 ? 'Min' : '';
+  const key =
+    kind === 'at' ? `foodBody${suffix}` : `food${kind === 'before' ? 'Before' : 'After'}${suffix}`;
+  return i18n.t(`notifications.${key}`, {
+    child,
+    duration: countdownLabel((kind === 'at' ? intervalMinutes : offsetMinutes) * MINUTE),
+    min: minMl,
   });
 }
 
@@ -335,6 +444,10 @@ export function buildCandidates(
   const { entries, timers, children, settings, me, visibleChildIds, kidGroups } = input;
   if (!settings.masterEnabled) return [];
 
+  const remindOnTime = input.remindOnTime ?? {};
+  /** Did the user ask for this anchor's on-time reminder? (see `remindOnTime`) */
+  const promoted = (stem: string) => remindOnTime[`${stem}:at`] != null;
+
   const childName = new Map(children.map((c) => [c.id, c.name]));
   // MedStatus carries the source entry id but not the child; resolve it here.
   const childOfEntry = new Map(entries.map((e) => [e.id, e.childId]));
@@ -351,12 +464,15 @@ export function buildCandidates(
     for (const s of neededMeds(entries, now)) {
       const childId = childOfEntry.get(s.entryId);
       const who = childId ? childName.get(childId) : undefined;
-      for (const { kind, fireAt } of expand(timing, s.dueAt)) {
+      const stem = `sched:${childId ?? '?'}:${nameKey(s.name)}`;
+      for (const { kind, fireAt } of expand(timing, s.dueAt, promoted(stem))) {
         out.push({
-          key: `sched:${childId ?? '?'}:${nameKey(s.name)}:${kind}`,
+          key: `${stem}:${kind}`,
           fireAt,
           title: i18n.t('notifications.titleMedDue'),
           body: medBody(kind, s.name, who, minutesFor(kind, timing)),
+          actions: medActions(kind, timing),
+          prefillMedEntryId: s.entryId,
           childId,
         });
       }
@@ -373,12 +489,15 @@ export function buildCandidates(
     for (const s of eligibleMeds(entries, now)) {
       const childId = childOfEntry.get(s.entryId);
       const who = childId ? childName.get(childId) : undefined;
-      for (const { kind, fireAt } of expand(timing, s.dueAt)) {
+      const stem = `elig:${childId ?? '?'}:${nameKey(s.name)}`;
+      for (const { kind, fireAt } of expand(timing, s.dueAt, promoted(stem))) {
         out.push({
-          key: `elig:${childId ?? '?'}:${nameKey(s.name)}:${kind}`,
+          key: `${stem}:${kind}`,
           fireAt,
           title: i18n.t('notifications.titleMedReady'),
           body: eligibleBody(kind, s.name, who, minutesFor(kind, timing)),
+          actions: medActions(kind, timing),
+          prefillMedEntryId: s.entryId,
           childId,
         });
       }
@@ -386,12 +505,14 @@ export function buildCandidates(
 
     for (const s of medLimitSummaries(entries, now)) {
       const who = childName.get(s.childId);
-      for (const { kind, fireAt } of expand(timing, s.dueAt)) {
+      const stem = `cap:${s.childId}:${nameKey(s.name)}`;
+      for (const { kind, fireAt } of expand(timing, s.dueAt, promoted(stem))) {
         out.push({
-          key: `cap:${s.childId}:${nameKey(s.name)}:${kind}`,
+          key: `${stem}:${kind}`,
           fireAt,
           title: i18n.t('notifications.titleMedReady'),
           body: eligibleBody(kind, s.name, who, minutesFor(kind, timing)),
+          actions: medActions(kind, timing),
           childId: s.childId,
         });
       }
@@ -399,7 +520,12 @@ export function buildCandidates(
   }
 
   // 3. Forgotten timers -----------------------------------------------------
-  if (settings.forgottenTimer.enabled) {
+  // Suppressed while the live running-timer notification is switched on: that
+  // surface already sits in the tray showing the timer tick, so a second "did you
+  // forget?" alert on top of it is noise (issue #45, "Other Notifications").
+  // Keyed on the *setting*, not on whether the native chronometer module exists —
+  // with the setting on, Expo Go still shows the minute-granular fallback track.
+  if (settings.forgottenTimer.enabled && !settings.liveTimer.enabled) {
     const { thresholdMinutes, sleepThresholdMinutes } = settings.forgottenTimer;
     for (const rt of timers) {
       const who = childName.get(rt.childId);
@@ -416,6 +542,7 @@ export function buildCandidates(
           child: who,
           duration: countdownLabel(effective * MINUTE),
         }),
+        actions: [`cancel-${rt.type}`, `end-${rt.type}`],
         childId: rt.childId,
       });
     }
@@ -440,6 +567,7 @@ export function buildCandidates(
           child: child.name,
           duration: countdownLabel(minutes * MINUTE),
         }),
+        actions: DIAPER_ACTIONS,
         childId: child.id,
       });
     }
@@ -451,6 +579,7 @@ export function buildCandidates(
   // can't be measured now), so the reminder is fundamentally a "time since last
   // feed" nudge, parallel to the diaper case.
   if (settings.foodMin.enabled) {
+    const timing = settings.foodMin.timing;
     for (const child of children) {
       const t = settings.perChild[child.id];
       const minutes = t?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES;
@@ -458,17 +587,18 @@ export function buildCandidates(
       const last = lastEntryOfType(entries, child.id, 'feeding');
       if (last == null) continue;
       const minMl = t?.foodMinMl ?? 0;
-      out.push({
-        key: `food:${child.id}`,
-        fireAt: last + minutes * MINUTE,
-        title: i18n.t('notifications.titleFoodDue'),
-        body: i18n.t(minMl > 0 ? 'notifications.foodBodyMin' : 'notifications.foodBody', {
-          child: child.name,
-          duration: countdownLabel(minutes * MINUTE),
-          min: minMl,
-        }),
-        childId: child.id,
-      });
+      const stem = `food:${child.id}`;
+      const anchor = last + minutes * MINUTE;
+      for (const { kind, fireAt } of expand(timing, anchor, promoted(stem))) {
+        out.push({
+          key: `${stem}:${kind}`,
+          fireAt,
+          title: i18n.t('notifications.titleFoodDue'),
+          body: foodBody(kind, child.name, minutes, minutesFor(kind, timing), minMl),
+          actions: foodActions(kind, timing),
+          childId: child.id,
+        });
+      }
     }
   }
 
@@ -506,6 +636,23 @@ export function buildCandidates(
   }
 
   return out;
+}
+
+/**
+ * Drop the entries of a `key → epoch ms` map that have already elapsed. Shared by
+ * `snoozedUntil` and `remindOnTime`, which the callers must filter before handing
+ * them to the planner — an expired snooze would otherwise keep a reminder pinned
+ * to a moment in the past, and a spent promotion would keep resurrecting an
+ * on-time reminder the user asked for once, hours ago.
+ *
+ * Neither map is ever pruned in the store; filtering on read keeps the write path
+ * (a notification action, which may run with the app half-asleep) trivial.
+ */
+export function activeDeferrals(
+  map: Record<string, number>,
+  now: number = Date.now(),
+): Record<string, number> {
+  return Object.fromEntries(Object.entries(map).filter(([, until]) => until > now));
 }
 
 /**
@@ -631,14 +778,15 @@ export const CHRONO_TIMER_PREFIX = 'ongoing:';
 export const CHRONO_MED_PREFIX = 'ongoing-med:';
 
 /**
- * How close to due a medication has to be before its live countdown notification
- * appears, and how long past due it lingers. The countdown is only interesting
- * near the due moment — showing an hour-out countdown for a dose given minutes
- * ago would be noise — and a dose left un-taken for a full day shouldn't leave a
- * sticky notification counting up forever, so the window is bounded on both ends.
+ * How close to due a *scheduled* dose has to be before its live countdown
+ * notification appears — the final quarter-hour. Short on purpose: the live
+ * per-second clock is a "get ready, it's almost time" nudge, not a status
+ * display. The countdown is only ever shown while the dose is still *upcoming*
+ * (a true count-down to a future moment), so it never renders a negative clock
+ * and never lingers past the dose; once due, the fire-once "due"/"overdue"
+ * scheduled reminders (in `buildCandidates`) take over.
  */
-const LIVE_MED_LEAD_MS = 60 * MINUTE;
-const LIVE_MED_TRAIL_MS = 24 * 60 * MINUTE;
+const LIVE_MED_LEAD_MS = 15 * MINUTE;
 
 /**
  * The live timer chronometers that should currently be presented — one per
@@ -671,10 +819,17 @@ export function buildOngoingTimerChronometers(
 
 /**
  * The live medication countdowns that should currently be presented — one per
- * medicine whose next dose is inside its live window (approaching within
- * `LIVE_MED_LEAD_MS`, or overdue by up to `LIVE_MED_TRAIL_MS`). Each counts down
- * to `dueAt` and then keeps ticking past it as "overdue". Deduped by key, so a
- * medicine that surfaces from more than one source collapses to one notification.
+ * **scheduled** dose whose next time is *upcoming*, within `LIVE_MED_LEAD_MS`.
+ * Each counts down toward `dueAt` (always a future instant, so the clock is never
+ * negative) and is dropped the moment the dose comes due — the reconcile
+ * dismisses it, and the fire-once "due"/"overdue" scheduled reminders take over.
+ *
+ * **Scheduled meds only.** A live per-second countdown makes sense for a dose
+ * with a fixed clock time; an *as-needed* medicine (`eligibleMeds`) or one gated
+ * by a 24h dose cap (`medLimitSummaries`) has no appointed moment — it simply
+ * becomes *allowed again*. Those still get their fire-once "you can give this
+ * again" alert from `buildCandidates`, but not a ticking notification, which
+ * would wrongly imply an imminent scheduled dose.
  *
  * Gated on `liveMed` (and the master switch). This is *additional* to the
  * fire-once "due now" scheduled reminder in `buildCandidates` — both can fire.
@@ -687,43 +842,37 @@ export function buildOngoingMedChronometers(
   if (!settings.masterEnabled || !settings.liveMed.enabled) return [];
 
   const nameKey = (s: string) => s.trim().toLowerCase();
-  const inWindow = (dueInMs: number) => dueInMs <= LIVE_MED_LEAD_MS && dueInMs >= -LIVE_MED_TRAIL_MS;
+  // Upcoming only: strictly in the future (`> 0`, so the count-down clock stays
+  // positive) and within the lead window. A dose that's already due drops out —
+  // no negative clock, no ticking-since-given notification.
+  const inWindow = (dueInMs: number) => dueInMs > 0 && dueInMs <= LIVE_MED_LEAD_MS;
 
-  // Keyed so duplicates across sources (a medicine both scheduled and limited,
-  // say) collapse; the first one wins, which is fine since they share a dueAt.
+  // One countdown per (child, medicine); a medicine listed twice for a child
+  // collapses to the first.
   const byKey = new Map<string, ChronometerSpec>();
-  const add = (childId: string, who: string, name: string, dueAt: number, titleKey: string): void => {
-    const key = `${CHRONO_MED_PREFIX}${childId}:${nameKey(name)}`;
-    if (byKey.has(key)) return;
-    byKey.set(key, {
-      key,
-      title: i18n.t(titleKey),
-      text: i18n.t('notifications.liveMedBody', {
-        context: childContext(who),
-        med: name,
-        child: who,
-      }),
-      anchorMs: dueAt,
-      countDown: true,
-      childId,
-    });
-  };
 
-  // Per child, not over the merged list: `neededMeds`/`eligibleMeds` dedupe by
-  // medicine name *globally*, so running them on all children at once would drop
-  // a second child's same-named dose entirely. Scoping the source rows to one
-  // child first preserves the one-countdown-per-(child, medicine) contract.
+  // Per child, not over the merged list: `neededMeds` dedupes by medicine name
+  // *globally*, so running it on all children at once would drop a second child's
+  // same-named dose entirely. Scoping the source rows to one child first
+  // preserves the one-countdown-per-(child, medicine) contract.
   for (const child of children) {
     const mine = entries.filter((e) => e.childId === child.id);
-    const who = child.name;
     for (const s of neededMeds(mine, now)) {
-      if (inWindow(s.dueInMs)) add(child.id, who, s.name, s.dueAt, 'notifications.titleMedDue');
-    }
-    for (const s of eligibleMeds(mine, now)) {
-      if (inWindow(s.dueInMs)) add(child.id, who, s.name, s.dueAt, 'notifications.titleMedReady');
-    }
-    for (const s of medLimitSummaries(mine, now)) {
-      if (inWindow(s.dueInMs)) add(child.id, who, s.name, s.dueAt, 'notifications.titleMedReady');
+      if (!inWindow(s.dueInMs)) continue;
+      const key = `${CHRONO_MED_PREFIX}${child.id}:${nameKey(s.name)}`;
+      if (byKey.has(key)) continue;
+      byKey.set(key, {
+        key,
+        title: i18n.t('notifications.titleMedDue'),
+        text: i18n.t('notifications.liveMedBody', {
+          context: childContext(child.name),
+          med: s.name,
+          child: child.name,
+        }),
+        anchorMs: s.dueAt,
+        countDown: true,
+        childId: child.id,
+      });
     }
   }
 

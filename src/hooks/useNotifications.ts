@@ -28,6 +28,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { refreshServerData, useChildren, useEntries } from '../data/queries';
 import {
+  activeDeferrals,
   buildNotifications,
   buildOngoingMedChronometers,
   buildOngoingTimerChronometers,
@@ -71,6 +72,7 @@ export function useNotificationSync(): void {
   const perChild = useNotificationStore((s) => s.perChild);
   const backgroundRefresh = useNotificationStore((s) => s.backgroundRefresh.enabled);
   const snoozedUntil = useNotificationStore((s) => s.snoozedUntil);
+  const remindOnTime = useNotificationStore((s) => s.remindOnTime);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
   const setBackgroundStatus = useNotificationStore((s) => s.setBackgroundStatus);
   const me = useAuthStore((s) => s.session?.userName);
@@ -202,13 +204,12 @@ export function useNotificationSync(): void {
       Date.now(),
       false,
     );
-    // Only snoozes still in the future affect the plan; an expired one is
+    // Only deferrals still in the future affect the plan; an expired one is
     // simply inert (never actively pruned from the store — see `snoozedUntil`).
-    // Computed here rather than memoized on render, since it depends on the
+    // Computed here rather than memoized on render, since they depend on the
     // current wall-clock time.
-    const activeSnoozes = Object.fromEntries(
-      Object.entries(snoozedUntil).filter(([, until]) => until > Date.now()),
-    );
+    const activeSnoozes = activeDeferrals(snoozedUntil);
+    const activePromotions = activeDeferrals(remindOnTime);
     const plan = buildNotifications({
       entries: entries ?? [],
       timers,
@@ -221,12 +222,16 @@ export function useNotificationSync(): void {
       // the app dead, where the delivery gate can't run.
       unverified: serverConfirmed !== true,
       snoozedUntil: activeSnoozes,
+      remindOnTime: activePromotions,
     });
     // Body is part of the signature so the weekly summary re-syncs when its
     // trailing-week counts change — its fireAt stays fixed all week, but the
     // recap it will deliver must reflect the latest data each time the app opens.
     // The other cases have fireAt-stable bodies, so this adds no churn for them.
-    const sig = JSON.stringify(plan.map((p) => [p.key, p.fireAt, p.body]));
+    // `actions` is in there too: flipping an "at"/"after" offset changes which
+    // buttons a reminder carries without moving its fireAt, and a category is
+    // attached at schedule time only.
+    const sig = JSON.stringify(plan.map((p) => [p.key, p.fireAt, p.body, p.actions]));
     if (sig === lastSig.current) return;
     lastSig.current = sig;
     void service.syncScheduledAsync(plan);
@@ -243,6 +248,7 @@ export function useNotificationSync(): void {
     childSchedule,
     tick,
     snoozedUntil,
+    remindOnTime,
   ]);
 
   // Delivery-time validation: hand the native service a gate it can call as each
@@ -292,7 +298,11 @@ export function useNotificationSync(): void {
       }
       const specs = [
         ...buildOngoingTimerChronometers({ timers, children: children ?? [], settings }),
-        ...buildOngoingMedChronometers({ entries: entries ?? [], children: children ?? [], settings }),
+        ...buildOngoingMedChronometers({
+          entries: entries ?? [],
+          children: children ?? [],
+          settings,
+        }),
       ];
       // anchorMs isn't in the signature: it's fixed for the life of a spec (a
       // timer's start / a dose's due time), and the OS ticks the clock off it, so

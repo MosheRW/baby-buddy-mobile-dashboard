@@ -68,7 +68,7 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     medEligibility: { enabled: false, timing: timing() },
     forgottenTimer: { enabled: false, thresholdMinutes: 30, sleepThresholdMinutes: 240 },
     diaperInterval: { enabled: false },
-    foodMin: { enabled: false },
+    foodMin: { enabled: false, timing: timing() },
     liveTimer: { enabled: false },
     liveMed: { enabled: false },
     weeklySummary: { enabled: false, weekday: 0, hour: 9 },
@@ -79,7 +79,13 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
 
 /** A running feeding timer, started long enough ago to have tripped its threshold. */
 function timer(over: Partial<RunningTimer> = {}): RunningTimer {
-  return { type: 'feeding', childId: 'c1', startedAt: NOW - 30 * MINUTE, serverTimerId: 7, ...over };
+  return {
+    type: 'feeding',
+    childId: 'c1',
+    startedAt: NOW - 30 * MINUTE,
+    serverTimerId: 7,
+    ...over,
+  };
 }
 
 const diaperOn = settings({ diaperInterval: { enabled: true } });
@@ -102,7 +108,13 @@ describe('validateNotification — the premise still holds', () => {
 
   it('passes a forgotten-timer reminder while the timer is still running', () => {
     const result = validateNotification(
-      { key: 'timer:feeding:c1', entries: [], timers: [timer()], children: CHILDREN, settings: timerOn },
+      {
+        key: 'timer:feeding:c1',
+        entries: [],
+        timers: [timer()],
+        children: CHILDREN,
+        settings: timerOn,
+      },
       NOW,
     );
     expect(result.verdict).toBe('valid');
@@ -163,7 +175,13 @@ describe('validateNotification — the premise is gone', () => {
 
   it('suppresses a reminder for a case the user has since switched off', () => {
     const result = validateNotification(
-      { key: 'diaper:c1', entries: dueDiaper, timers: [], children: CHILDREN, settings: settings() },
+      {
+        key: 'diaper:c1',
+        entries: dueDiaper,
+        timers: [],
+        children: CHILDREN,
+        settings: settings(),
+      },
       NOW,
     );
     expect(result.verdict).toBe('stale');
@@ -193,7 +211,13 @@ describe('validateNotification — the premise is gone', () => {
 
   it('suppresses an unrecognised key, e.g. one left over from an older build', () => {
     const result = validateNotification(
-      { key: 'nonsense:c1', entries: dueDiaper, timers: [], children: CHILDREN, settings: diaperOn },
+      {
+        key: 'nonsense:c1',
+        entries: dueDiaper,
+        timers: [],
+        children: CHILDREN,
+        settings: diaperOn,
+      },
       NOW,
     );
     expect(result.verdict).toBe('stale');
@@ -306,5 +330,27 @@ describe('buildNotifications — unverified plans', () => {
     );
     expect(plan).not.toHaveLength(0);
     for (const n of plan) expect(n.body).not.toBe(withDisclaimer(n.body));
+  });
+});
+
+describe('validateNotification — promoted "remind me on time" reminders', () => {
+  // "at" is off, so this reminder exists only because the user tapped "remind me
+  // on time" on its before-reminder. Validation re-derives the candidate list, so
+  // it can only recognise the key if it's given the same promotion map the plan
+  // was built with.
+  const atOff = settings({
+    scheduledMeds: { enabled: true, timing: timing({ before: true, at: false }) },
+  });
+  const entries: Entry[] = [med({ name: 'Tylenol', time: iso(NOW - 8 * HOUR) })];
+  const key = 'sched:c1:tylenol:at';
+  const base = { entries, timers: [] as RunningTimer[], children: CHILDREN, settings: atOff, key };
+
+  it('is valid when the promotion is threaded through', () => {
+    const result = validateNotification({ ...base, remindOnTime: { [key]: NOW + MINUTE } }, NOW);
+    expect(result.verdict).toBe('valid');
+  });
+
+  it('is stale without it — the regression this guards', () => {
+    expect(validateNotification(base, NOW).verdict).toBe('stale');
   });
 });
