@@ -21,17 +21,31 @@ export const USE_MOCK_DATA = false;
 
 const getDefaultFoodMl = (childId: string) => useSettingsStore.getState().defaultFoodMl[childId];
 
-const mock = createMockDataSource();
-const local = createLocalDataSource(undefined, getDefaultFoodMl);
-const babybuddy = createBabyBuddyDataSource(
-  () => useAuthStore.getState().session,
-  getDefaultFoodMl,
+/** Construct on first use and memoize — so a source that never backs the
+ * session (e.g. the mock and its fixtures when USE_MOCK_DATA is false, the
+ * production default) is never built at all. */
+function lazy<T>(make: () => T): () => T {
+  let value: T;
+  let built = false;
+  return () => {
+    if (!built) {
+      value = make();
+      built = true;
+    }
+    return value;
+  };
+}
+
+const mock = lazy(() => createMockDataSource());
+const local = lazy(() => createLocalDataSource(undefined, getDefaultFoodMl));
+const babybuddy = lazy(() =>
+  createBabyBuddyDataSource(() => useAuthStore.getState().session, getDefaultFoodMl),
 );
 
 /** The source backing the current session. */
 function active(): DataSource {
-  if (USE_MOCK_DATA) return mock;
-  return useAuthStore.getState().session?.mode === 'local' ? local : babybuddy;
+  if (USE_MOCK_DATA) return mock();
+  return useAuthStore.getState().session?.mode === 'local' ? local() : babybuddy();
 }
 
 export const dataSource: DataSource = {
