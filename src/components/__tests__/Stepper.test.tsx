@@ -55,6 +55,21 @@ describe('Stepper inline editing', () => {
     alert.mockRestore();
   });
 
+  it('disables the ± buttons while editing so a stray step cannot clobber the typed value', async () => {
+    const onChange = jest.fn();
+    await render(<Stepper value={5} onChange={onChange} step={1} min={0} max={100} />);
+
+    // Not editing: both buttons are live.
+    expect(screen.getByLabelText('Increase').props.accessibilityState.disabled).toBe(false);
+    expect(screen.getByLabelText('Decrease').props.accessibilityState.disabled).toBe(false);
+
+    fireEvent.press(screen.getByLabelText('Edit value'));
+    await screen.findByDisplayValue('5');
+
+    expect(screen.getByLabelText('Increase').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByLabelText('Decrease').props.accessibilityState.disabled).toBe(true);
+  });
+
   it('opens two auto-focused fields for the hours+minutes editor', async () => {
     const onChange = jest.fn();
     await render(

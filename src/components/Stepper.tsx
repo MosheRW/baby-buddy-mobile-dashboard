@@ -185,7 +185,11 @@ export function Stepper({
     <View style={[styles.row, disabled && styles.disabled]}>
       <StepButton
         onStep={() => applyDelta(-1)}
-        disabled={disabled || value <= min}
+        // Disabled while editing: tapping ± blurs the input (committing the typed
+        // value), but its own step would then run against the stale pre-commit
+        // `value` and clobber what was just typed. The blur still lands, so the
+        // tap commits — it just doesn't also step.
+        disabled={disabled || editing || value <= min}
         kind="minus"
         label={t('stepper.decrease')}
       />
@@ -230,6 +234,7 @@ export function Stepper({
           <TextInput
             value={editText}
             onChangeText={setEditText}
+            accessibilityLabel={t('stepper.editTitle')}
             keyboardType={decimals > 0 ? 'decimal-pad' : 'number-pad'}
             autoFocus
             selectTextOnFocus
@@ -257,7 +262,8 @@ export function Stepper({
 
       <StepButton
         onStep={() => applyDelta(1)}
-        disabled={disabled || value >= max}
+        // Disabled while editing — see the minus button above.
+        disabled={disabled || editing || value >= max}
         kind="plus"
         label={t('stepper.increase')}
       />
