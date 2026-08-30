@@ -84,9 +84,10 @@ class ChronometerNotificationModule : Module() {
     // builder directly — the builder-level chronometer renders as small text
     // wedged next to the app name/timestamp, which read as "the smallest detail"
     // of the notification. The custom view puts the same OS-ticked `Chronometer`
-    // widget big and centered, the way Android's own Clock app does for a running
-    // timer — while `DecoratedCustomViewStyle` still wraps it with the system's
-    // standard icon/app-name header and renders any action buttons below it.
+    // widget prominently in a start-aligned title / clock / child-name stack (see
+    // `notification_chronometer.xml`) — while `DecoratedCustomViewStyle` still
+    // wraps it with the system's standard icon/app-name header and renders any
+    // action buttons below it.
     AsyncFunction("present") { options: PresentOptions ->
       val ctx = context
       val iconRes =
@@ -225,9 +226,15 @@ class ChronometerNotificationModule : Module() {
    * Read our action extras off [intent], clearing them so the same tap is never
    * delivered twice (cold-start read + a later warm onNewIntent, or a JS remount).
    * Returns the JS-shaped payload, or null when [intent] carries none of ours.
+   *
+   * Gated on `intent.action == ACTION_TAP` — only the PendingIntents we build in
+   * `addActions` carry it. The Activity is an external entry point, so without
+   * this check another app could launch it with spoofed extras and trigger a
+   * notification action; matching our private action closes that.
    */
   private fun consume(intent: Intent?): Map<String, Any?>? {
-    val action = intent?.getStringExtra(EXTRA_ACTION) ?: return null
+    if (intent == null || intent.action != ACTION_TAP) return null
+    val action = intent.getStringExtra(EXTRA_ACTION) ?: return null
     val key = intent.getStringExtra(EXTRA_KEY) ?: return null
     val child = intent.getStringExtra(EXTRA_CHILD) ?: ""
     intent.removeExtra(EXTRA_ACTION)

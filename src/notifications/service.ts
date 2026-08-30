@@ -135,7 +135,8 @@ function categoryFor(planned: PlannedNotification): string | undefined {
  * the ongoing/live-timer tracks (`syncOngoingAsync` here and the native
  * chronometer in `chronometer.ts`) so a running-timer notification carries the
  * same buttons however it's drawn. The tuple must be one of `ACTION_SETS` (all of
- * which are registered at init); the timer `cancel-*`/`end-*` sets are.
+ * which are registered at init), and the timer `cancel-*`/`end-*` tuples used here
+ * are among them.
  */
 export function categoryIdFor(actions: NotificationActionId[] | undefined): string | undefined {
   return actions && actions.length > 0 ? categoryId(actions) : undefined;
