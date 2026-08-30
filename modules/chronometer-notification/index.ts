@@ -20,6 +20,14 @@
  */
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
+/** One action button on a chronometer notification. Mirrors the Kotlin `Record`. */
+export interface ChronometerAction {
+  /** Stable action identifier, e.g. `cancel-sleep` / `end-feeding`. */
+  id: string;
+  /** Already-localized button label (the JS side owns i18n). */
+  title: string;
+}
+
 /** One live chronometer notification to present. Mirrors the Kotlin `Record`. */
 export interface ChronometerPresentOptions {
   /** OS notification tag; re-presenting the same tag updates in place. */
@@ -37,6 +45,30 @@ export interface ChronometerPresentOptions {
   countDown: boolean;
   /** Sticky (non-swipeable) while true. */
   ongoing: boolean;
+  /**
+   * The child this notification is about, echoed back verbatim on an action tap
+   * (so the JS handler needn't parse it out of the tag). Empty when unknown.
+   */
+  childId?: string;
+  /**
+   * Action buttons, in display order. Each button's tap opens the app and
+   * delivers `{ actionIdentifier: id, id: <tag>, childId }` to JS via
+   * `onChronometerAction` / `consumeLastAction`. Empty for no buttons.
+   */
+  actions?: ChronometerAction[];
+}
+
+/**
+ * One action-button tap, shaped to match `service.NotificationActionEvent` so the
+ * existing `useNotificationActions` handler consumes it unchanged.
+ */
+export interface ChronometerActionEvent {
+  /** The tapped button's `id` (e.g. `cancel-sleep`). */
+  actionIdentifier: string;
+  /** The notification's tag — the `PlannedNotification`/spec key. */
+  id: string;
+  /** The child echoed from `present`, or undefined when it was empty. */
+  childId?: string;
 }
 
 export interface ChronometerNativeModule {
@@ -52,6 +84,18 @@ export interface ChronometerNativeModule {
   reconcile(wanted: string[]): Promise<string[]>;
   /** Tags of the chronometer notifications this module currently has presented. */
   getActiveIds(): Promise<string[]>;
+  /**
+   * The action tap that cold-started the app (its button's intent extras are on
+   * the launch intent), consumed once and cleared. Null when the app wasn't
+   * launched by one of our buttons. The warm-start case arrives via the
+   * `onChronometerAction` event instead.
+   */
+  consumeLastAction(): Promise<ChronometerActionEvent | null>;
+  /** Subscribe to action taps that arrive while the app is already running. */
+  addListener(
+    event: 'onChronometerAction',
+    listener: (e: ChronometerActionEvent) => void,
+  ): { remove(): void };
 }
 
 /** The native module, or `null` where it isn't available (web / Expo Go). */

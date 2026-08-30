@@ -307,7 +307,7 @@ export function useNotificationSync(): void {
       // anchorMs isn't in the signature: it's fixed for the life of a spec (a
       // timer's start / a dose's due time), and the OS ticks the clock off it, so
       // it never needs a re-present to stay current.
-      const sig = JSON.stringify(specs.map((s) => [s.key, s.title, s.text, s.countDown]));
+      const sig = JSON.stringify(specs.map((s) => [s.key, s.title, s.text, s.countDown, s.actions]));
       if (sig === lastOngoingSig.current) return;
       lastOngoingSig.current = sig;
       void chronometer.syncChronometerAsync(specs);

@@ -23,6 +23,7 @@
  */
 import { useEffect } from 'react';
 import * as service from '../notifications/service';
+import * as chronometer from '../notifications/chronometer';
 import { notificationAction } from '../lib/notifications';
 import { useNotificationStore } from '../stores/notificationStore';
 import { navigationRef } from '../navigation/navigationRef';
@@ -128,10 +129,21 @@ export function useNotificationActions(): void {
   useEffect(() => {
     // Cold start: the app may have just been launched by this very tap, in
     // which case the listener below — registered after this effect runs —
-    // never sees it.
+    // never sees it. Both action sources need the same one-shot check:
+    //  - expo-notifications, for the scheduled reminders' buttons;
+    //  - the native chronometer module, for the live running-timer buttons
+    //    (`cancel-<type>` / `end-<type>`), which don't go through expo at all.
     void service.getLastActionAsync().then((event) => {
       if (event) handleAction(event);
     });
-    return service.addActionListener(handleAction);
+    void chronometer.getLastActionAsync().then((event) => {
+      if (event) handleAction(event);
+    });
+    const unsubService = service.addActionListener(handleAction);
+    const unsubChrono = chronometer.addActionListener(handleAction);
+    return () => {
+      unsubService();
+      unsubChrono();
+    };
   }, []);
 }
