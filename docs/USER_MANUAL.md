@@ -1,8 +1,10 @@
 # Baby Buddy Dashboard — User Manual
 
-This guide walks through the app the way you'll actually use it: signing in, logging each kind of entry, running timers, reading the dashboard, setting up notifications, managing multiple children, and adjusting the look. No developer knowledge needed.
+Welcome. This guide walks through the app the way you'll actually use it, day to day: getting it installed, signing in, logging each kind of entry, running timers, reading your children's cards, setting up reminders, managing more than one child, and making it look the way you like. You don't need any technical background — if you can tap a button, you can use everything here.
 
-> Screenshots and exact wording may differ slightly between versions and languages (English / Hebrew).
+If you just want to get going, the [README](../README.md#getting-started-in-5-steps) has a five-step start. This manual is the complete reference for when you want the details.
+
+> Exact wording and colours may vary slightly between app versions and between the two languages (English / Hebrew).
 
 ## Contents
 
@@ -257,4 +259,4 @@ No. A password is used once to obtain an API token, then discarded; only the tok
 
 ---
 
-*For developer setup, build instructions, and architecture, see the main [`README.md`](../README.md).*
+*For developer setup, build instructions, and architecture, see [`DEVELOPMENT.md`](DEVELOPMENT.md). For an overview and install links, see the [`README`](../README.md).*
