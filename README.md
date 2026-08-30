@@ -139,7 +139,7 @@ After changing Reanimated/Worklets versions, start with a clean cache: `npx expo
 An EAS build is the supported path for a shippable APK/AAB with all native modules linked:
 
 ```bash
-npx expo install -g eas-cli   # if you don't have it
+npm install -g eas-cli   # if you don't have it (or run via: npx eas ...)
 eas build --platform android
 ```
 
