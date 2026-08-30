@@ -58,7 +58,7 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
           onPress={() => navigation.goBack()}
-          hitSlop={8}
+          hitSlop={10}
         >
           <ChevronLeftGlyph size={24} color={colors.textPrimary} />
         </Pressable>

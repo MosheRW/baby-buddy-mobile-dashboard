@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Pressable,
+  SectionList,
+  StyleSheet,
+  View,
+  type RefreshControlProps,
+  type SectionListData,
+  type SectionListRenderItemInfo,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText, Card, ChipRow } from '../../components';
 import { EntryGlyph, PencilGlyph, TrashGlyph } from '../../components/glyphs/entryGlyphs';
@@ -25,6 +33,17 @@ import type { Entry } from '../../api/types';
 
 const FILTER_VALUES: FeedFilter[] = ['all', 'diaper', 'feeding', 'medication', 'sleep'];
 
+/** One day-group; `data` is the SectionList's required per-section item array. */
+type FeedSection = { header: string; data: Entry[] };
+
+const keyExtractor = (entry: Entry) => entry.id;
+
+/** 10px gap between rows within a day-group (matches the old group gap). */
+const rowSeparatorStyle = { height: spacing.md };
+function ItemSeparator() {
+  return <View style={rowSeparatorStyle} />;
+}
+
 interface ActivityFeedProps {
   entries: Entry[];
   /** Advancing clock from the dashboard's 60s tick, for relative-time labels. */
@@ -33,22 +52,40 @@ interface ActivityFeedProps {
   currentUser: EntryOwner | undefined;
   onEditEntry: (entry: Entry) => void;
   onDeleteEntry: (entry: Entry) => void;
+  /**
+   * The whole above-feed dashboard content (greeting, timer strip, carousel,
+   * child card + quick actions). Rendered as the list header so the feed can
+   * virtualize while everything scrolls together — a virtualized list can't be
+   * nested inside a same-orientation ScrollView.
+   */
+  header: React.ReactElement;
+  /** Pull-to-refresh control, owned by the dashboard's query. */
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+  /** Scrolling counts as a welcome-dismissing interaction. */
+  onScrollBeginDrag?: () => void;
 }
 
 /**
- * Memoized, and every prop it takes is a stable reference from the dashboard.
- * This is the heaviest thing on the screen — one un-virtualized Card per entry —
- * so switching children must be able to skip it: the child pills re-render
- * urgently on the tap, the feed follows on the deferred pass. Without the memo
- * the whole list would re-render inside the tap's own commit and the pill
- * highlight would visibly lag the finger.
+ * The dashboard's single scroll container: a SectionList that virtualizes the
+ * feed (one Card per entry — the heaviest thing on the screen) while carrying
+ * the entire above-feed dashboard as its list header, so it all scrolls as one.
+ *
+ * The old whole-feed memo (skip the feed on a child-switch's urgent pass) is
+ * replaced by two things that survive virtualization: only visible rows exist
+ * at all, and each `FeedRow` is memoized so the urgent pass — which changes the
+ * header (pills) but not `sections`/`extraData` — reconciles just the header
+ * and leaves the visible rows untouched. The child card stays deferred in
+ * `ChildNav` (in the header), so the pill highlight still leads the card.
  */
-export const ActivityFeed = React.memo(function ActivityFeed({
+export function ActivityFeed({
   entries,
   now,
   currentUser,
   onEditEntry,
   onDeleteEntry,
+  header,
+  refreshControl,
+  onScrollBeginDrag,
 }: ActivityFeedProps) {
   const { t } = useTranslation();
   const { colors, tints } = useTheme();
@@ -59,88 +96,132 @@ export const ActivityFeed = React.memo(function ActivityFeed({
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
 
-  const scoped = tagFilter ? filterByTag(entries, tagFilter) : entries;
-  const groups = filterAndGroup(scoped, filter, now);
+  // Memoized so the SectionList sees a stable `sections` reference on the
+  // urgent pill-tap pass (activeChild is deferred, so `entries` is unchanged
+  // then) and skips re-rendering the visible rows.
+  const scoped = useMemo(
+    () => (tagFilter ? filterByTag(entries, tagFilter) : entries),
+    [entries, tagFilter],
+  );
+  const sections = useMemo<FeedSection[]>(
+    () => filterAndGroup(scoped, filter, now).map((g) => ({ header: g.header, data: g.entries })),
+    [scoped, filter, now],
+  );
 
   // Only with the feature on do the feed gauges switch from the frozen per-entry
   // baseline to the toggle-sensitive per-day norm; off, they stay exactly as
   // before. `entries` is already scoped to the active child, so this norm is
   // that child's own average daily intake.
-  const dailyNorm = excludeInactiveDays
-    ? dailyIntakeNorm(entries, now, { excludeInactiveDays: true })
-    : undefined;
+  const dailyNorm = useMemo(
+    () =>
+      excludeInactiveDays
+        ? dailyIntakeNorm(entries, now, { excludeInactiveDays: true })
+        : undefined,
+    [excludeInactiveDays, entries, now],
+  );
 
   const filterOptions = FILTER_VALUES.map((value) => ({
     value,
     label: value === 'all' ? t('filter.all') : t(`entryType.${value}`),
   }));
 
-  return (
-    <View style={styles.container}>
-      <AppText
-        size={fontSize.bodySm}
-        weight="800"
-        color={colors.textSecondary}
-        style={styles.title}
-      >
-        {t('dashboard.recentActivity')}
-      </AppText>
+  // A row re-renders only when one of these moves: the tick (time labels), the
+  // norm (gauges), or the current user (edit/delete affordance).
+  const extraData = useMemo(
+    () => ({ now, dailyNorm, currentUser }),
+    [now, dailyNorm, currentUser],
+  );
 
-      <ChipRow
-        layout="scroll"
-        value={filter}
-        onChange={(v) => setFilter(v as FeedFilter)}
-        options={filterOptions}
+  const renderItem = useCallback(
+    ({ item }: SectionListRenderItemInfo<Entry, FeedSection>) => (
+      <FeedRow
+        entry={item}
+        now={now}
+        dailyNorm={dailyNorm}
+        canModify={canModifyEntry(item, currentUser)}
+        onEdit={onEditEntry}
+        onDelete={onDeleteEntry}
+        onTagPress={setTagFilter}
       />
+    ),
+    [now, dailyNorm, currentUser, onEditEntry, onDeleteEntry],
+  );
 
-      {tagFilter ? (
-        <View style={styles.tagFilterRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('dashboard.clearTagFilter', { tag: tagFilter })}
-            onPress={() => setTagFilter(null)}
-            style={styles.tagFilter}
-          >
-            <AppText size={fontSize.metaSm} weight="800" color={tints.suggestion.fg}>
-              {t('dashboard.tagFilter', { tag: tagFilter })}
-            </AppText>
-          </Pressable>
-        </View>
-      ) : null}
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: SectionListData<Entry, FeedSection> }) => (
+      <AppText
+        size={fontSize.metaSm}
+        weight="800"
+        color={colors.textMuted}
+        style={styles.dayHeader}
+      >
+        {section.header.toUpperCase()}
+      </AppText>
+    ),
+    [colors.textMuted, styles.dayHeader],
+  );
 
-      {groups.length === 0 ? (
+  const listHeader = (
+    <View style={styles.listHeader}>
+      {header}
+      <View style={styles.feedHeader}>
+        <AppText
+          size={fontSize.bodySm}
+          weight="800"
+          color={colors.textSecondary}
+          style={styles.title}
+        >
+          {t('dashboard.recentActivity')}
+        </AppText>
+
+        <ChipRow
+          layout="scroll"
+          value={filter}
+          onChange={(v) => setFilter(v as FeedFilter)}
+          options={filterOptions}
+        />
+
+        {tagFilter ? (
+          <View style={styles.tagFilterRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('dashboard.clearTagFilter', { tag: tagFilter })}
+              onPress={() => setTagFilter(null)}
+              style={styles.tagFilter}
+            >
+              <AppText size={fontSize.metaSm} weight="800" color={tints.suggestion.fg}>
+                {t('dashboard.tagFilter', { tag: tagFilter })}
+              </AppText>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  return (
+    <SectionList<Entry, FeedSection>
+      style={styles.list}
+      contentContainerStyle={styles.content}
+      sections={sections}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      renderSectionHeader={renderSectionHeader}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={
         <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted} style={styles.empty}>
           {t('dashboard.noEntries')}
         </AppText>
-      ) : (
-        groups.map((group) => (
-          <View key={group.header} style={styles.group}>
-            <AppText
-              size={fontSize.metaSm}
-              weight="800"
-              color={colors.textMuted}
-              style={styles.dayHeader}
-            >
-              {group.header.toUpperCase()}
-            </AppText>
-            {group.entries.map((entry) => (
-              <FeedRow
-                key={entry.id}
-                entry={entry}
-                now={now}
-                dailyNorm={dailyNorm}
-                canModify={canModifyEntry(entry, currentUser)}
-                onEdit={onEditEntry}
-                onDelete={onDeleteEntry}
-                onTagPress={setTagFilter}
-              />
-            ))}
-          </View>
-        ))
-      )}
-    </View>
+      }
+      ItemSeparatorComponent={ItemSeparator}
+      stickySectionHeadersEnabled={false}
+      showsVerticalScrollIndicator={false}
+      onScrollBeginDrag={onScrollBeginDrag}
+      refreshControl={refreshControl}
+      extraData={extraData}
+    />
   );
-});
+}
 
 /**
  * Memoized too, and it takes the entry-taking callbacks rather than per-row
@@ -329,7 +410,9 @@ function RowButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      hitSlop={6}
+      // The button is 26px; 9px of slop brings the touch area to the ~44px
+      // guideline without changing the visual layout.
+      hitSlop={9}
       onPress={onPress}
       style={({ pressed }) => [
         styles.rowButton,
@@ -344,7 +427,19 @@ function RowButton({
 
 const makeStyles = ({ colors, tints }: AppTheme) =>
   StyleSheet.create({
-    container: {
+    list: {
+      flex: 1,
+    },
+    content: {
+      padding: spacing['2xl'],
+    },
+    // 22px between the dashboard header block and the feed's title/chips —
+    // matches the old ScrollView gap between the child card and the feed.
+    listHeader: {
+      gap: spacing['5xl'],
+    },
+    // 12px among the feed title, filter chips, and the tag-filter row.
+    feedHeader: {
       gap: spacing.lg,
     },
     title: {
@@ -363,12 +458,13 @@ const makeStyles = ({ colors, tints }: AppTheme) =>
       textAlign: 'center',
       paddingVertical: spacing['6xl'],
     },
-    group: {
-      gap: spacing.md,
-    },
     dayHeader: {
       letterSpacing: 0.6,
-      marginTop: spacing.sm,
+      // Separates a day-group from the content above it (the previous group's
+      // last row, or the filter chips for the first group); marginBottom sets
+      // it off from its own first row (the old within-group gap).
+      marginTop: spacing['4xl'],
+      marginBottom: spacing.md,
     },
     row: {
       flexDirection: 'row',

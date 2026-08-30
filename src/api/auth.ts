@@ -15,8 +15,8 @@
  * After either flow the app holds a token and never uses the cookie session.
  */
 import type { LoginMode, Session } from './types';
-import { profileResponseSchema, profileSchema } from './schemas';
-import { ApiError, AuthError, NetworkError, joinUrl, rawRequest, request } from './client';
+import { profileResponseSchema, profileSchema, type ProfileDto } from './schemas';
+import { AuthError, NetworkError, joinUrl, request } from './client';
 import { extractCsrfToken } from './webForm';
 
 /** Raised when the password flow can't complete and the user should paste a key. */
@@ -29,6 +29,55 @@ export class PasswordLoginUnavailable extends Error {
 
 function displayName(profile: { username?: string; first_name?: string }): string {
   return profile.first_name?.trim() || profile.username?.trim() || 'me';
+}
+
+/**
+ * Read `/api/profile` over the **session cookie** the login-form POST just
+ * seated, and return the parsed profile (containing the `api_key` we keep).
+ *
+ * Deliberately NOT the REST `request()` helper: that unconditionally sends
+ * `credentials: 'omit'` (load-bearing for the token-path CSRF fix in
+ * `client.ts`), which would drop the very session cookie this bootstrap depends
+ * on — leaving the read unauthenticated, so it 401s and the whole password
+ * path falls back to "paste your API key." A plain cookie-carrying `fetch` (RN
+ * attaches the shared jar automatically) is the session path, matching
+ * `webForm.ts`. Failures degrade to `PasswordLoginUnavailable` so the caller
+ * offers the API-key fallback rather than leaving the user stuck.
+ */
+async function readProfileOverSession(baseUrl: string): Promise<ProfileDto> {
+  const url = joinUrl(baseUrl, 'api/profile');
+
+  let body: string;
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) {
+      throw new PasswordLoginUnavailable(
+        'Signed in, but the server would not return your profile over the session.',
+      );
+    }
+    body = await res.text();
+  } catch (err) {
+    if (err instanceof PasswordLoginUnavailable) throw err;
+    throw new NetworkError(err instanceof Error ? err.message : undefined);
+  }
+
+  let json: unknown;
+  try {
+    json = JSON.parse(body);
+  } catch {
+    // A 200 that isn't JSON (e.g. an HTML page) means we didn't reach the API.
+    throw new PasswordLoginUnavailable(
+      "Signed in, but couldn't read your profile from this server.",
+    );
+  }
+
+  const parsed = profileSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new PasswordLoginUnavailable(
+      "Signed in, but couldn't read your profile from this server.",
+    );
+  }
+  return parsed.data;
 }
 
 /**
@@ -130,18 +179,9 @@ export async function signInWithPassword(
   if (postStatus >= 400) throw new AuthError('Incorrect username or password.');
 
   // The session cookie is now in the jar; ask the API who we are and, crucially,
-  // for the API key we'll use from here on.
-  let profile;
-  try {
-    profile = await request(profileSchema, { baseUrl, path: 'api/profile' });
-  } catch (err) {
-    if (err instanceof ApiError) {
-      throw new PasswordLoginUnavailable(
-        'Signed in, but the server would not return your profile over the session.',
-      );
-    }
-    throw err;
-  }
+  // for the API key we'll use from here on. This read must carry that cookie —
+  // see readProfileOverSession for why it can't go through the REST client.
+  const profile = await readProfileOverSession(baseUrl);
 
   if (!profile.api_key) {
     throw new PasswordLoginUnavailable(
@@ -153,20 +193,13 @@ export async function signInWithPassword(
     mode,
     baseUrl,
     token: profile.api_key,
-    userName: displayName(profile),
+    // The real server nests the name under `user.*` (like the token flow);
+    // fall back to the top-level fields for a flat response.
+    userName: displayName({
+      username: profile.user?.username ?? profile.username,
+      first_name: profile.user?.first_name ?? profile.first_name,
+    }),
     language: profile.language,
     isStaff: profile.user?.is_staff,
   };
-}
-
-/** Cheap liveness/permission probe used after rehydrating a stored session. */
-export async function verifySession(session: Session): Promise<boolean> {
-  try {
-    await rawRequest({ baseUrl: session.baseUrl, path: 'api/profile', token: session.token });
-    return true;
-  } catch (err) {
-    if (err instanceof AuthError) return false;
-    // Network trouble isn't proof the token is bad — keep the session.
-    return true;
-  }
 }

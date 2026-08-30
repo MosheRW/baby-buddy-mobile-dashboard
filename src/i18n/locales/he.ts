@@ -20,6 +20,12 @@ export const he = {
     ok: 'אישור',
   },
 
+  errorBoundary: {
+    title: 'משהו השתבש',
+    body: 'המסך הזה נתקל בשגיאה בלתי צפויה. אפשר לנסות שוב.',
+    retry: 'ניסיון חוזר',
+  },
+
   stepper: {
     increase: 'הגדלה',
     decrease: 'הקטנה',
@@ -44,6 +50,8 @@ export const he = {
     serverUrl: 'כתובת השרת',
     addOnUrl: 'כתובת התוסף',
     serverUrlPlaceholder: 'https://babybuddy.example.com',
+    httpWarning:
+      'הכתובת משתמשת ב-http://, ולכן מפתח ה-API והנתונים נשלחים ללא הצפנה. השתמשו בה רק ברשת מהימנה; אחרת עדיף https://.',
     addOnUrlPlaceholder: 'http://homeassistant.local:8123/addon-slug',
     apiKey: 'מפתח API',
     apiKeyPlaceholder: 'הדביקו מ-Baby Buddy ← הגדרות משתמש',

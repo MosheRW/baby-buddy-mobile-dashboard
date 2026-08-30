@@ -115,6 +115,13 @@ export function LoginScreen({ navigation }: Props) {
 
   const showKeyField = useApiKey || isHa;
 
+  // Warn when the entered server URL is cleartext http://. `normalizeBaseUrl`
+  // only ever yields http:// when the user typed it explicitly (scheme-less
+  // input defaults to https://), so this fires on a conscious choice — the
+  // token then rides unencrypted, which is a legitimate need on a trusted LAN
+  // but deserves a visible caveat. Not shown in offline mode (no server).
+  const usesCleartext = !isLocal && /^http:\/\//i.test(normalizeBaseUrl(serverUrl));
+
   // Return-key navigation: username → password → submit.
   const credentialsChain = useFieldChain(2, () => void submit());
 
@@ -202,6 +209,12 @@ export function LoginScreen({ navigation }: Props) {
                 value={serverUrl}
                 onChangeText={setServerUrl}
               />
+
+              {usesCleartext ? (
+                <AppText size={fontSize.metaSm} weight="700" color={colors.danger}>
+                  {t('login.httpWarning')}
+                </AppText>
+              ) : null}
 
               {showKeyField ? (
               <TextField
@@ -304,15 +317,17 @@ const makeStyles = ({ colors }: AppTheme) =>
       flex: 1,
     },
     content: {
+      // 44 is an off-scale screen-top offset (the spacing scale tops out at 30).
       paddingTop: 44,
-      paddingHorizontal: 22,
+      paddingHorizontal: spacing['5xl'],
       paddingBottom: spacing['7xl'],
       alignItems: 'stretch',
     },
     logo: {
+      // 64 is a fixed logo dimension, not a spacing-scale value.
       width: 64,
       height: 64,
-      borderRadius: 20,
+      borderRadius: radii.pill,
       backgroundColor: colors.accent,
       alignSelf: 'center',
       marginBottom: spacing['5xl'],

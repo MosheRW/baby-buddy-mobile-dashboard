@@ -10,4 +10,5 @@ export * from './SegmentedToggle';
 export * from './Stepper';
 export * from './ToggleSwitch';
 export * from './TagRow';
+export * from './ErrorBoundary';
 export * from './glyphs';

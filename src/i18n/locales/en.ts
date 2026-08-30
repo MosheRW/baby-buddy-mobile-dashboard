@@ -21,6 +21,12 @@ export const en = {
     ok: 'OK',
   },
 
+  errorBoundary: {
+    title: 'Something went wrong',
+    body: 'This screen ran into an unexpected error. You can try again.',
+    retry: 'Try again',
+  },
+
   stepper: {
     increase: 'Increase',
     decrease: 'Decrease',
@@ -45,6 +51,8 @@ export const en = {
     serverUrl: 'Server URL',
     addOnUrl: 'Add-on URL',
     serverUrlPlaceholder: 'https://babybuddy.example.com',
+    httpWarning:
+      'This address uses http://, so your API token and data are sent unencrypted. Only use it on a network you trust; prefer https:// otherwise.',
     addOnUrlPlaceholder: 'http://homeassistant.local:8123/addon-slug',
     apiKey: 'API key',
     apiKeyPlaceholder: 'Paste from Baby Buddy → user settings',

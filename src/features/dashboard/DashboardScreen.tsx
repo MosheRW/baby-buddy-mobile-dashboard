@@ -1,12 +1,5 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -340,11 +333,117 @@ export function DashboardScreen({ navigation }: Props) {
     clearAppErrors();
   };
 
+  // Everything above the feed. Passed to ActivityFeed as the SectionList's list
+  // header so the whole screen scrolls as one while the feed itself virtualizes
+  // (a virtualized list can't be nested in a same-orientation ScrollView).
+  const header = (
+    <View style={styles.header}>
+      {welcomeDismissed ? null : (
+        <View>
+          <AppText size={fontSize.screenTitle} weight="800">
+            {userName
+              ? t('dashboard.greetingWithName', {
+                  greeting: greeting(now),
+                  name: displayUserName(userName),
+                })
+              : greeting(now)}
+          </AppText>
+          <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
+            {longDate(now)}
+          </AppText>
+        </View>
+      )}
+
+      {isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      ) : null}
+
+      {showInactiveDaysPrompt ? (
+        <View style={styles.inactivePrompt}>
+          <AppText size={fontSize.bodySm} weight="800">
+            {t('dashboard.inactiveDaysTitle')}
+          </AppText>
+          <AppText size={fontSize.metaSm} weight="600" color={colors.textSecondary}>
+            {t('dashboard.inactiveDaysBody')}
+          </AppText>
+          <View style={styles.inactiveActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => markInactiveDaysPromptSeen()}
+              style={styles.inactiveDismiss}
+            >
+              <AppText size={fontSize.metaSm} weight="800" color={colors.textSecondary}>
+                {t('dashboard.inactiveDaysDismiss')}
+              </AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setExcludeInactiveDays(true)}
+              style={styles.inactiveConfirm}
+            >
+              <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
+                {t('dashboard.inactiveDaysExclude')}
+              </AppText>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      <TimerStrip childrenById={childrenById} now={timerNow} onPress={openTimer} />
+
+      {numHidden > 0 && !revealActive ? (
+        <View style={styles.revealRow}>
+          <Chip
+            label={t('dashboard.showHidden', { count: numHidden })}
+            onPress={() => {
+              dismiss();
+              revealHidden(revealDurationMinutes * 60_000);
+            }}
+          />
+        </View>
+      ) : null}
+
+      <NotificationCarousel
+        items={carouselItems}
+        childrenById={childrenById}
+        onClearAll={clearAllAlerts}
+      />
+
+      {activeChild ? (
+        <ChildNav
+          childList={visible}
+          entries={entries}
+          activeIndex={clampedIndex}
+          cardIndex={safeContentIndex}
+          onActiveChange={changeChild}
+          now={now}
+          timerNow={timerNow}
+          onQuickAction={openCreate}
+          onOpenMedBreakdown={openMedBreakdown}
+          onLogDose={openDose}
+          onOpenSettings={openSettings}
+        />
+      ) : (
+        // No children yet, so there's no name row to attach the cog to —
+        // keep it reachable on its own right-aligned row.
+        <View style={styles.settingsFallback}>
+          <SettingsButton onPress={openSettings} />
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+      <ActivityFeed
+        entries={feedEntries}
+        now={now}
+        currentUser={currentUser}
+        onEditEntry={openEdit}
+        onDeleteEntry={confirmDelete}
+        header={header}
         // Scrolling counts as interaction, same as tapping anything below.
         onScrollBeginDrag={dismiss}
         refreshControl={
@@ -354,110 +453,7 @@ export function DashboardScreen({ navigation }: Props) {
             tintColor={colors.accent}
           />
         }
-      >
-        {welcomeDismissed ? null : (
-          <View>
-            <AppText size={fontSize.screenTitle} weight="800">
-              {userName
-                ? t('dashboard.greetingWithName', {
-                    greeting: greeting(now),
-                    name: displayUserName(userName),
-                  })
-                : greeting(now)}
-            </AppText>
-            <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
-              {longDate(now)}
-            </AppText>
-          </View>
-        )}
-
-        {isLoading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.accent} />
-          </View>
-        ) : null}
-
-        {showInactiveDaysPrompt ? (
-          <View style={styles.inactivePrompt}>
-            <AppText size={fontSize.bodySm} weight="800">
-              {t('dashboard.inactiveDaysTitle')}
-            </AppText>
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textSecondary}>
-              {t('dashboard.inactiveDaysBody')}
-            </AppText>
-            <View style={styles.inactiveActions}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => markInactiveDaysPromptSeen()}
-                style={styles.inactiveDismiss}
-              >
-                <AppText size={fontSize.metaSm} weight="800" color={colors.textSecondary}>
-                  {t('dashboard.inactiveDaysDismiss')}
-                </AppText>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setExcludeInactiveDays(true)}
-                style={styles.inactiveConfirm}
-              >
-                <AppText size={fontSize.metaSm} weight="800" color={colors.onAccent}>
-                  {t('dashboard.inactiveDaysExclude')}
-                </AppText>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-
-        <TimerStrip childrenById={childrenById} now={timerNow} onPress={openTimer} />
-
-        {numHidden > 0 && !revealActive ? (
-          <View style={styles.revealRow}>
-            <Chip
-              label={t('dashboard.showHidden', { count: numHidden })}
-              onPress={() => {
-                dismiss();
-                revealHidden(revealDurationMinutes * 60_000);
-              }}
-            />
-          </View>
-        ) : null}
-
-        <NotificationCarousel
-          items={carouselItems}
-          childrenById={childrenById}
-          onClearAll={clearAllAlerts}
-        />
-
-        {activeChild ? (
-          <ChildNav
-            childList={visible}
-            entries={entries}
-            activeIndex={clampedIndex}
-            cardIndex={safeContentIndex}
-            onActiveChange={changeChild}
-            now={now}
-            timerNow={timerNow}
-            onQuickAction={openCreate}
-            onOpenMedBreakdown={openMedBreakdown}
-            onLogDose={openDose}
-            onOpenSettings={openSettings}
-          />
-        ) : (
-          // No children yet, so there's no name row to attach the cog to —
-          // keep it reachable on its own right-aligned row.
-          <View style={styles.settingsFallback}>
-            <SettingsButton onPress={openSettings} />
-          </View>
-        )}
-
-        <ActivityFeed
-          entries={feedEntries}
-          now={now}
-          currentUser={currentUser}
-          onEditEntry={openEdit}
-          onDeleteEntry={confirmDelete}
-        />
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 }
@@ -468,8 +464,9 @@ const makeStyles = ({ colors }: AppTheme) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    content: {
-      padding: spacing['2xl'],
+    // The list-header block: 22px between each above-feed section (the feed's
+    // own outer padding comes from the SectionList content container).
+    header: {
       gap: spacing['5xl'],
     },
     loading: {
