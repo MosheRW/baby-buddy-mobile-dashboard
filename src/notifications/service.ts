@@ -131,6 +131,22 @@ function categoryFor(planned: PlannedNotification): string | undefined {
 }
 
 /**
+ * The Android category id for a set of actions, or undefined for none — shared by
+ * the ongoing/live-timer tracks (`syncOngoingAsync` here and the native
+ * chronometer in `chronometer.ts`) so a running-timer notification carries the
+ * same buttons however it's drawn. The tuple must be one of `ACTION_SETS` (all of
+ * which are registered at init); the timer `cancel-*`/`end-*` sets are.
+ */
+export function categoryIdFor(actions: NotificationActionId[] | undefined): string | undefined {
+  return actions && actions.length > 0 ? categoryId(actions) : undefined;
+}
+
+/** The localized button title for one action id — for the native chronometer buttons. */
+export function actionButtonTitle(action: NotificationActionId): string {
+  return buttonTitle(action);
+}
+
+/**
  * (Re)register every Android notification category with its action buttons.
  * Idempotent — safe to call on every launch and again whenever the active
  * language changes, since a category's button titles are fixed at registration
@@ -447,6 +463,9 @@ export async function syncOngoingAsync(planned: OngoingNotification[]): Promise<
       }
     }
     for (const p of planned) {
+      // Same cancel/end buttons as the native chronometer track, via a
+      // pre-registered category (undefined if there are none to attach).
+      const category = categoryIdFor(p.actions);
       await N.scheduleNotificationAsync({
         identifier: p.key,
         content: {
@@ -454,6 +473,7 @@ export async function syncOngoingAsync(planned: OngoingNotification[]): Promise<
           body: p.body,
           sticky: true,
           autoDismiss: false,
+          ...(category ? { categoryIdentifier: category } : {}),
           data: { ongoing: true, ...(p.childId ? { childId: p.childId } : {}) },
         },
         // A bare `channelId` trigger = present now on this channel (immediate,

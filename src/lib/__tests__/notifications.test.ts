@@ -787,6 +787,12 @@ describe('buildOngoingTimerNotifications', () => {
     );
     expect(out.map((o) => o.key)).toEqual(['ongoing:feeding:c1', 'ongoing:sleep:c1']);
     expect(out.every((o) => o.childId === 'c1')).toBe(true);
+    // The minute-granular fallback carries the same cancel/end buttons as the
+    // native chronometer, so the two live-timer tracks behave alike.
+    expect(out.map((o) => o.actions)).toEqual([
+      ['cancel-feeding', 'end-feeding'],
+      ['cancel-sleep', 'end-sleep'],
+    ]);
   });
 
   it('names the child and the elapsed time in the body', () => {
@@ -873,6 +879,15 @@ describe('buildOngoingTimerChronometers', () => {
     expect(spec.title).toBe('Feeding timer running');
     expect(spec.text).toBe('Emma');
     expect(spec.text).not.toMatch(/\d/);
+  });
+
+  it('carries the per-type cancel/end buttons for the running timer', () => {
+    const [spec] = buildOngoingTimerChronometers({
+      timers: [runningTimer({ type: 'sleep' })],
+      children: CHILDREN,
+      settings: liveSettings(),
+    });
+    expect(spec.actions).toEqual(['cancel-sleep', 'end-sleep']);
   });
 
   it('uses the no-child text when the child is unknown', () => {

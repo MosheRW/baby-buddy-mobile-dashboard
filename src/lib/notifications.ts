@@ -704,6 +704,12 @@ export interface OngoingNotification {
   title: string;
   body: string;
   childId?: string;
+  /**
+   * Action buttons, same as `ChronometerSpec.actions` — the minute-granular
+   * fallback (Expo Go / any build without the native chronometer) attaches them
+   * as an expo notification category so the two live-timer tracks behave alike.
+   */
+  actions?: NotificationActionId[];
 }
 
 /**
@@ -736,6 +742,7 @@ export function buildOngoingTimerNotifications(
         duration: countdownLabel(elapsedMinutes * MINUTE),
       }),
       childId: rt.childId,
+      actions: [`cancel-${rt.type}`, `end-${rt.type}`],
     };
   });
 }
@@ -771,6 +778,16 @@ export interface ChronometerSpec {
   /** True → count down toward `anchorMs` (meds); false → count up (timers). */
   countDown: boolean;
   childId?: string;
+  /**
+   * Action buttons to attach, chosen by the same planner logic as the scheduled
+   * reminders (`PlannedNotification.actions`). Running-timer chronometers carry
+   * `cancel-<type>` / `end-<type>`; the medication countdown carries none (its
+   * "before" phase is served by the fire-once scheduled reminder, which owns the
+   * OK / remind-on-time buttons). The native module renders these under
+   * `DecoratedCustomViewStyle` and routes a tap back through the very same
+   * `useNotificationActions` handler the expo action buttons use.
+   */
+  actions?: NotificationActionId[];
 }
 
 /** Prefixes owned by the live-chronometer track, for reconcile/dismiss scoping. */
@@ -813,6 +830,9 @@ export function buildOngoingTimerChronometers(
       anchorMs: rt.startedAt,
       countDown: false,
       childId: rt.childId,
+      // Same per-type timer buttons the forgotten-timer reminder carries, so
+      // acting on a running timer is one tap from either surface.
+      actions: [`cancel-${rt.type}`, `end-${rt.type}`],
     };
   });
 }

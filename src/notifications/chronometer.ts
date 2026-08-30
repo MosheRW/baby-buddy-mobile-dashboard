@@ -14,7 +14,7 @@
 import { Platform } from 'react-native';
 import { ChronometerNotification } from '../../modules/chronometer-notification';
 import type { ChronometerSpec } from '../lib/notifications';
-import { ONGOING_CHANNEL_ID } from './service';
+import { ONGOING_CHANNEL_ID, actionButtonTitle, type NotificationActionEvent } from './service';
 
 /**
  * Monotonic reconcile generation. Reconciles are launched fire-and-forget from a
@@ -58,6 +58,10 @@ export async function syncChronometerAsync(specs: ChronometerSpec[]): Promise<vo
         // Timers and med countdowns alike stay put until their premise ends
         // (timer stopped / dose logged) — the reconcile is what removes them.
         ongoing: true,
+        childId: s.childId ?? '',
+        // Button titles are localized here (JS owns i18n); the native side just
+        // renders them and echoes the action id + childId back on a tap.
+        actions: (s.actions ?? []).map((id) => ({ id, title: actionButtonTitle(id) })),
       });
     }
     // A newer reconcile started while we awaited — it owns the authoritative
@@ -74,5 +78,49 @@ export async function syncChronometerAsync(specs: ChronometerSpec[]): Promise<vo
     await mod.reconcile([...wanted]);
   } catch (err) {
     console.warn('[chronometer] sync failed:', err);
+  }
+}
+
+/**
+ * Subscribe to a tap on one of the chronometer's action buttons that arrives
+ * while the app is already running. The native payload is already shaped like
+ * `service.NotificationActionEvent`, so `useNotificationActions.handleAction`
+ * consumes it unchanged (the `cancel-<type>` / `end-<type>` buttons on a
+ * running-timer chronometer route exactly as they do from the scheduled
+ * reminder). No-op — returning a no-op unsubscribe — where the module is absent.
+ */
+export function addActionListener(
+  handler: (event: NotificationActionEvent) => void,
+): () => void {
+  const mod = ChronometerNotification;
+  if (!mod) return () => {};
+  try {
+    const sub = mod.addListener('onChronometerAction', (e) =>
+      handler({ actionIdentifier: e.actionIdentifier, id: e.id, childId: e.childId ?? undefined }),
+    );
+    return () => sub.remove();
+  } catch (err) {
+    console.warn('[chronometer] action listener failed:', err);
+    return () => {};
+  }
+}
+
+/**
+ * The action tap that cold-started the app, if any — the warm-start path above
+ * never sees it because the listener is registered after the launch. Consumed
+ * once (cleared native-side). Null where the module is absent or no button
+ * launched the app.
+ */
+export async function getLastActionAsync(): Promise<NotificationActionEvent | null> {
+  const mod = ChronometerNotification;
+  if (!mod) return null;
+  try {
+    const e = await mod.consumeLastAction();
+    return e
+      ? { actionIdentifier: e.actionIdentifier, id: e.id, childId: e.childId ?? undefined }
+      : null;
+  } catch (err) {
+    console.warn('[chronometer] last action read failed:', err);
+    return null;
   }
 }

@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Custom notification content for the live chronometer notifications: the
-  elapsed/remaining time is the point of this notification, so it's drawn big and
-  centered — like Android's own Clock app timer notification — instead of
-  `setUsesChronometer`'s small text next to the app name/timestamp. Inflated by
+  Custom notification content for the live chronometer notifications. The
+  elapsed/remaining time is the point of this notification, so the clock is drawn
+  large — but the layout is otherwise a plain, start-aligned title / value / label
+  stack so it reads as one of the app's notifications rather than a centered
+  "stopwatch" panel apart from them. Inflated by
   `NotificationCompat.DecoratedCustomViewStyle`, which wraps this in the system's
-  standard icon/app-name/timestamp header, so this layout only needs the content
-  area.
+  standard icon/app-name/timestamp header and renders the action buttons below it,
+  so this layout only owns the content area.
+
+  Start alignment (not `center`) matches the system header and the RTL text
+  direction — Hebrew lays out right-to-left with no change here.
 
   Colours come from androidx's `TextAppearance.Compat.Notification*` styles and
   from nothing else. A `RemoteViews` tree is inflated in the *host's* process
@@ -20,9 +24,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
+    android:gravity="start"
     android:paddingTop="2dp"
-    android:paddingBottom="6dp">
+    android:paddingBottom="4dp">
 
     <TextView
         android:id="@+id/chrono_title"
@@ -33,21 +37,22 @@
         android:ellipsize="end" />
 
     <!-- A view-level textSize overrides the appearance's; the colour still comes
-         from it, which is the whole point of using the appearance here. -->
+         from it, which is the whole point of using the appearance here. Sized to
+         be the clear focal point without the earlier oversized/centered look. -->
     <Chronometer
         android:id="@+id/chrono_clock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="1dp"
         android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
-        android:textSize="40sp"
+        android:textSize="34sp"
         android:fontFamily="sans-serif-light" />
 
     <TextView
         android:id="@+id/chrono_subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="1dp"
         android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
         android:maxLines="1"
         android:ellipsize="end" />
