@@ -115,6 +115,13 @@ export function LoginScreen({ navigation }: Props) {
 
   const showKeyField = useApiKey || isHa;
 
+  // Warn when the entered server URL is cleartext http://. `normalizeBaseUrl`
+  // only ever yields http:// when the user typed it explicitly (scheme-less
+  // input defaults to https://), so this fires on a conscious choice — the
+  // token then rides unencrypted, which is a legitimate need on a trusted LAN
+  // but deserves a visible caveat. Not shown in offline mode (no server).
+  const usesCleartext = !isLocal && /^http:\/\//i.test(normalizeBaseUrl(serverUrl));
+
   // Return-key navigation: username → password → submit.
   const credentialsChain = useFieldChain(2, () => void submit());
 
@@ -202,6 +209,12 @@ export function LoginScreen({ navigation }: Props) {
                 value={serverUrl}
                 onChangeText={setServerUrl}
               />
+
+              {usesCleartext ? (
+                <AppText size={fontSize.metaSm} weight="700" color={colors.danger}>
+                  {t('login.httpWarning')}
+                </AppText>
+              ) : null}
 
               {showKeyField ? (
               <TextField
