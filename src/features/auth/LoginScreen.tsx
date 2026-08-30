@@ -317,15 +317,17 @@ const makeStyles = ({ colors }: AppTheme) =>
       flex: 1,
     },
     content: {
+      // 44 is an off-scale screen-top offset (the spacing scale tops out at 30).
       paddingTop: 44,
-      paddingHorizontal: 22,
+      paddingHorizontal: spacing['5xl'],
       paddingBottom: spacing['7xl'],
       alignItems: 'stretch',
     },
     logo: {
+      // 64 is a fixed logo dimension, not a spacing-scale value.
       width: 64,
       height: 64,
-      borderRadius: 20,
+      borderRadius: radii.pill,
       backgroundColor: colors.accent,
       alignSelf: 'center',
       marginBottom: spacing['5xl'],
