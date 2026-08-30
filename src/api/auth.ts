@@ -193,7 +193,12 @@ export async function signInWithPassword(
     mode,
     baseUrl,
     token: profile.api_key,
-    userName: displayName(profile),
+    // The real server nests the name under `user.*` (like the token flow);
+    // fall back to the top-level fields for a flat response.
+    userName: displayName({
+      username: profile.user?.username ?? profile.username,
+      first_name: profile.user?.first_name ?? profile.first_name,
+    }),
     language: profile.language,
     isStaff: profile.user?.is_staff,
   };

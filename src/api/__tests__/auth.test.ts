@@ -75,6 +75,28 @@ describe('signInWithPassword', () => {
     expect(session.language).toBe('en');
   });
 
+  it('reads the userName from the nested user object the real server returns', async () => {
+    // The live `/api/profile` nests the name under `user.*` (not top-level),
+    // exactly as the token flow reads it. Without this the password flow would
+    // fall back to "me" on every real server.
+    scriptFetch(
+      res({
+        status: 200,
+        body: JSON.stringify({
+          api_key: 'KEY',
+          language: 'en',
+          user: { username: 'sarah', first_name: 'Sarah' },
+        }),
+      }),
+    );
+
+    const session = await signInWithPassword('babybuddy', BASE, 'sarah', 'pw');
+
+    expect(session.token).toBe('KEY');
+    expect(session.userName).toBe('Sarah');
+    expect(session.language).toBe('en');
+  });
+
   it('reads the profile with the session cookie, not the cookie-omitting REST path', async () => {
     scriptFetch(res({ status: 200, body: JSON.stringify({ username: 'sarah', api_key: 'KEY' }) }));
 

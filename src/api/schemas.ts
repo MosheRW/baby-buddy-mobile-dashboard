@@ -156,9 +156,17 @@ export const profileSchema = z.object({
   last_name: z.string().optional(),
   api_key: z.string().optional(),
   language: z.string().optional(),
-  /** Nested user object (real shape), read only for `is_staff` — additive/optional. */
+  /**
+   * Nested user object (the real server shape). The live `/api/profile` returns
+   * the name under `user.*`, not top-level — the token flow already reads it
+   * there — so the password flow must too, or `userName` falls back to "me".
+   * Kept alongside the top-level fields (additive/optional) so a flat response
+   * still parses.
+   */
   user: z
     .object({
+      username: z.string().optional(),
+      first_name: z.string().optional(),
       is_staff: z.boolean().optional(),
     })
     .optional(),
