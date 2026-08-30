@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -16,16 +16,10 @@ import {
 } from '../theme';
 import { joinMinutes, parseNumericInput, splitMinutes } from '../lib/stepper';
 
-// Press-and-hold: after this delay the button starts auto-repeating, one step
-// every `HOLD_INTERVAL_MS`. Every tick moves by the same fixed `step` a single
-// tap does — holding is faster, never coarser.
-const HOLD_DELAY_MS = 350;
-const HOLD_INTERVAL_MS = 90;
-
 interface StepperProps {
   value: number;
   onChange: (value: number) => void;
-  /** The increment applied by one tap — and by each press-and-hold tick. */
+  /** The increment applied by one tap. */
   step: number;
   min?: number;
   max?: number;
@@ -65,9 +59,8 @@ interface StepperProps {
 /**
  * ± stepper. The caller's `step` prop is the increment, so each usage picks its
  * own: ±1 ml/g amount, ±0.1 dose/°, ±1 min duration, ±1 hour, etc. Tap ±  to
- * step by that amount; press-and-hold to repeat it — the increment never grows
- * or shrinks, so a hold stays predictable and typing is how you get somewhere
- * far away fast.
+ * step by that amount; typing (tap the number) is how you reach a distant value
+ * fast.
  * Rounds to a stable number of decimals to avoid float drift (0.1 + 0.2 etc).
  */
 export function Stepper({
@@ -102,16 +95,12 @@ export function Stepper({
   };
   const clamp = (n: number) => Math.min(max, Math.max(min, n));
 
-  // One increment, the same for a tap and for every auto-repeat tick.
-  const applyDelta = useCallback(
-    (dir: 1 | -1) => {
-      if (disabled) return;
-      const next = clamp(dir > 0 ? value + step : value - step);
-      onChange(round(next));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [value, disabled, min, max, onChange, step, decimals],
-  );
+  // One increment per tap.
+  const applyDelta = (dir: 1 | -1) => {
+    if (disabled) return;
+    const next = clamp(dir > 0 ? value + step : value - step);
+    onChange(round(next));
+  };
 
   const resetToDefault = () => {
     if (!disabled) onChange(defaultValue);
@@ -297,6 +286,10 @@ function rangeMessage(t: TFunction, min: number, max: number): string {
   return t('stepper.rangeAny');
 }
 
+// One tap = one step. There is deliberately no press-and-hold auto-repeat: an
+// interval-driven repeat leaked whenever Android dropped `onPressOut` (e.g. the
+// parent ScrollView stole the touch mid-hold), leaving the stepper incrementing
+// on its own. Typing an exact value (tap the number) covers the far-away case.
 function StepButton({
   onStep,
   disabled,
@@ -310,42 +303,6 @@ function StepButton({
 }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  // The latest step handler, read by the repeat timer so it always steps from
-  // the current value rather than a value captured when the hold began.
-  const stepRef = useRef(onStep);
-  useEffect(() => {
-    stepRef.current = onStep;
-  }, [onStep]);
-
-  const delay = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
-  // True once auto-repeat has fired, so the release tap (`onPress`) doesn't add
-  // one extra step on top of the ones the hold already applied.
-  const repeated = useRef(false);
-
-  const stopHold = useCallback(() => {
-    if (delay.current) clearTimeout(delay.current);
-    if (repeat.current) clearInterval(repeat.current);
-    delay.current = null;
-    repeat.current = null;
-  }, []);
-
-  const startHold = useCallback(() => {
-    repeated.current = false;
-    delay.current = setTimeout(() => {
-      repeated.current = true;
-      repeat.current = setInterval(() => stepRef.current(), HOLD_INTERVAL_MS);
-    }, HOLD_DELAY_MS);
-  }, []);
-
-  // Cancel any pending timers if the button unmounts mid-hold.
-  useEffect(() => stopHold, [stopHold]);
-
-  // A hold that drives the value to its min/max disables the button; RN may then
-  // not deliver onPressOut, so stop the repeat here rather than let it spin.
-  useEffect(() => {
-    if (disabled) stopHold();
-  }, [disabled, stopHold]);
 
   return (
     <Pressable
@@ -353,13 +310,7 @@ function StepButton({
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPressIn={startHold}
-      onPressOut={stopHold}
-      onPress={() => {
-        // A hold already applied its steps via the interval; only a real tap
-        // (no repeat) steps here. This also serves screen-reader activation.
-        if (!repeated.current) stepRef.current();
-      }}
+      onPress={onStep}
       hitSlop={8}
       style={({ pressed }) => [styles.btn, pressed && !disabled && styles.pressed]}
     >
