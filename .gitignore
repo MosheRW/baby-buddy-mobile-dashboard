@@ -82,6 +82,8 @@ yarn-error.*
 
 # @end expo-cli
 
-modules/
-/modules
+# The local Expo native module under modules/ is tracked source. Ignore only
+# generated build output there, not the whole directory (a blanket modules/
+# ignore silently drops newly-added Kotlin/resource files from commits).
+modules/**/build/
 .env
