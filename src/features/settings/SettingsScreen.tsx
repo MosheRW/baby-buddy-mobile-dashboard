@@ -265,31 +265,39 @@ export function SettingsScreen({ navigation }: Props) {
             const isVisible = !hidden[child.id];
             return (
               <View key={child.id} style={styles.childRow}>
-                <View style={styles.childInfo}>
-                  <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-                    <AppText size={fontSize.body} weight="800" color={tint.fg}>
-                      {child.initial}
+                <View style={styles.childHeader}>
+                  <View style={styles.childInfo}>
+                    <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+                      <AppText size={fontSize.body} weight="800" color={tint.fg}>
+                        {child.initial}
+                      </AppText>
+                    </View>
+                    <AppText
+                      size={fontSize.body}
+                      weight="700"
+                      numberOfLines={1}
+                      style={styles.childName}
+                    >
+                      {child.name}
                     </AppText>
                   </View>
-                  <AppText size={fontSize.body} weight="700">
-                    {child.name}
-                  </AppText>
-                </View>
-                <View style={styles.childControls}>
                   <ToggleSwitch
                     value={isVisible}
                     onValueChange={(visible) => setHidden(child.id, !visible)}
                     accessibilityLabel={t('settings.visibilityToggle', { name: child.name })}
                   />
-                  <View style={styles.stepperWrap}>
-                    <Stepper
-                      value={defaultMl(child.id, child.defaultFoodMl)}
-                      onChange={(v) => setDefaultFoodMl(child.id, v)}
-                      step={1}
-                      min={0}
-                      suffix={t('settings.mlSuffix')}
-                    />
-                  </View>
+                </View>
+                <View style={styles.field}>
+                  <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                    {t('settings.defaultFood')}
+                  </AppText>
+                  <Stepper
+                    value={defaultMl(child.id, child.defaultFoodMl)}
+                    onChange={(v) => setDefaultFoodMl(child.id, v)}
+                    step={1}
+                    min={0}
+                    suffix={t('settings.mlSuffix')}
+                  />
                 </View>
               </View>
             );
@@ -506,11 +514,26 @@ const makeStyles = ({ colors }: AppTheme) =>
       flexDirection: 'row',
       gap: spacing.sm,
     },
+    // The food stepper sits on its own line below the name+toggle header, so a
+    // long child name never collides with the toggle and the "120 ml" value has
+    // the full card width — no wrapping, at any screen size.
     childRow: {
+      gap: spacing.lg,
+      paddingTop: spacing.lg,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.neutral,
+    },
+    childHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: spacing.lg,
+    },
+    childName: {
+      flexShrink: 1,
+    },
+    field: {
+      gap: spacing.sm,
     },
     localChild: {
       gap: spacing.lg,
@@ -530,12 +553,7 @@ const makeStyles = ({ colors }: AppTheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.lg,
-      flexShrink: 1,
-    },
-    childControls: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.lg,
+      flex: 1,
     },
     avatar: {
       width: 38,

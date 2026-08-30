@@ -633,10 +633,12 @@ const makeStyles = ({ colors }: AppTheme) =>
     },
     dayRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
       gap: spacing.sm,
     },
+    // Seven single-glyph weekday chips share the row equally, so they stay on
+    // one line at any width instead of wrapping the last one onto its own row.
     dayChip: {
-      paddingHorizontal: spacing.lg,
+      flex: 1,
+      paddingHorizontal: spacing.xs,
     },
   });
