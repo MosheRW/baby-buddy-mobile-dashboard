@@ -20,6 +20,12 @@ export const he = {
     ok: 'אישור',
   },
 
+  errorBoundary: {
+    title: 'משהו השתבש',
+    body: 'המסך הזה נתקל בשגיאה בלתי צפויה. אפשר לנסות שוב.',
+    retry: 'ניסיון חוזר',
+  },
+
   stepper: {
     increase: 'הגדלה',
     decrease: 'הקטנה',

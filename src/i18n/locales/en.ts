@@ -21,6 +21,12 @@ export const en = {
     ok: 'OK',
   },
 
+  errorBoundary: {
+    title: 'Something went wrong',
+    body: 'This screen ran into an unexpected error. You can try again.',
+    retry: 'Try again',
+  },
+
   stepper: {
     increase: 'Increase',
     decrease: 'Decrease',

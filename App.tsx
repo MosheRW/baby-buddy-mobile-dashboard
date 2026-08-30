@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, useAppFonts, type Scheme } from './src/theme';
+import { ErrorBoundary } from './src/components';
 import { DynamicAccentProvider, useDynamicAccentHue } from './src/theme/dynamicColor';
 import { useAuthStore, useThemeStore } from './src/stores';
 import { queryClient } from './src/data/queryClient';
@@ -77,7 +78,11 @@ function ThemedAppShell({ scheme }: { scheme: Scheme }) {
         {/* `style` names the status-bar *content* colour, so it's the
             inverse of the surface behind it. */}
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-        <RootNavigator />
+        {/* Inside the theme + safe-area providers so the fallback is themed;
+            catches a render throw in any screen instead of blanking the app. */}
+        <ErrorBoundary>
+          <RootNavigator />
+        </ErrorBoundary>
       </SafeAreaProvider>
     </ThemeProvider>
   );
