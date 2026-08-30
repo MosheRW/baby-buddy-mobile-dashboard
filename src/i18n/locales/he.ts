@@ -296,6 +296,12 @@ export const he = {
     addTagOffer: '+ {{tag}}',
     saveDetails: 'שמירת פרטים',
     saveAndEnd: 'שמירה וסיום {{activity}}',
+    cancelTimerTitle: 'לבטל את טיימר ה{{activity}}?',
+    cancelTimerBody: 'הטיימר ייעצר ושום דבר לא יישמר.',
+    cancelTimerConfirm: 'ביטול הטיימר',
+    cancelTimerKeep: 'להשאיר פועל',
+    quantityTitle: 'כמה {{child}} אכל/ה?',
+    quantityDone: 'סיום',
     activity: {
       feeding: 'האכלה',
       sleep: 'שינה',
@@ -438,7 +444,8 @@ export const he = {
     usersTitle: 'כל המשתמשים',
     noUsers: 'לא נמצאו משתמשים.',
     usersHint: 'ניתן ליצור QR רק למטפלים שאתה מוסיף כאן (הסיסמה שלהם ידועה).',
-    usersTokenHint: 'הקש על משתמש כדי להציג את קוד ה-QR שלו. משתמשים ללא טוקן צריכים להתחבר פעם אחת קודם.',
+    usersTokenHint:
+      'הקש על משתמש כדי להציג את קוד ה-QR שלו. משתמשים ללא טוקן צריכים להתחבר פעם אחת קודם.',
     // סורק.
     scanTitle: 'סרוק כדי להתחבר',
     scanHint: 'כוון את המצלמה לקוד QR של התחברות ל-Baby Buddy.',
@@ -515,8 +522,11 @@ export const he = {
     titleDiaperDue: 'בדיקת חיתול',
     titleFoodDue: 'תזכורת האכלה',
     actionRemindLater: 'תזכיר לי מאוחר יותר',
-    actionStopTimer: 'עצירת טיימר',
     actionAddNow: 'הוספה עכשיו',
+    actionOk: 'אישור',
+    actionRemindOnTime: 'תזכיר לי בזמן',
+    actionCancelTimer: 'ביטול {{activity}}',
+    actionEndTimer: 'סיום {{activity}}',
     snoozeTitle: 'דחיית "תזכיר לי מאוחר יותר"',
     snoozeHint: 'לכמה זמן "תזכיר לי מאוחר יותר" בהתראה דוחה אותה.',
     medDueBefore: '{{med}} עבור {{child}} אמורה להינתן בעוד {{duration}}.',
@@ -545,6 +555,11 @@ export const he = {
     diaperBody: 'לא הוחלף חיתול ל{{child}} כבר {{duration}}.',
     foodBody: '{{child}} לא אכל/ה כבר {{duration}}.',
     foodBodyMin: '{{child}} לא אכל/ה כבר {{duration}} — כדאי לתת לפחות {{min}} מ״ל.',
+    foodBefore: 'ההאכלה של {{child}} מתקרבת — בעוד {{duration}}.',
+    foodBeforeMin: 'ההאכלה של {{child}} מתקרבת — בעוד {{duration}}. כדאי לתת לפחות {{min}} מ״ל.',
+    foodAfter: 'ההאכלה של {{child}} הייתה אמורה להיות לפני {{duration}}.',
+    foodAfterMin:
+      'ההאכלה של {{child}} הייתה אמורה להיות לפני {{duration}}. כדאי לתת לפחות {{min}} מ״ל.',
     titleWeekly: 'הסיכום השבועי שלך',
     weeklyBody:
       'תיעדתם {{mine}} מתוך {{total}} רשומות השבוע — {{share}}% מסך הכול של המשפחה. {{breakdown}}',

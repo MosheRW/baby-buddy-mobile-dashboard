@@ -1,6 +1,7 @@
 /**
- * Local Expo native module — a thin Android bridge that posts notifications using
- * `NotificationCompat.setUsesChronometer`, the platform's built-in ticking clock.
+ * Local Expo native module — a thin Android bridge that posts notifications
+ * carrying Android's built-in `Chronometer` widget, drawn into a custom
+ * notification content view and ticked by the platform itself.
  *
  * Why this exists: `expo-notifications` (managed workflow) does not expose the
  * Android chronometer field, so it can only refresh an elapsed label on a JS
@@ -41,6 +42,14 @@ export interface ChronometerPresentOptions {
 export interface ChronometerNativeModule {
   present(options: ChronometerPresentOptions): Promise<void>;
   dismiss(id: string): Promise<void>;
+  /**
+   * Cancel every chronometer notification of ours whose tag is not in `wanted`,
+   * and return the tags that remain. The cancellation is matched entirely
+   * native-side against the live notification tags, so a non-ASCII tag (a Hebrew
+   * medicine name) can't fail to match after a JS-bridge round-trip — see the
+   * Kotlin `reconcile`.
+   */
+  reconcile(wanted: string[]): Promise<string[]>;
   /** Tags of the chronometer notifications this module currently has presented. */
   getActiveIds(): Promise<string[]>;
 }

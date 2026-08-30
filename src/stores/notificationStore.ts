@@ -26,10 +26,10 @@ import type {
 export type { PerChildThresholds } from '../lib/notifications';
 
 /** Cases that use the before/at/after timing model. */
-export type TimingCaseId = 'scheduledMeds' | 'medEligibility';
+export type TimingCaseId = 'scheduledMeds' | 'medEligibility' | 'foodMin';
 
 /** Cases that are a single on/off with per-child thresholds. */
-export type IntervalCaseId = 'diaperInterval' | 'foodMin';
+export type IntervalCaseId = 'diaperInterval';
 
 export type PermissionStatus = 'granted' | 'denied' | 'undetermined' | 'unsupported';
 
@@ -48,7 +48,7 @@ interface NotificationState {
   medEligibility: CaseSettings;
   forgottenTimer: { enabled: boolean; thresholdMinutes: number; sleepThresholdMinutes: number };
   diaperInterval: { enabled: boolean };
-  foodMin: { enabled: boolean };
+  foodMin: CaseSettings;
   liveTimer: { enabled: boolean };
   liveMed: { enabled: boolean };
   weeklySummary: WeeklySummarySettings;
@@ -77,6 +77,16 @@ interface NotificationState {
    * ignored by the planner rather than actively pruned (see `snoozeNotification`).
    */
   snoozedUntil: Record<string, number>;
+  /**
+   * Reminders the user promoted with "remind me on time", keyed by the
+   * **at-phase** key they asked for (`…:at`), value = the epoch ms the request
+   * expires. Folded into `buildNotifications` via
+   * `NotificationBuildInput.remindOnTime`, which makes the planner emit that
+   * anchor's on-time reminder even though the "at" offset is switched off.
+   * Persisted, for the same reason `snoozedUntil` is: the promotion has to
+   * outlive the app being killed before the reminder fires.
+   */
+  remindOnTime: Record<string, number>;
   /** Live OS permission state — not persisted. */
   permissionStatus: PermissionStatus;
   /** Live background-task availability — not persisted. */
@@ -97,6 +107,8 @@ interface NotificationState {
   setSnoozeMinutes: (minutes: number) => void;
   /** Postpone one reminder's next fire to `untilMs` — see `snoozedUntil`. */
   snoozeNotification: (key: string, untilMs: number) => void;
+  /** Ask for one anchor's on-time reminder — see `remindOnTime`. */
+  promoteNotification: (key: string, untilMs: number) => void;
   setPermissionStatus: (status: PermissionStatus) => void;
   setBackgroundStatus: (status: BackgroundStatus) => void;
 }
@@ -122,7 +134,10 @@ export const useNotificationStore = create<NotificationState>()(
         sleepThresholdMinutes: DEFAULT_SLEEP_FORGOTTEN_MINUTES,
       },
       diaperInterval: { enabled: false },
-      foodMin: { enabled: false },
+      // Same shape as the medication cases (issue #45): "before" is off by
+      // default so enabling feeding-gap reminders doesn't immediately produce two
+      // notifications per feed.
+      foodMin: { enabled: false, timing: defaultTiming({ before: false }) },
       // On by default — it's the point of this feature; the toggle is the opt-out.
       liveTimer: { enabled: true },
       // On by default too; supplements the fire-once "due" alert with a live
@@ -137,13 +152,16 @@ export const useNotificationStore = create<NotificationState>()(
       backgroundRefresh: { enabled: false },
       snoozeMinutes: 15,
       snoozedUntil: {},
+      remindOnTime: {},
       permissionStatus: 'undetermined',
       backgroundStatus: 'unknown',
 
       setMasterEnabled: (enabled) => set({ masterEnabled: enabled }),
 
       setCaseEnabled: (id, enabled) =>
-        set((state) => ({ [id]: { ...state[id], enabled } }) as Pick<NotificationState, TimingCaseId>),
+        set(
+          (state) => ({ [id]: { ...state[id], enabled } }) as Pick<NotificationState, TimingCaseId>,
+        ),
 
       updateTiming: (id, patch) =>
         set(
@@ -158,7 +176,9 @@ export const useNotificationStore = create<NotificationState>()(
         set((state) => ({ forgottenTimer: { ...state.forgottenTimer, enabled } })),
 
       setForgottenTimerMinutes: (minutes) =>
-        set((state) => ({ forgottenTimer: { ...state.forgottenTimer, thresholdMinutes: minutes } })),
+        set((state) => ({
+          forgottenTimer: { ...state.forgottenTimer, thresholdMinutes: minutes },
+        })),
 
       setForgottenTimerSleepMinutes: (minutes) =>
         set((state) => ({
@@ -187,12 +207,15 @@ export const useNotificationStore = create<NotificationState>()(
       snoozeNotification: (key, untilMs) =>
         set((state) => ({ snoozedUntil: { ...state.snoozedUntil, [key]: untilMs } })),
 
+      promoteNotification: (key, untilMs) =>
+        set((state) => ({ remindOnTime: { ...state.remindOnTime, [key]: untilMs } })),
+
       setPermissionStatus: (status) => set({ permissionStatus: status }),
       setBackgroundStatus: (status) => set({ backgroundStatus: status }),
     }),
     {
       name: 'notifications',
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => asyncStorage),
       // permissionStatus / backgroundStatus are live OS state, not preferences —
       // never persist them.
@@ -250,6 +273,20 @@ export const useNotificationStore = create<NotificationState>()(
         // neither field, so seed the default snooze length and an empty map.
         if (version < 5 && state?.snoozeMinutes == null) {
           state = { ...state, snoozeMinutes: 15, snoozedUntil: {} };
+        }
+        // v6 gave the feeding-gap case the before/at/after timing model and added
+        // the "remind me on time" promotions map. Pre-v6 state has a bare
+        // `{ enabled }` for foodMin, which would leave `timing` undefined and make
+        // the planner throw on the first rebuild.
+        if (version < 6) {
+          const legacyFood = state?.foodMin as Partial<CaseSettings> | undefined;
+          if (legacyFood && legacyFood.timing == null) {
+            state = {
+              ...state,
+              foodMin: { enabled: !!legacyFood.enabled, timing: defaultTiming({ before: false }) },
+            };
+          }
+          if (state?.remindOnTime == null) state = { ...state, remindOnTime: {} };
         }
         return state;
       },

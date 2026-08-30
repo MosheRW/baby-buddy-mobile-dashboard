@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { ActionButton, AppText, ChipRow, FieldLabel, TextField, TagRow } from '../../components';
+import {
+  ActionButton,
+  AppText,
+  ChipRow,
+  FieldLabel,
+  Stepper,
+  TextField,
+  TagRow,
+} from '../../components';
 import { CloseGlyph } from '../../components/glyphs';
 import { ActionGlyph, ENTRY_TYPE_CHIP_GLYPH } from '../../components/glyphs/entryGlyphs';
 import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
@@ -11,6 +19,7 @@ import type { EntryType, MedicationEntry } from '../../api/types';
 import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
 import {
+  amountUnit,
   draftToEntry,
   entryToDraft,
   medSuggestionPatch,
@@ -58,7 +67,15 @@ export function LogEntryScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { colors, tints } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { mode, type: initialType, entryId, childId, prefillMedEntryId } = route.params;
+  const {
+    mode,
+    type: initialType,
+    entryId,
+    childId,
+    prefillMedEntryId,
+    confirm,
+    focus,
+  } = route.params;
   const isEdit = mode === 'edit';
 
   const typeOptions = TYPE_VALUES.map((value) => ({
@@ -120,6 +137,30 @@ export function LogEntryScreen({ route, navigation }: Props) {
     if (!timerType) return;
     patch(spanPatch());
     stopTimer(timerType, childId);
+  };
+
+  // A modal the form can be opened *with*, by a notification action button
+  // (issue #45): "cancel <timer>" needs confirmation before throwing a running
+  // timer away, "end feeding" asks for the amount on the way to saving.
+  //
+  // Derived from the route params rather than mirrored into state by an effect —
+  // an effect can't be a lazy `useState` initializer here anyway, since navigating
+  // to an already-mounted LogEntry updates params in place without remounting.
+  // What *is* stateful is the dismissal, and it's keyed on the params object's
+  // identity (React Navigation hands out a fresh one per navigate) so arriving
+  // here again with the same request re-opens the modal instead of staying shut.
+  const requestedModal =
+    confirm === 'cancelTimer' ? 'cancelTimer' : focus === 'amount' ? 'amount' : null;
+  const [dismissedFor, setDismissedFor] = useState<object | null>(null);
+  const modal = dismissedFor === route.params ? null : requestedModal;
+  const closeModal = () => setDismissedFor(route.params);
+
+  // Discard, not save: the timer (and its server-side counterpart) goes away and
+  // no entry is written. `stopTimer` already deletes the server timer.
+  const discardTimer = () => {
+    closeModal();
+    if (timerType) stopTimer(timerType, childId);
+    navigation.goBack();
   };
 
   const endActivityLabel = timerType ? t(`logEntry.activity.${timerType}`) : '';
@@ -440,12 +481,106 @@ export function LogEntryScreen({ route, navigation }: Props) {
           </View>
         </>
       )}
+
+      {/* Only meaningful while the thing they act on exists: a timer that was
+          already stopped elsewhere has nothing to cancel, and the amount prompt
+          belongs to the feeding form. */}
+      {modal === 'cancelTimer' && timerRunning ? (
+        <FormModal onRequestClose={closeModal}>
+          <AppText size={fontSize.cardTitle} weight="800">
+            {t('logEntry.cancelTimerTitle', { activity: endActivityLabel })}
+          </AppText>
+          <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
+            {t('logEntry.cancelTimerBody')}
+          </AppText>
+          <View style={styles.modalActions}>
+            <ActionButton
+              label={t('logEntry.cancelTimerKeep')}
+              variant="neutral"
+              flex={1}
+              onPress={closeModal}
+            />
+            <ActionButton
+              label={t('logEntry.cancelTimerConfirm')}
+              variant="danger"
+              flex={1}
+              onPress={discardTimer}
+            />
+          </View>
+        </FormModal>
+      ) : null}
+
+      {modal === 'amount' && type === 'feeding' ? (
+        <FormModal onRequestClose={closeModal}>
+          <AppText size={fontSize.cardTitle} weight="800">
+            {t('logEntry.quantityTitle', { child: child?.name ?? '' })}
+          </AppText>
+          <Stepper
+            value={draft.amount}
+            onChange={(amount) => patch({ amount })}
+            step={10}
+            min={0}
+            suffix={amountUnit(draft.kind)}
+          />
+          <View style={styles.modalActions}>
+            <ActionButton
+              label={t('logEntry.quantityDone')}
+              variant="accent"
+              flex={1}
+              onPress={closeModal}
+            />
+          </View>
+        </FormModal>
+      ) : null}
     </SafeAreaView>
+  );
+}
+
+/**
+ * A small centered dialog over the form. Deliberately a plain RN `Modal` rather
+ * than another stack route: these belong to the form's own state, and the form is
+ * already the screen the notification navigated to.
+ */
+function FormModal({
+  children,
+  onRequestClose,
+}: {
+  children: React.ReactNode;
+  onRequestClose: () => void;
+}) {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <Modal transparent visible animationType="fade" onRequestClose={onRequestClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onRequestClose}>
+        {/* Swallow taps on the card itself so they don't dismiss it. */}
+        <Pressable style={styles.modalCard} onPress={() => {}}>
+          {children}
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
 const makeStyles = ({ colors, tints }: AppTheme) =>
   StyleSheet.create({
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: colors.scrim,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing['6xl'],
+    },
+    modalCard: {
+      width: '100%',
+      gap: spacing.lg,
+      backgroundColor: colors.card,
+      borderRadius: radii.card,
+      padding: spacing['6xl'],
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
     safe: {
       flex: 1,
       backgroundColor: colors.background,

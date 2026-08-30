@@ -28,10 +28,10 @@ class PresentOptions : Record {
 }
 
 /**
- * Presents/updates/dismisses notifications that use Android's native chronometer
- * (`setUsesChronometer`), which the system ticks every second on its own — the
- * one way to get a true per-second elapsed/countdown clock in a notification
- * without a foreground service, and something expo-notifications can't express.
+ * Presents/updates/dismisses notifications that use Android's native `Chronometer`
+ * widget, which the system ticks every second on its own — the one way to get a
+ * true per-second elapsed/countdown clock in a notification without a foreground
+ * service, and something expo-notifications can't express.
  *
  * All of this module's notifications share a single integer notification id and
  * are distinguished by their string **tag** (the JS `id`), so re-presenting the
@@ -76,6 +76,13 @@ class ChronometerNotificationModule : Module() {
       // Public API since 24; this module's minSdk is already 24 (see build.gradle).
       views.setChronometerCountDown(R.id.chrono_clock, options.countDown)
 
+      // Deliberately no `setColor`/`setColorized`: the app's other notifications
+      // go out through expo-notifications with no accent configured, so tinting
+      // only this one would make it stand *apart* from them, which is the
+      // opposite of what's wanted. Coherence here comes from the header
+      // (DecoratedCustomViewStyle) and from the content view using the same
+      // androidx notification text appearances the platform uses — see
+      // `notification_chronometer.xml`.
       val builder = NotificationCompat.Builder(ctx, options.channelId)
         .setSmallIcon(iconRes)
         .setContentTitle(options.title)
@@ -99,10 +106,34 @@ class ChronometerNotificationModule : Module() {
       NotificationManagerCompat.from(context).cancel(id, NOTIFICATION_ID)
     }
 
-    // The tags of the chronometer notifications currently in the tray, so the JS
-    // reconcile can dismiss the ones whose timer/med is no longer live. Filtered
-    // to our shared notification id so a stray expo-notifications entry can never
-    // be mistaken for ours (and thus never wrongly dismissed).
+    // Reconcile in one native call: cancel every chronometer notification of ours
+    // whose tag is NOT in `wanted`, and report the tags left standing. Doing the
+    // whole thing here — rather than `getActiveIds` → JS diff → `dismiss(tag)` —
+    // is deliberate: the tag used to cancel is taken **straight from the live
+    // `StatusBarNotification`** (`it.tag`), never round-tripped across the JS
+    // bridge. A tag containing non-ASCII text (e.g. a Hebrew medicine name in
+    // `ongoing-med:1:סימיקול`) can come back from the bridge subtly re-encoded,
+    // so `cancel(thatString, id)` no longer matches the posted notification and
+    // the dismiss silently no-ops — which left overdue med countdowns stuck as
+    // undismissable ongoing notifications. Matching native-side avoids that.
+    AsyncFunction("reconcile") { wanted: List<String> ->
+      val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      val compat = NotificationManagerCompat.from(context)
+      val remaining = mutableListOf<String>()
+      for (sbn in nm.activeNotifications) {
+        if (sbn.id != NOTIFICATION_ID) continue
+        val tag = sbn.tag ?: continue
+        if (wanted.contains(tag)) {
+          remaining.add(tag)
+        } else {
+          compat.cancel(tag, NOTIFICATION_ID)
+        }
+      }
+      remaining
+    }
+
+    // The tags of the chronometer notifications currently in the tray. Retained
+    // for completeness; the reconcile path above no longer needs it.
     AsyncFunction("getActiveIds") {
       val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
       nm.activeNotifications

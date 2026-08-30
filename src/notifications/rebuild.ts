@@ -21,7 +21,7 @@
 import type { Child, Entry } from '../api/types';
 import { queryClient } from '../data/queryClient';
 import { queryKeys, refreshServerData } from '../data/queries';
-import { buildNotifications } from '../lib/notifications';
+import { activeDeferrals, buildNotifications } from '../lib/notifications';
 import { reconcileTimers, type RunningTimer } from '../lib/timers';
 import { visibleChildren } from '../lib/visibility';
 import { useAuthStore } from '../stores/authStore';
@@ -88,10 +88,16 @@ export async function runScheduledNotificationSync(): Promise<boolean> {
     false,
   );
 
+  // The same two deferral maps the foreground rebuild folds in. Without them a
+  // background rebuild would quietly undo a "remind later" or a "remind me on
+  // time" the user tapped, since it re-schedules the whole plan from scratch.
+  const notif = useNotificationStore.getState();
   const plan = buildNotifications({
     entries,
     timers,
     children,
+    snoozedUntil: activeDeferrals(notif.snoozedUntil),
+    remindOnTime: activeDeferrals(notif.remindOnTime),
     visibleChildIds: visible.map((c) => c.id),
     kidGroups: { childGroupId: kids.childGroupId, groups: kids.groups },
     settings,

@@ -360,10 +360,20 @@ export function NotificationSettingsScreen({ navigation }: Props) {
             </View>
             <ToggleSwitch
               value={foodMin.enabled}
-              onValueChange={(v) => setIntervalCaseEnabled('foodMin', v)}
+              onValueChange={(v) => setCaseEnabled('foodMin', v)}
               disabled={!masterEnabled}
             />
           </View>
+          {/* Feeding gaps carry the same before/at/after model as the medication
+              cases (issue #45), but keep their own card rather than becoming a
+              CaseCard — the per-child target amount below has no equivalent there. */}
+          {masterEnabled && foodMin.enabled ? (
+            <TimingControls
+              timing={foodMin.timing}
+              labels={timingLabels}
+              onChange={(patch) => updateTiming('foodMin', patch)}
+            />
+          ) : null}
           {masterEnabled && foodMin.enabled
             ? children.map((child) => (
                 <View key={child.id} style={styles.childBlock}>

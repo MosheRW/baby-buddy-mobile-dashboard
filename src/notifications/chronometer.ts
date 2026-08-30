@@ -14,13 +14,7 @@
 import { Platform } from 'react-native';
 import { ChronometerNotification } from '../../modules/chronometer-notification';
 import type { ChronometerSpec } from '../lib/notifications';
-import { CHRONO_MED_PREFIX, CHRONO_TIMER_PREFIX } from '../lib/notifications';
 import { ONGOING_CHANNEL_ID } from './service';
-
-/** The key prefixes this track owns — used to scope reconcile/dismiss. */
-const OWNED_PREFIXES = [CHRONO_TIMER_PREFIX, CHRONO_MED_PREFIX];
-
-const isOwned = (id: string) => OWNED_PREFIXES.some((p) => id.startsWith(p));
 
 /**
  * Monotonic reconcile generation. Reconciles are launched fire-and-forget from a
@@ -70,14 +64,14 @@ export async function syncChronometerAsync(specs: ChronometerSpec[]): Promise<vo
     // `wanted` set now, so skip our dismiss pass rather than cancel something it
     // just presented against a set we've since gone stale on.
     if (myGeneration !== generation) return;
-    // Dismiss ours that are no longer live. Scoped to our prefixes so a foreign
-    // notification is never touched (and `getActiveIds` already filters to this
-    // module's notifications).
-    const active = await mod.getActiveIds();
-    if (myGeneration !== generation) return;
-    for (const id of active) {
-      if (isOwned(id) && !wanted.has(id)) await mod.dismiss(id);
-    }
+    // Cancel every chronometer of ours no longer wanted, in a single native call.
+    // The match/cancel happens against the live notification tags inside the
+    // module, so a non-ASCII tag (a Hebrew medicine name) can't slip through a
+    // JS-bridge re-encoding the way a `getActiveIds` → `dismiss(tag)` round-trip
+    // could — which used to leave overdue med countdowns stuck as undismissable
+    // ongoing notifications. `reconcile` is scoped to this module's own
+    // notification id, so a foreign notification is never touched.
+    await mod.reconcile([...wanted]);
   } catch (err) {
     console.warn('[chronometer] sync failed:', err);
   }

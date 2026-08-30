@@ -1,4 +1,5 @@
 import {
+  activeDeferrals,
   buildNotifications,
   buildOngoingMedChronometers,
   buildOngoingTimerChronometers,
@@ -88,7 +89,7 @@ function settings(over: Partial<NotificationSettings> = {}): NotificationSetting
     medEligibility: { enabled: false, timing: timing() },
     forgottenTimer: { enabled: false, thresholdMinutes: 30, sleepThresholdMinutes: 240 },
     diaperInterval: { enabled: false },
-    foodMin: { enabled: false },
+    foodMin: { enabled: false, timing: timing() },
     liveTimer: { enabled: false },
     liveMed: { enabled: false },
     // Off in the shared helper so the existing exact-count assertions aren't
@@ -113,7 +114,13 @@ describe('buildNotifications — master switch', () => {
   it('returns nothing when notifications are disabled', () => {
     const entries: Entry[] = [med({ name: 'Amoxicillin', time: iso(NOW - HOUR), repeatHours: 8 })];
     const plan = buildNotifications(
-      input({ entries, settings: settings({ masterEnabled: false, scheduledMeds: { enabled: true, timing: timing() } }) }),
+      input({
+        entries,
+        settings: settings({
+          masterEnabled: false,
+          scheduledMeds: { enabled: true, timing: timing() },
+        }),
+      }),
       NOW,
     );
     expect(plan).toEqual([]);
@@ -126,15 +133,17 @@ describe('buildNotifications — master switch', () => {
 });
 
 describe('buildNotifications — scheduled meds', () => {
-  const scheduledOn = (t: TimingPrefs) =>
-    settings({ scheduledMeds: { enabled: true, timing: t } });
+  const scheduledOn = (t: TimingPrefs) => settings({ scheduledMeds: { enabled: true, timing: t } });
 
   it('expands before/at/after around the due time', () => {
     const entries: Entry[] = [
       med({ name: 'Amoxicillin', time: iso(NOW - HOUR), repeatHours: 8, schedule: 'scheduled' }),
     ];
     const plan = buildNotifications(
-      input({ entries, settings: scheduledOn(timing({ before: true, at: true, after: true, afterMinutes: 20 })) }),
+      input({
+        entries,
+        settings: scheduledOn(timing({ before: true, at: true, after: true, afterMinutes: 20 })),
+      }),
       NOW,
     );
     // due in 7h → all three points are future and inside the horizon.
@@ -150,7 +159,10 @@ describe('buildNotifications — scheduled meds', () => {
     const entries: Entry[] = [
       med({ name: 'Amoxicillin', time: iso(NOW - HOUR), repeatHours: 8, childId: 'c1' }),
     ];
-    const plan = buildNotifications(input({ entries, settings: scheduledOn(timing({ at: true })) }), NOW);
+    const plan = buildNotifications(
+      input({ entries, settings: scheduledOn(timing({ at: true })) }),
+      NOW,
+    );
     expect(plan[0].body).toContain('for Emma');
   });
 
@@ -182,7 +194,9 @@ describe('buildNotifications — scheduled meds', () => {
     const plan = buildNotifications(
       input({
         entries,
-        settings: scheduledOn(timing({ before: true, beforeMinutes: 0, at: false, after: true, afterMinutes: 0 })),
+        settings: scheduledOn(
+          timing({ before: true, beforeMinutes: 0, at: false, after: true, afterMinutes: 0 }),
+        ),
       }),
       NOW,
     );
@@ -191,7 +205,8 @@ describe('buildNotifications — scheduled meds', () => {
 });
 
 describe('buildNotifications — medication eligibility', () => {
-  const eligOn = () => settings({ medEligibility: { enabled: true, timing: timing({ at: true }) } });
+  const eligOn = () =>
+    settings({ medEligibility: { enabled: true, timing: timing({ at: true }) } });
 
   it('reminds an as-needed med when it becomes eligible again', () => {
     const entries: Entry[] = [
@@ -232,7 +247,10 @@ describe('buildNotifications — forgotten timers', () => {
   });
 
   it('schedules a reminder at start + threshold for a running timer', () => {
-    const plan = buildNotifications(input({ timers: [runningTimer()], settings: timerOn(30) }), NOW);
+    const plan = buildNotifications(
+      input({ timers: [runningTimer()], settings: timerOn(30) }),
+      NOW,
+    );
     expect(plan).toHaveLength(1);
     expect(plan[0].key).toBe('timer:feeding:c1');
     expect(plan[0].fireAt).toBe(NOW - 10 * MINUTE + 30 * MINUTE);
@@ -419,7 +437,7 @@ describe('buildNotifications — diaper interval', () => {
 
 describe('buildNotifications — food minimum interval', () => {
   const foodOn = (thresholds: { foodMinIntervalMinutes?: number; foodMinMl?: number } = {}) =>
-    settings({ foodMin: { enabled: true }, perChild: { c1: thresholds } });
+    settings({ foodMin: { enabled: true, timing: timing() }, perChild: { c1: thresholds } });
 
   it('schedules at the last feed + the per-child interval', () => {
     const entries: Entry[] = [feeding(iso(NOW - HOUR), { amount: 60 })];
@@ -428,7 +446,7 @@ describe('buildNotifications — food minimum interval', () => {
       NOW,
     );
     expect(plan).toHaveLength(1);
-    expect(plan[0].key).toBe('food:c1');
+    expect(plan[0].key).toBe('food:c1:at');
     expect(plan[0].fireAt).toBe(NOW - HOUR + 4 * HOUR);
     expect(plan[0].body).toContain('Emma');
   });
@@ -445,7 +463,7 @@ describe('buildNotifications — food minimum interval', () => {
   it('uses the default interval when only the case is enabled', () => {
     const entries: Entry[] = [feeding(iso(NOW - HOUR))];
     const plan = buildNotifications(
-      input({ entries, settings: settings({ foodMin: { enabled: true } }) }),
+      input({ entries, settings: settings({ foodMin: { enabled: true, timing: timing() } }) }),
       NOW,
     );
     expect(plan).toHaveLength(1);
@@ -454,7 +472,7 @@ describe('buildNotifications — food minimum interval', () => {
 
   it('skips a child with no feeding history', () => {
     const plan = buildNotifications(
-      input({ entries: [], settings: settings({ foodMin: { enabled: true } }) }),
+      input({ entries: [], settings: settings({ foodMin: { enabled: true, timing: timing() } }) }),
       NOW,
     );
     expect(plan).toEqual([]);
@@ -583,7 +601,10 @@ describe('buildNotifications — weekly summary', () => {
         children,
         settings: weeklyOn(),
         me: 'Sarah',
-        kidGroups: { childGroupId: { c1: 'g1' }, groups: { g1: { id: 'g1', name: 'Twins', order: 0 } } },
+        kidGroups: {
+          childGroupId: { c1: 'g1' },
+          groups: { g1: { id: 'g1', name: 'Twins', order: 0 } },
+        },
       }),
       NOW,
     );
@@ -634,7 +655,10 @@ describe('buildNotifications — horizon + ordering', () => {
       med({ name: 'Far', time: iso(NOW - HOUR), repeatHours: 100, schedule: 'scheduled' }),
     ];
     const plan = buildNotifications(
-      input({ entries, settings: settings({ scheduledMeds: { enabled: true, timing: timing() } }) }),
+      input({
+        entries,
+        settings: settings({ scheduledMeds: { enabled: true, timing: timing() } }),
+      }),
       NOW,
     );
     expect(plan).toEqual([]);
@@ -767,7 +791,11 @@ describe('buildOngoingTimerNotifications', () => {
 
   it('names the child and the elapsed time in the body', () => {
     const [note] = buildOngoingTimerNotifications(
-      { timers: [runningTimer({ startedAt: NOW - 5 * MINUTE })], children: CHILDREN, settings: liveSettings() },
+      {
+        timers: [runningTimer({ startedAt: NOW - 5 * MINUTE })],
+        children: CHILDREN,
+        settings: liveSettings(),
+      },
       NOW,
     );
     expect(note.title).toBe('Feeding timer running');
@@ -792,7 +820,11 @@ describe('buildOngoingTimerNotifications', () => {
 
   it('falls back to the no-child body when the child is unknown', () => {
     const [note] = buildOngoingTimerNotifications(
-      { timers: [runningTimer({ childId: 'ghost' })], children: CHILDREN, settings: liveSettings() },
+      {
+        timers: [runningTimer({ childId: 'ghost' })],
+        children: CHILDREN,
+        settings: liveSettings(),
+      },
       NOW,
     );
     expect(note.body).not.toContain('·');
@@ -858,12 +890,19 @@ describe('buildOngoingMedChronometers', () => {
     settings({ liveMed: { enabled: true }, ...over });
 
   // A scheduled med taken 7h50m ago on an 8h cycle → due in 10 min (inside the
-  // 60-min live window).
+  // 15-min live window).
   const dueSoon = () => med({ name: 'Tylenol', time: iso(NOW - (8 * HOUR - 10 * MINUTE)) });
-  // Taken 9h ago on an 8h cycle → overdue by 1h (still inside the 24h trail).
+  // Taken 9h ago on an 8h cycle → overdue by 1h. The live countdown is upcoming-
+  // only, so an overdue dose gets no chronometer (no negative clock, no lingering).
   const overdue = () => med({ name: 'Tylenol', time: iso(NOW - 9 * HOUR) });
-  // Taken 1h ago on an 8h cycle → due in 7h (outside the 60-min lead window).
+  // Taken 7h30m ago on an 8h cycle → due in 30 min (just outside the 15-min lead).
+  const soonButNotYet = () => med({ name: 'Tylenol', time: iso(NOW - (8 * HOUR - 30 * MINUTE)) });
+  // Taken 1h ago on an 8h cycle → due in 7h (well outside the lead window).
   const farOff = () => med({ name: 'Tylenol', time: iso(NOW - 1 * HOUR) });
+  // An as-needed medicine that became eligible again 5 min ago — no fixed clock
+  // time, so it must NOT get a live countdown (only scheduled meds do).
+  const asNeededReady = () =>
+    med({ name: 'Ibuprofen', schedule: 'asNeeded', time: iso(NOW - (8 * HOUR + 5 * MINUTE)) });
 
   it('is empty when the master switch or the live-med case is off', () => {
     expect(
@@ -893,12 +932,24 @@ describe('buildOngoingMedChronometers', () => {
     expect(spec.text).toContain('Emma');
   });
 
-  it('still shows an overdue dose (anchor in the past) within the trailing window', () => {
+  it('drops an overdue dose — no negative clock, no ticking-since-given', () => {
+    // The whole point of the upcoming-only window: an overdue dose (anchor in the
+    // past) would render as a negative count-down and sit there for hours. The
+    // fire-once "due"/"overdue" reminders cover the overdue case instead.
+    expect(
+      buildOngoingMedChronometers(
+        { entries: [overdue()], children: CHILDREN, settings: liveMedOn() },
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('anchors on a strictly-future due time, so the clock never goes negative', () => {
     const [spec] = buildOngoingMedChronometers(
-      { entries: [overdue()], children: CHILDREN, settings: liveMedOn() },
+      { entries: [dueSoon()], children: CHILDREN, settings: liveMedOn() },
       NOW,
     );
-    expect(spec.anchorMs).toBe(NOW - 1 * HOUR);
+    expect(spec.anchorMs).toBeGreaterThan(NOW);
     expect(spec.countDown).toBe(true);
   });
 
@@ -906,6 +957,26 @@ describe('buildOngoingMedChronometers', () => {
     expect(
       buildOngoingMedChronometers(
         { entries: [farOff()], children: CHILDREN, settings: liveMedOn() },
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('omits a scheduled dose still 30 min out — the window is the last 15 min', () => {
+    expect(
+      buildOngoingMedChronometers(
+        { entries: [soonButNotYet()], children: CHILDREN, settings: liveMedOn() },
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('never shows a live countdown for an as-needed medicine, even when due soon', () => {
+    // As-needed / 24h-cap meds become "allowed again", not "due at a time"; they
+    // keep their fire-once alert but must not get a ticking notification.
+    expect(
+      buildOngoingMedChronometers(
+        { entries: [asNeededReady()], children: CHILDREN, settings: liveMedOn() },
         NOW,
       ),
     ).toEqual([]);
@@ -931,7 +1002,7 @@ describe('buildOngoingMedChronometers', () => {
       {
         entries: [
           med({ name: 'Tylenol', childId: 'c1', time: iso(NOW - (8 * HOUR - 10 * MINUTE)) }),
-          med({ name: 'Tylenol', childId: 'c2', time: iso(NOW - (8 * HOUR - 20 * MINUTE)) }),
+          med({ name: 'Tylenol', childId: 'c2', time: iso(NOW - (8 * HOUR - 12 * MINUTE)) }),
         ],
         children: [child('c1', 'Emma'), child('c2', 'Noah')],
         settings: liveMedOn(),
@@ -942,6 +1013,172 @@ describe('buildOngoingMedChronometers', () => {
       'ongoing-med:c1:tylenol',
       'ongoing-med:c2:tylenol',
     ]);
-    expect(specs.find((s) => s.childId === 'c2')?.anchorMs).toBe(NOW + 20 * MINUTE);
+    expect(specs.find((s) => s.childId === 'c2')?.anchorMs).toBe(NOW + 12 * MINUTE);
+  });
+});
+
+// --- Action buttons (issue #45) ---------------------------------------------
+//
+// The buttons live in the planner because *which* ones apply depends on the
+// phase and on which other offsets are enabled — neither recoverable from the
+// key. These cover every row of the design's table, including both branches of
+// each conditional.
+describe('buildNotifications — action buttons', () => {
+  const byKey = (plan: { key: string; actions?: string[] }[], suffix: string) =>
+    plan.find((p) => p.key.endsWith(suffix))?.actions;
+
+  const scheduledDose = () => med({ name: 'Tylenol', time: iso(NOW - 7 * HOUR) });
+
+  function medPlan(over: Partial<TimingPrefs>) {
+    return buildNotifications(
+      input({
+        entries: [scheduledDose()],
+        settings: settings({
+          scheduledMeds: { enabled: true, timing: timing({ before: true, after: true, ...over }) },
+        }),
+      }),
+      NOW,
+    );
+  }
+
+  it('offers "remind on time" on a before reminder only when "at" is off', () => {
+    expect(byKey(medPlan({ at: true }), ':before')).toEqual(['ok']);
+    expect(byKey(medPlan({ at: false }), ':before')).toEqual(['ok', 'remind-on-time']);
+  });
+
+  it('offers "remind later" on an at reminder only when "after" is off', () => {
+    expect(byKey(medPlan({ after: true }), ':at')).toEqual(['add-now']);
+    expect(byKey(medPlan({ after: false }), ':at')).toEqual(['add-now', 'remind-later']);
+  });
+
+  it('always offers add-now and remind-later on an after reminder', () => {
+    expect(byKey(medPlan({}), ':after')).toEqual(['add-now', 'remind-later']);
+  });
+
+  it('carries the source dose so "add now" can prefill a repeat', () => {
+    const plan = medPlan({ at: true });
+    expect(plan.every((p) => p.prefillMedEntryId === scheduledDose().id)).toBe(true);
+  });
+
+  it('gives the diaper reminder ok / add-now / remind-later', () => {
+    const plan = buildNotifications(
+      input({
+        entries: [diaper(iso(NOW - HOUR))],
+        settings: settings({
+          diaperInterval: { enabled: true },
+          perChild: { c1: { diaperIntervalMinutes: 180 } },
+        }),
+      }),
+      NOW,
+    );
+    expect(plan[0].actions).toEqual(['ok', 'add-now', 'remind-later']);
+  });
+
+  it('leads every food phase with add-now', () => {
+    const plan = buildNotifications(
+      input({
+        entries: [feeding(iso(NOW - HOUR))],
+        settings: settings({
+          foodMin: {
+            enabled: true,
+            timing: timing({ before: true, at: false, after: false }),
+          },
+          perChild: { c1: { foodMinIntervalMinutes: 240 } },
+        }),
+      }),
+      NOW,
+    );
+    expect(byKey(plan, ':before')).toEqual(['add-now', 'remind-on-time']);
+  });
+
+  it('gives a forgotten timer its own cancel/end pair', () => {
+    const plan = buildNotifications(
+      input({
+        timers: [{ type: 'sleep', childId: 'c1', startedAt: NOW - 10 * MINUTE }],
+        settings: settings({
+          forgottenTimer: { enabled: true, thresholdMinutes: 30, sleepThresholdMinutes: 60 },
+        }),
+      }),
+      NOW,
+    );
+    expect(plan[0].actions).toEqual(['cancel-sleep', 'end-sleep']);
+  });
+
+  it('leaves the weekly summary button-less', () => {
+    const plan = buildNotifications(
+      input({
+        entries: [diaper(iso(NOW - HOUR))],
+        me: 'Sarah',
+        settings: settings({ weeklySummary: { enabled: true, weekday: 0, hour: 9 } }),
+      }),
+      NOW,
+    );
+    expect(plan.find((p) => p.key === 'weekly')?.actions).toBeUndefined();
+  });
+});
+
+describe('buildNotifications — forgotten timer vs. the live timer notification', () => {
+  const timers: RunningTimer[] = [{ type: 'sleep', childId: 'c1', startedAt: NOW - 10 * MINUTE }];
+  const forgotten = { enabled: true, thresholdMinutes: 30, sleepThresholdMinutes: 60 };
+
+  it('schedules the reminder while the live running-timer notification is off', () => {
+    const plan = buildNotifications(
+      input({ timers, settings: settings({ forgottenTimer: forgotten }) }),
+      NOW,
+    );
+    expect(plan.map((p) => p.key)).toEqual(['timer:sleep:c1']);
+  });
+
+  it('suppresses it while the live running-timer notification is on', () => {
+    // The tray already shows this timer ticking; a "did you forget?" alert on
+    // top of it is noise. Keyed on the setting, not on native support.
+    const plan = buildNotifications(
+      input({
+        timers,
+        settings: settings({ forgottenTimer: forgotten, liveTimer: { enabled: true } }),
+      }),
+      NOW,
+    );
+    expect(plan).toEqual([]);
+  });
+});
+
+describe('buildNotifications — remind me on time', () => {
+  const dose = () => med({ name: 'Tylenol', time: iso(NOW - 7 * HOUR) });
+  // "at" off, so nothing would normally fire at the due moment.
+  const atOff = settings({
+    scheduledMeds: { enabled: true, timing: timing({ before: true, at: false }) },
+  });
+
+  it('emits the on-time reminder for a promoted anchor', () => {
+    const promoted = { 'sched:c1:tylenol:at': NOW + 2 * HOUR };
+    const plan = buildNotifications(
+      input({ entries: [dose()], settings: atOff, remindOnTime: promoted }),
+      NOW,
+    );
+    expect(plan.map((p) => p.key)).toContain('sched:c1:tylenol:at');
+    // The promotion is per-anchor, so an unrelated medicine is untouched.
+    const other = buildNotifications(input({ entries: [dose()], settings: atOff }), NOW);
+    expect(other.map((p) => p.key)).not.toContain('sched:c1:tylenol:at');
+  });
+
+  it('fires it at the anchor, not earlier', () => {
+    const plan = buildNotifications(
+      input({
+        entries: [dose()],
+        settings: atOff,
+        remindOnTime: { 'sched:c1:tylenol:at': NOW + 2 * HOUR },
+      }),
+      NOW,
+    );
+    expect(plan.find((p) => p.key === 'sched:c1:tylenol:at')?.fireAt).toBe(NOW + HOUR);
+  });
+});
+
+describe('activeDeferrals', () => {
+  it('keeps only entries still in the future', () => {
+    expect(activeDeferrals({ a: NOW + MINUTE, b: NOW - MINUTE, c: NOW }, NOW)).toEqual({
+      a: NOW + MINUTE,
+    });
   });
 });
