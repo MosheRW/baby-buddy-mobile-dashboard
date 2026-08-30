@@ -1,9 +1,8 @@
-import React, { useRef, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { AppText } from './AppText';
-import { ActionButton } from './ActionButton';
 import { MinusGlyph, PlusGlyph } from './glyphs';
 import {
   fontSize,
@@ -40,18 +39,19 @@ interface StepperProps {
   trimZeros?: boolean;
   disabled?: boolean;
   /**
-   * Manual entry (default). Tap the number to type an exact value; long-press
-   * it to reset to `defaultValue` — the `value` this stepper was mounted with,
-   * not the one it held when the editor opened, and the same target an
-   * out-of-range entry falls back to. Set `false` where the affordance adds
-   * nothing, e.g. the 1–10 diaper amount.
+   * Manual entry (default). Tap the number to type an exact value in place — the
+   * display swaps to a text field between the ± buttons and the keyboard opens
+   * immediately, no pop-up dialog. Long-press it to reset to `defaultValue` — the
+   * `value` this stepper was mounted with, not the one it held when the editor
+   * opened, and the same target an out-of-range entry falls back to. Set `false`
+   * where the affordance adds nothing, e.g. the 1–10 diaper amount.
    */
   enhanced?: boolean;
   /**
    * Manual entry types the value as an hours + minutes pair instead of a single
    * raw-minutes box. For minute-valued durations displayed as "3h 30m" (via
    * `format`), so typing matches what's shown. The stored `value` stays a plain
-   * minute count; only the modal changes.
+   * minute count; only the inline editor changes.
    */
   hoursMinutes?: boolean;
 }
@@ -88,6 +88,10 @@ export function Stepper({
   // Hours+minutes manual entry keeps the two fields separately.
   const [editHours, setEditHours] = useState('');
   const [editMins, setEditMins] = useState('');
+  // The inline editor commits on both `onSubmitEditing` and `onBlur` (and blur
+  // fires right after submit), so this ref lets `commitEditor` run exactly once
+  // per editing session — the second call sees it already closed and bails.
+  const editingRef = useRef(false);
 
   const round = (n: number) => {
     const p = Math.pow(10, Math.max(decimals, countDecimals(step)));
@@ -119,10 +123,14 @@ export function Stepper({
     } else {
       setEditText(String(Math.round(value)));
     }
+    editingRef.current = true;
     setEditing(true);
   };
 
   const commitEditor = () => {
+    // Guard: submit + blur both call this; only the first should apply.
+    if (!editingRef.current) return;
+    editingRef.current = false;
     setEditing(false);
     // Hours+minutes: an empty field counts as 0, but a non-empty field that
     // doesn't parse (e.g. "-", "abc") stays invalid rather than silently 0.
@@ -146,6 +154,23 @@ export function Stepper({
     onChange(round(parsed));
   };
 
+  // The hours+minutes editor is two fields, so a blur on one must NOT commit if
+  // focus is simply moving to the other. Defer the commit a tick; the sibling's
+  // onFocus cancels it first when focus stays inside the pair.
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelGroupCommit = () => {
+    if (blurTimer.current) {
+      clearTimeout(blurTimer.current);
+      blurTimer.current = null;
+    }
+  };
+  const scheduleGroupCommit = () => {
+    cancelGroupCommit();
+    blurTimer.current = setTimeout(commitEditor, 0);
+  };
+  // Don't leave a pending commit behind if the stepper unmounts mid-edit.
+  useEffect(() => cancelGroupCommit, []);
+
   // Fixed precision keeps float drift out; `trimZeros` then drops "37.0" → "37".
   const fixed = value.toFixed(decimals);
   const display = format ? format(value) : trimZeros ? String(Number(fixed)) : fixed;
@@ -160,12 +185,67 @@ export function Stepper({
     <View style={[styles.row, disabled && styles.disabled]}>
       <StepButton
         onStep={() => applyDelta(-1)}
-        disabled={disabled || value <= min}
+        // Disabled while editing: tapping ± blurs the input (committing the typed
+        // value), but its own step would then run against the stale pre-commit
+        // `value` and clobber what was just typed. The blur still lands, so the
+        // tap commits — it just doesn't also step.
+        disabled={disabled || editing || value <= min}
         kind="minus"
         label={t('stepper.decrease')}
       />
 
-      {enhanced ? (
+      {!enhanced ? (
+        <View style={styles.valueBox}>{valueLabel}</View>
+      ) : editing ? (
+        hoursMinutes ? (
+          <View style={[styles.valueBox, styles.hmRow]}>
+            <TextInput
+              value={editHours}
+              onChangeText={setEditHours}
+              accessibilityLabel={t('stepper.hours')}
+              keyboardType="number-pad"
+              autoFocus
+              selectTextOnFocus
+              onFocus={cancelGroupCommit}
+              onBlur={scheduleGroupCommit}
+              onSubmitEditing={commitEditor}
+              returnKeyType="done"
+              placeholderTextColor={colors.textMuted}
+              style={styles.hmInput}
+            />
+            <AppText size={fontSize.cardTitle} weight="800" color={colors.textMuted}>
+              :
+            </AppText>
+            <TextInput
+              value={editMins}
+              onChangeText={setEditMins}
+              accessibilityLabel={t('stepper.minutes')}
+              keyboardType="number-pad"
+              selectTextOnFocus
+              onFocus={cancelGroupCommit}
+              onBlur={scheduleGroupCommit}
+              onSubmitEditing={commitEditor}
+              returnKeyType="done"
+              placeholderTextColor={colors.textMuted}
+              style={styles.hmInput}
+            />
+          </View>
+        ) : (
+          <TextInput
+            value={editText}
+            onChangeText={setEditText}
+            accessibilityLabel={t('stepper.editTitle')}
+            keyboardType={decimals > 0 ? 'decimal-pad' : 'number-pad'}
+            autoFocus
+            selectTextOnFocus
+            onBlur={commitEditor}
+            onSubmitEditing={commitEditor}
+            returnKeyType="done"
+            placeholderTextColor={colors.textMuted}
+            style={styles.inlineInput}
+          />
+        )
+      ) : (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('stepper.editValue')}
@@ -178,100 +258,15 @@ export function Stepper({
         >
           {valueLabel}
         </Pressable>
-      ) : (
-        <View style={styles.valueBox}>{valueLabel}</View>
       )}
 
       <StepButton
         onStep={() => applyDelta(1)}
-        disabled={disabled || value >= max}
+        // Disabled while editing — see the minus button above.
+        disabled={disabled || editing || value >= max}
         kind="plus"
         label={t('stepper.increase')}
       />
-
-      {enhanced ? (
-        <Modal
-          visible={editing}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setEditing(false)}
-        >
-          <Pressable style={styles.backdrop} onPress={() => setEditing(false)}>
-            {/* Inner Pressable swallows taps so they don't dismiss the dialog. */}
-            <Pressable style={styles.dialog} onPress={() => {}}>
-              <AppText size={fontSize.cardTitle} weight="800">
-                {t('stepper.editTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {rangeMessage(t, min, max)}
-              </AppText>
-              {hoursMinutes ? (
-                <View style={styles.hmRow}>
-                  <View style={styles.hmField}>
-                    <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
-                      {t('stepper.hours')}
-                    </AppText>
-                    <TextInput
-                      value={editHours}
-                      onChangeText={setEditHours}
-                      accessibilityLabel={t('stepper.hours')}
-                      keyboardType="number-pad"
-                      autoFocus
-                      selectTextOnFocus
-                      onSubmitEditing={commitEditor}
-                      returnKeyType="done"
-                      placeholderTextColor={colors.textMuted}
-                      style={styles.input}
-                    />
-                  </View>
-                  <View style={styles.hmField}>
-                    <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
-                      {t('stepper.minutes')}
-                    </AppText>
-                    <TextInput
-                      value={editMins}
-                      onChangeText={setEditMins}
-                      accessibilityLabel={t('stepper.minutes')}
-                      keyboardType="number-pad"
-                      selectTextOnFocus
-                      onSubmitEditing={commitEditor}
-                      returnKeyType="done"
-                      placeholderTextColor={colors.textMuted}
-                      style={styles.input}
-                    />
-                  </View>
-                </View>
-              ) : (
-                <TextInput
-                  value={editText}
-                  onChangeText={setEditText}
-                  keyboardType={decimals > 0 ? 'decimal-pad' : 'number-pad'}
-                  autoFocus
-                  selectTextOnFocus
-                  onSubmitEditing={commitEditor}
-                  returnKeyType="done"
-                  placeholderTextColor={colors.textMuted}
-                  style={styles.input}
-                />
-              )}
-              <View style={styles.dialogButtons}>
-                <ActionButton
-                  label={t('common.cancel')}
-                  variant="neutral"
-                  flex={1}
-                  onPress={() => setEditing(false)}
-                />
-                <ActionButton
-                  label={t('common.ok')}
-                  variant="accent"
-                  flex={1}
-                  onPress={commitEditor}
-                />
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      ) : null}
     </View>
   );
 }
@@ -361,38 +356,39 @@ const makeStyles = ({ colors }: AppTheme) =>
     pressed: {
       opacity: 0.7,
     },
-    backdrop: {
+    // Inline single-value editor: sits where the number was, between the ±
+    // buttons, matching the value label's size/weight so the swap is seamless.
+    inlineInput: {
       flex: 1,
-      backgroundColor: colors.scrim,
-      justifyContent: 'center',
-      paddingHorizontal: spacing['5xl'],
-    },
-    dialog: {
-      backgroundColor: colors.card,
-      borderRadius: radii.card,
-      padding: spacing['4xl'],
-      gap: spacing.lg,
-    },
-    input: {
+      alignSelf: 'stretch',
+      height: 40,
       backgroundColor: colors.background,
-      borderRadius: radii.control,
-      paddingVertical: spacing.xl,
-      paddingHorizontal: spacing['2xl'],
+      borderRadius: radii.chipSmall,
+      paddingVertical: 0,
+      paddingHorizontal: spacing.sm,
       fontFamily: weightFamily['800'],
       fontSize: fontSize.cardTitle,
       color: colors.textPrimary,
       textAlign: 'center',
     },
+    // Hours / minutes inline pair, separated by a ":" — the stored value stays a
+    // plain minute count; this is just how it's typed.
     hmRow: {
       flexDirection: 'row',
-      gap: spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
     },
-    hmField: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    dialogButtons: {
-      flexDirection: 'row',
-      gap: spacing.md,
+    hmInput: {
+      width: 52,
+      height: 40,
+      backgroundColor: colors.background,
+      borderRadius: radii.chipSmall,
+      paddingVertical: 0,
+      paddingHorizontal: spacing.xs,
+      fontFamily: weightFamily['800'],
+      fontSize: fontSize.cardTitle,
+      color: colors.textPrimary,
+      textAlign: 'center',
     },
   });
