@@ -4,7 +4,7 @@ Welcome. This guide walks through the app the way you'll actually use it, day to
 
 If you just want to get going, the [README](../README.md#getting-started-in-5-steps) has a five-step start. This manual is the complete reference for when you want the details.
 
-> Exact wording and colours may vary slightly between app versions and between the two languages (English / Hebrew).
+> Exact wording and colours may vary slightly between app versions and between the two languages (English / Hebrew). The screenshots below use the app's built‑in **demo data** (fictional children "Emma" and "Noah"), so what you see on your own device will show your family's names.
 
 ## Contents
 
@@ -48,6 +48,8 @@ You'll also need one of:
 
 On first launch you'll see the **login screen** with three modes to choose from.
 
+<p align="center"><img src="screenshots/01-login.png" alt="Login screen with Baby Buddy / Home Assistant / Offline modes" width="300"></p>
+
 ### Baby Buddy (direct server)
 
 1. Tap the **Baby Buddy** segment.
@@ -74,7 +76,11 @@ No network is used in this mode; everything stays on the phone.
 
 ## 3. The dashboard
 
-The dashboard is home base. From top to bottom you'll typically see:
+The dashboard is home base.
+
+<p align="center"><img src="screenshots/02-dashboard.png" alt="Dashboard: child card with time-since-last stats, food summary, medication rows, and quick actions, above the recent-activity feed" width="300"></p>
+
+From top to bottom you'll typically see:
 
 - **A greeting** — a friendly, personalized welcome that tucks itself away after you start interacting.
 - **A running‑timer strip** — any feeding/sleep/tummy timers currently running, with a live elapsed clock. Tap to stop and turn into an entry.
@@ -100,7 +106,9 @@ If you've hidden any children, you'll see a **"Show N hidden children"** chip; t
 4. Set the **date and time**. It defaults to now; tap to change.
 5. Tap **Save**.
 
-To **edit** an existing entry, open it from the activity feed; to **delete**, use the delete control, which asks you to confirm. If the server refuses a delete (for example a permissions issue), the reason is shown inline rather than logging you out.
+To **edit** an existing entry, open it from the activity feed with the pencil; to **delete**, tap the trash and confirm. If the server refuses a delete (for example a permissions issue), the reason is shown inline rather than logging you out. Use the filter chips at the top of the feed to show just one type.
+
+<p align="center"><img src="screenshots/03-activity-feed.png" alt="Recent-activity feed with type filter chips and per-row edit/delete controls" width="300"></p>
 
 ## 5. Entry types in detail
 
@@ -109,6 +117,8 @@ To **edit** an existing entry, open it from the activity feed; to **delete**, us
 - **Pee** and **Poo** are two independent switches — both can be on at once.
 - When Poo is on, pick a **colour** swatch and (optionally) a consistency, and you'll see an amount indicator.
 
+<p align="center"><img src="screenshots/10-entry-diaper.png" alt="Diaper entry form with independent Pee/Poo and an amount stepper" width="300"></p>
+
 ### Feeding
 
 - Choose the **kind**: breast milk, formula, fortified breast milk, or **solid food** (with a solid‑food type).
@@ -116,27 +126,39 @@ To **edit** an existing entry, open it from the activity feed; to **delete**, us
 - Enter an **amount** (in ml, convertible to grams for solids) **or** a **duration** — the form swaps between them sensibly.
 - A **gauge** shows the amount against your per‑child default so you can see "more or less than usual" at a glance. Set that default in Settings.
 
+<p align="center"><img src="screenshots/11-entry-feeding.png" alt="Feeding entry form with kind, method, and amount" width="300"></p>
+
 ### Medication
 
 - Start typing a **medication name**; recent names are suggested.
 - Enter the **dose** and **unit** (mg, ml, drops, puffs, or paste), and optionally the **route** and **body area**.
 - Mark it **scheduled** (repeats on an interval) or **as‑needed (PRN)**. For scheduled meds you can set the **repeat interval** and an optional **max dose per 24 hours** (a safety limit — leaving it blank means "say nothing about the limit", it does not clear a previously stated one).
 
+<p align="center"><img src="screenshots/12-entry-medication.png" alt="Medication entry form with recent-medication suggestions, unit, dose, and repeat interval" width="300"></p>
+
 ### Temperature
 
 - Enter the reading and, optionally, the **method** (how it was taken).
+
+<p align="center"><img src="screenshots/13-entry-temperature.png" alt="Temperature entry form with a reading stepper and Oral/Ear/Forehead method" width="300"></p>
 
 ### Tummy time
 
 - Log a duration, with an optional milestone note.
 
+<p align="center"><img src="screenshots/14-entry-tummy.png" alt="Tummy-time entry form with a duration stepper and Start timer" width="300"></p>
+
 ### Sleep
 
 - Log a start and end, or use a **timer**. A **"Still sleeping"** toggle keeps it open‑ended until you stop it.
 
+<p align="center"><img src="screenshots/15-entry-sleep.png" alt="Sleep entry form with Nap/Night and Start timer" width="300"></p>
+
 ### Note
 
 - A free‑text note attached to the child and time.
+
+<p align="center"><img src="screenshots/16-entry-note.png" alt="Note entry form with an optional free-text note and tags" width="300"></p>
 
 ## 6. Timers
 
@@ -161,6 +183,8 @@ Each child card shows medication rows with plain‑language timing:
 ## 8. Notifications & reminders
 
 > Notifications require a proper dev/EAS build. In the Expo Go preview or on web they do nothing.
+
+<p align="center"><img src="screenshots/21-notifications.png" alt="Notification Settings screen with per-category toggles and timing options" width="300"></p>
 
 Open **Settings → Notification Settings** to turn categories on/off and tune them:
 
@@ -193,6 +217,8 @@ Open **Settings → Advanced Settings** for:
 - **Groups** — create groups and assign each child to one. Groups can have their own colour accent and schedule.
 - **Per‑child editor** — set a colour **accent** (a curated palette, or **"match phone"** for Material You), assign a group, set a **schedule**, or hide the child.
 
+<p align="center"><img src="screenshots/22-advanced.png" alt="Advanced Settings: default visibility, shake to reveal, groups, and the per-child list" width="300"></p>
+
 ### Schedules
 
 A schedule hides a child during a **daily time window** on chosen **weekdays** (e.g. hide during nursery hours). A window that crosses midnight is supported; leaving weekdays empty means every day. The dashboard re‑checks schedules about once a minute, so a child appears/disappears at the boundary automatically.
@@ -202,6 +228,8 @@ A schedule hides a child during a **daily time window** on chosen **weekdays** (
 Colour precedence is: your explicit per‑child pick → the child's group accent → the child's default. Accents drive the avatar, name, and a soft card gradient.
 
 ## 10. Appearance, language & time format
+
+<p align="center"><img src="screenshots/20-settings.png" alt="Settings screen: appearance, time format, language, statistics, and per-child defaults" width="300"></p>
 
 In **Settings**:
 

@@ -4,6 +4,14 @@ A warm, fast Android app for logging your baby's day — diapers, feedings, medi
 
 > **Independent app.** This is a third-party client for a Baby Buddy server and isn't affiliated with or endorsed by the Baby Buddy project.
 
+<p align="center">
+  <img src="docs/screenshots/02-dashboard.png" alt="Dashboard with a child card and recent-activity feed" width="260">
+  &nbsp;
+  <img src="docs/screenshots/11-entry-feeding.png" alt="Feeding entry form" width="260">
+</p>
+
+<sub>Screenshots use the app's built-in demo data (fictional "Emma" and "Noah").</sub>
+
 ---
 
 ## Contents
