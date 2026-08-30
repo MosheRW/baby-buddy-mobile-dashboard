@@ -410,7 +410,9 @@ function RowButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      hitSlop={6}
+      // The button is 26px; 9px of slop brings the touch area to the ~44px
+      // guideline without changing the visual layout.
+      hitSlop={9}
       onPress={onPress}
       style={({ pressed }) => [
         styles.rowButton,

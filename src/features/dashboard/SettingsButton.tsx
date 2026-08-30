@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { GearGlyph } from '../../components/glyphs';
 import { radii, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 
@@ -14,12 +15,17 @@ interface SettingsButtonProps {
  * so it never takes a row of its own.
  */
 export function SettingsButton({ onPress, style }: SettingsButtonProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Settings"
+      // Was a hardcoded English "Settings"; localized so a screen reader
+      // announces it correctly in Hebrew too.
+      accessibilityLabel={t('settings.title')}
+      // The button is 38px; nudge the touch area to the ~44px guideline.
+      hitSlop={3}
       onPress={onPress}
       style={[styles.button, style]}
     >
