@@ -16,7 +16,7 @@
  */
 import type { LoginMode, Session } from './types';
 import { profileResponseSchema, profileSchema } from './schemas';
-import { ApiError, AuthError, NetworkError, joinUrl, rawRequest, request } from './client';
+import { ApiError, AuthError, NetworkError, joinUrl, request } from './client';
 import { extractCsrfToken } from './webForm';
 
 /** Raised when the password flow can't complete and the user should paste a key. */
@@ -157,16 +157,4 @@ export async function signInWithPassword(
     language: profile.language,
     isStaff: profile.user?.is_staff,
   };
-}
-
-/** Cheap liveness/permission probe used after rehydrating a stored session. */
-export async function verifySession(session: Session): Promise<boolean> {
-  try {
-    await rawRequest({ baseUrl: session.baseUrl, path: 'api/profile', token: session.token });
-    return true;
-  } catch (err) {
-    if (err instanceof AuthError) return false;
-    // Network trouble isn't proof the token is bad — keep the session.
-    return true;
-  }
 }
