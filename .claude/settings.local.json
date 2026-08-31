@@ -9,7 +9,7 @@
       "Bash(npx --yes serve -s . -l 5599)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5599)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5601)",
-      "PowerShell($c = Get-NetTCPConnection -LocalPort 5601 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue; \"killed $\\($c.OwningProcess\\)\" } else { \"no listener\" }; Start-Sleep 1; Remove-Item -Recurse -Force \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-native/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/web2\" -ErrorAction SilentlyContinue; \"done\")",
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 5601 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue; \"killed $\\($c.OwningProcess\\)\" } else { \"no listener\" }; Start-Sleep 1; Remove-Item -Recurse -Force \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-mobile-dashboard/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/web2\" -ErrorAction SilentlyContinue; \"done\")",
       "Bash(npx --yes serve -s . -l 5602)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5602)",
       "Bash(npm run *)",
@@ -20,7 +20,7 @@
       "Bash(python -c ' *)",
       "Bash(curl -s --max-time 15 \"https://winbergs-babies.duckdns.org/login/\" -o /tmp/bb_login.html -w \"status=%{http_code}\\\\n\")",
       "Read(//tmp/**)",
-      "Bash(python \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-native/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/patch_questions.py\")",
+      "Bash(python \"C:/Users/Dell/AppData/Local/Temp/claude/C--Users-Dell-Prog-baby-buddy-mobile-dashboard/16fdf4ae-088a-4460-a556-321b2873d6e6/scratchpad/patch_questions.py\")",
       "Bash(curl -s -i -X OPTIONS \"https://winbergs-babies.duckdns.org/api/profile\" -H \"Origin: http://localhost:8081\" -H \"Access-Control-Request-Method: GET\" -H \"Access-Control-Request-Headers: authorization\" --max-time 12)",
       "Bash(curl -s -D - -o /dev/null \"https://winbergs-babies.duckdns.org/api/profile\" -H \"Origin: http://localhost:8081\" --max-time 12)",
       "Bash(npx expo-doctor *)",
@@ -32,7 +32,7 @@
       "Bash(sed -i \"s/import { ParseError, rawRequest, request } from '.\\\\/client';/import { ParseError, rawRequest, request, serverNow } from '.\\\\/client';/\" src/api/babybuddy.ts)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Dell\\\\Prog\\\\baby-buddy-native\\\\package.json' | Select-String datetimepicker\")"
+      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Dell\\\\Prog\\\\baby-buddy-mobile-dashboard\\\\package.json' | Select-String datetimepicker\")"
     ]
   }
 }
