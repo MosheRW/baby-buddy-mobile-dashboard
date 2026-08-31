@@ -309,7 +309,6 @@ export const he = {
     cancelTimerConfirm: 'ביטול הטיימר',
     cancelTimerKeep: 'להשאיר פועל',
     quantityTitle: 'כמה {{child}} אכל/ה?',
-    quantityDone: 'סיום',
     activity: {
       feeding: 'האכלה',
       sleep: 'שינה',

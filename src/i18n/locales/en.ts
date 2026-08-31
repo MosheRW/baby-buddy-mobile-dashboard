@@ -312,7 +312,6 @@ export const en = {
     cancelTimerConfirm: 'Discard timer',
     cancelTimerKeep: 'Keep running',
     quantityTitle: 'How much did {{child}} take?',
-    quantityDone: 'Done',
     activity: {
       feeding: 'feeding',
       sleep: 'sleep',
