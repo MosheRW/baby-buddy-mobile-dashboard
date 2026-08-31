@@ -81,7 +81,7 @@ npm install -g eas-cli   # if you don't have it (or run via: npx eas ...)
 eas build --platform android
 ```
 
-Release APKs are published on the [GitHub Releases](https://github.com/MosheRW/baby-buddy-native/releases) page. The app id / package is `com.babybuddy.dashboard` (Android) and `com.mosherw.babybuddy` (iOS); the version is set in [`../app.json`](../app.json) and [`../package.json`](../package.json).
+Release APKs are published on the [GitHub Releases](https://github.com/MosheRW/baby-buddy-mobile-dashboard/releases) page. The app id / package is `com.babybuddy.dashboard` (Android) and `com.mosherw.babybuddy` (iOS); the version is set in [`../app.json`](../app.json) and [`../package.json`](../package.json).
 
 ## Configuration & data storage
 

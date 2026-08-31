@@ -29,9 +29,9 @@ A warm, fast Android app for logging your baby's day — diapers, feedings, medi
 
 ## Install on your phone
 
-The app is distributed as an Android `.apk` file on the **[GitHub Releases](https://github.com/MosheRW/baby-buddy-native/releases)** page.
+The app is distributed as an Android `.apk` file on the **[GitHub Releases](https://github.com/MosheRW/baby-buddy-mobile-dashboard/releases)** page.
 
-1. On your Android phone, open **[github.com/MosheRW/baby-buddy-native/releases](https://github.com/MosheRW/baby-buddy-native/releases)**.
+1. On your Android phone, open **[github.com/MosheRW/baby-buddy-mobile-dashboard/releases](https://github.com/MosheRW/baby-buddy-mobile-dashboard/releases)**.
 2. Under the newest release's **Assets**, tap the **`.apk`** file to download it.
 3. Open the download. The first time, Android asks whether to allow installing apps from your browser — tap through to **Install unknown apps**, turn it on, then come back and tap **Install**.
 4. Open **Baby Buddy** and sign in (see [Getting started](#getting-started-in-5-steps)).

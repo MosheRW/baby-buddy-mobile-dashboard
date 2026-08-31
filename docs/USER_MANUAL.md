@@ -27,9 +27,9 @@ If you just want to get going, the [README](../README.md#getting-started-in-5-st
 
 ## 1. Getting the app
 
-Install the app on your Android phone from the **[GitHub Releases](https://github.com/MosheRW/baby-buddy-native/releases)** page:
+Install the app on your Android phone from the **[GitHub Releases](https://github.com/MosheRW/baby-buddy-mobile-dashboard/releases)** page:
 
-1. On your phone, open **[github.com/MosheRW/baby-buddy-native/releases](https://github.com/MosheRW/baby-buddy-native/releases)**.
+1. On your phone, open **[github.com/MosheRW/baby-buddy-mobile-dashboard/releases](https://github.com/MosheRW/baby-buddy-mobile-dashboard/releases)**.
 2. Under the latest release's **Assets**, tap the `.apk` file to download it.
 3. Open the download. Android will warn that it's from an "unknown source" — allow installs for your browser (**Settings → Install unknown apps**), then tap **Install**.
 4. Open **Baby Buddy** and sign in (next section).
