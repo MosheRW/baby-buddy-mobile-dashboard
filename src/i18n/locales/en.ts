@@ -92,11 +92,6 @@ export const en = {
     filterByTag: 'Filter by tag {{tag}}',
     addTag: 'Add tag {{tag}}',
     switchToChild: 'Switch to {{name}}',
-    inactiveDaysTitle: 'Some days had no entries',
-    inactiveDaysBody:
-      'Exclude those inactive days so they stop dragging down your averages and gauges?',
-    inactiveDaysExclude: 'Exclude',
-    inactiveDaysDismiss: 'Not now',
     showHidden_one: 'Show {{count}} hidden child',
     showHidden_other: 'Show {{count}} hidden children',
   },
@@ -333,10 +328,6 @@ export const en = {
 
   settings: {
     title: 'Settings',
-    stats: 'Statistics',
-    excludeInactiveDays: 'Exclude inactive days',
-    excludeInactiveDaysHint:
-      'Days with no logged entries are dropped from the food-trend average and the feed gauges, so a logging gap does not drag your stats down.',
     children: 'Children & default food quantity',
     mlSuffix: ' ml',
     visibilityToggle: 'Show {{name}} on the dashboard',

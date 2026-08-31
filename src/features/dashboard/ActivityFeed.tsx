@@ -13,12 +13,7 @@ import { AppText, Card, ChipRow } from '../../components';
 import { EntryGlyph, PencilGlyph, TrashGlyph } from '../../components/glyphs/entryGlyphs';
 import { fontSize, radii, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { entryTimeLabel } from '../../lib/dates';
-import {
-  dailyIntakeNorm,
-  feedingGaugePercent,
-  filterAndGroup,
-  type FeedFilter,
-} from '../../lib/feed';
+import { feedingGaugePercent, filterAndGroup, type FeedFilter } from '../../lib/feed';
 import { filterByTag, selectableTagLabels } from '../../lib/tags';
 import { canModifyEntry, type EntryOwner } from '../../lib/entryOwnership';
 import { displayUserName } from '../../lib/userName';
@@ -28,7 +23,6 @@ import {
   entryVisual,
   type EntryVisual,
 } from '../../lib/entryDisplay';
-import { useSettingsStore } from '../../stores';
 import type { Entry } from '../../api/types';
 
 const FILTER_VALUES: FeedFilter[] = ['all', 'diaper', 'feeding', 'medication', 'sleep'];
@@ -94,7 +88,6 @@ export function ActivityFeed({
   // The two filters stack: a type chip narrows the list, a tag narrows it
   // further. Tapping a tag on any row sets it; the chip below clears it.
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
 
   // Memoized so the SectionList sees a stable `sections` reference on the
   // urgent pill-tap pass (activeChild is deferred, so `entries` is unchanged
@@ -108,43 +101,27 @@ export function ActivityFeed({
     [scoped, filter, now],
   );
 
-  // Only with the feature on do the feed gauges switch from the frozen per-entry
-  // baseline to the toggle-sensitive per-day norm; off, they stay exactly as
-  // before. `entries` is already scoped to the active child, so this norm is
-  // that child's own average daily intake.
-  const dailyNorm = useMemo(
-    () =>
-      excludeInactiveDays
-        ? dailyIntakeNorm(entries, now, { excludeInactiveDays: true })
-        : undefined,
-    [excludeInactiveDays, entries, now],
-  );
-
   const filterOptions = FILTER_VALUES.map((value) => ({
     value,
     label: value === 'all' ? t('filter.all') : t(`entryType.${value}`),
   }));
 
-  // A row re-renders only when one of these moves: the tick (time labels), the
-  // norm (gauges), or the current user (edit/delete affordance).
-  const extraData = useMemo(
-    () => ({ now, dailyNorm, currentUser }),
-    [now, dailyNorm, currentUser],
-  );
+  // A row re-renders only when one of these moves: the tick (time labels) or
+  // the current user (edit/delete affordance).
+  const extraData = useMemo(() => ({ now, currentUser }), [now, currentUser]);
 
   const renderItem = useCallback(
     ({ item }: SectionListRenderItemInfo<Entry, FeedSection>) => (
       <FeedRow
         entry={item}
         now={now}
-        dailyNorm={dailyNorm}
         canModify={canModifyEntry(item, currentUser)}
         onEdit={onEditEntry}
         onDelete={onDeleteEntry}
         onTagPress={setTagFilter}
       />
     ),
-    [now, dailyNorm, currentUser, onEditEntry, onDeleteEntry],
+    [now, currentUser, onEditEntry, onDeleteEntry],
   );
 
   const renderSectionHeader = useCallback(
@@ -231,7 +208,6 @@ export function ActivityFeed({
 const FeedRow = React.memo(function FeedRow({
   entry,
   now,
-  dailyNorm,
   canModify,
   onEdit,
   onDelete,
@@ -239,8 +215,6 @@ const FeedRow = React.memo(function FeedRow({
 }: {
   entry: Entry;
   now: number;
-  /** Per-day intake norm when excluding inactive days; else undefined. */
-  dailyNorm?: number;
   /** Whether this user may edit/delete the row (own entry, or staff). */
   canModify: boolean;
   onEdit: (entry: Entry) => void;
@@ -253,7 +227,7 @@ const FeedRow = React.memo(function FeedRow({
   // Scheme passed explicitly so the row's colours belong to the render that
   // produced them, rather than to whatever `getScheme()` happens to hold.
   const visual = entryVisual(entry, scheme);
-  const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry, dailyNorm) : null;
+  const gauge = entry.type === 'feeding' ? feedingGaugePercent(entry) : null;
   const tags = selectableTagLabels(entry);
   // The non-removable "by {creator}" author tag rides at the front of every
   // entry. It shows as its own chip so each row records who logged it, but it

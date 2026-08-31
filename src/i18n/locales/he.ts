@@ -91,10 +91,6 @@ export const he = {
     filterByTag: 'סינון לפי תגית {{tag}}',
     addTag: 'הוספת תגית {{tag}}',
     switchToChild: 'מעבר אל {{name}}',
-    inactiveDaysTitle: 'בימים מסוימים לא נרשמו רשומות',
-    inactiveDaysBody: 'להחריג את הימים הלא־פעילים כדי שלא ימשכו את הממוצעים והמדדים כלפי מטה?',
-    inactiveDaysExclude: 'החרגה',
-    inactiveDaysDismiss: 'לא עכשיו',
     showHidden_one: 'הצגת ילד מוסתר אחד',
     showHidden_two: 'הצגת שני ילדים מוסתרים',
     showHidden_many: 'הצגת {{count}} ילדים מוסתרים',
@@ -330,10 +326,6 @@ export const he = {
 
   settings: {
     title: 'הגדרות',
-    stats: 'סטטיסטיקה',
-    excludeInactiveDays: 'החרגת ימים לא־פעילים',
-    excludeInactiveDaysHint:
-      'ימים ללא רשומות מוחרגים מממוצע מגמת האוכל וממדדי ההאכלה, כך שפער ברישום לא מושך את הנתונים כלפי מטה.',
     children: 'ילדים וכמות אוכל ברירת מחדל',
     mlSuffix: ' מ״ל',
     visibilityToggle: 'הצגת {{name}} בלוח הבקרה',
