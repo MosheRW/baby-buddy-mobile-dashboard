@@ -540,12 +540,26 @@ export function LogEntryScreen({ route, navigation }: Props) {
             min={0}
             suffix={amountUnit(draft.kind)}
           />
+          {saveEntry.isError ? (
+            <AppText size={fontSize.metaSm} weight="700" color={colors.danger}>
+              {errorMessage(saveEntry.error)}
+            </AppText>
+          ) : null}
           <View style={styles.modalActions}>
+            {/* The whole point of the "end feeding" notification action: set the
+                amount, then stop the timer and write the entry. `save` folds the
+                measured span in and clears the timer on success, so this button
+                does the full stop-and-save rather than merely closing. */}
             <ActionButton
-              label={t('logEntry.quantityDone')}
+              label={
+                saveEntry.isPending
+                  ? t('common.saving')
+                  : t('logEntry.saveAndEnd', { activity: endActivityLabel })
+              }
               variant="accent"
               flex={1}
-              onPress={closeModal}
+              disabled={saveEntry.isPending}
+              onPress={() => save()}
             />
           </View>
         </FormModal>
