@@ -91,9 +91,8 @@ export const ChildCard = React.memo(function ChildCard({
   const needed = neededMeds(childEntries, now);
   const eligible = eligibleMeds(childEntries, now);
   const limits = medLimitSummaries(childEntries, now);
-  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
-  const trend = foodTrend(childEntries, now, { excludeInactiveDays });
+  const trend = foodTrend(childEntries, now);
 
   // The child's accent (override → group → default hue) drives the avatar, the
   // name, and the card's gradient background, all from one hue.

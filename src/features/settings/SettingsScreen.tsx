@@ -63,8 +63,6 @@ export function SettingsScreen({ navigation }: Props) {
   const { children } = useDashboardData();
   const defaults = useSettingsStore((s) => s.defaultFoodMl);
   const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
-  const excludeInactiveDays = useSettingsStore((s) => s.excludeInactiveDays);
-  const setExcludeInactiveDays = useSettingsStore((s) => s.setExcludeInactiveDays);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const setTimeFormat = useSettingsStore((s) => s.setTimeFormat);
   const hidden = useKidsStore((s) => s.hidden);
@@ -233,23 +231,6 @@ export function SettingsScreen({ navigation }: Props) {
                 onPress={() => setLanguage(lang)}
               />
             ))}
-          </View>
-        </Card>
-
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('settings.stats')}
-          </AppText>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleText}>
-              <AppText size={fontSize.body} weight="700">
-                {t('settings.excludeInactiveDays')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('settings.excludeInactiveDaysHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch value={excludeInactiveDays} onValueChange={setExcludeInactiveDays} />
           </View>
         </Card>
 
