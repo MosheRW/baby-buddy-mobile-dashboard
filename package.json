@@ -1,6 +1,25 @@
 {
-  "name": "baby-buddy-native",
-  "version": "2026.08.31-2",
+  "name": "baby-buddy-mobile-dashboard",
+  "version": "2026.08.31-3",
+  "contributors": [
+    "MosheRW"
+  ],
+  "release": {
+    "github": "https://github.com/MosheRW/baby-buddy-mobile-dashboard/releases"
+  },
+  "keywords": [
+    "react-native",
+    "android",
+    "baby-monitor",
+    "baby-buddy",
+    "baby-dashboard"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MosheRW/baby-buddy-mobile-dashboard.git"
+  },
+  "license":"GNU General Public License v3.0",
+  
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",

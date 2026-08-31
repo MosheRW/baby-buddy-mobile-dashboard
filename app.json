@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Baby Buddy",
-    "slug": "baby-buddy-native",
-    "version": "2026.08.31-2",
+    "slug": "baby-buddy-mobile-dashboard",
+    "version": "2026.08.31-3",
     "orientation": "portrait",
     "icon": "./assets/play_store_icon_512.png",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,7 @@
       "bundleIdentifier": "com.mosherw.babybuddy"
     },
     "android": {
-      "package": "com.babybuddy.dashboard",
+      "package": "com.mosherw.babybuddy",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EF",
         "foregroundImage": "./assets/ic_launcher_foreground_432.png",
