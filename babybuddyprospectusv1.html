@@ -1,0 +1,627 @@
+<title>Baby Buddy Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;600;700;900&family=Karla:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #F6F4FA;
+    --bg-alt: #ECE7F5;
+    --surface: #FFFFFF;
+    --ink: #241F38;
+    --ink-soft: #5C5573;
+    --ink-faint: #8A83A0;
+    --accent: #DE5E77;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #FBE3E8;
+    --sage: #6F8C68;
+    --line: rgba(36, 31, 56, 0.13);
+    --panel-bg: #1C1730;
+    --panel-bg-2: #241D3B;
+    --panel-ink: #F3EFE9;
+    --panel-ink-soft: #C6BFD9;
+    --panel-line: rgba(243, 239, 233, 0.14);
+    --shadow: 0 20px 50px -25px rgba(36, 31, 56, 0.35);
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15121F;
+      --bg-alt: #1B1729;
+      --surface: #201A31;
+      --ink: #F3EFE9;
+      --ink-soft: #BEB6D2;
+      --ink-faint: #857CA0;
+      --accent: #F0839C;
+      --accent-ink: #1C1024;
+      --accent-soft: #3A2431;
+      --sage: #93AC8A;
+      --line: rgba(243, 239, 233, 0.14);
+      --panel-bg: #0F0C18;
+      --panel-bg-2: #17122389;
+      --panel-ink: #F3EFE9;
+      --panel-ink-soft: #B7AFC9;
+      --panel-line: rgba(243, 239, 233, 0.16);
+      --shadow: 0 20px 50px -25px rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #15121F;
+    --bg-alt: #1B1729;
+    --surface: #201A31;
+    --ink: #F3EFE9;
+    --ink-soft: #BEB6D2;
+    --ink-faint: #857CA0;
+    --accent: #F0839C;
+    --accent-ink: #1C1024;
+    --accent-soft: #3A2431;
+    --sage: #93AC8A;
+    --line: rgba(243, 239, 233, 0.14);
+    --panel-bg: #0F0C18;
+    --panel-bg-2: #17122389;
+    --panel-ink: #F3EFE9;
+    --panel-ink-soft: #B7AFC9;
+    --panel-line: rgba(243, 239, 233, 0.16);
+    --shadow: 0 20px 50px -25px rgba(0, 0, 0, 0.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  img, svg { display: block; max-width: 100%; }
+
+  h1, h2, h3 {
+    font-family: "Frank Ruhl Libre", Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    line-height: 1.12;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  p { margin: 0; }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-inline: clamp(20px, 5vw, 56px);
+  }
+
+  .prose { max-width: 62ch; }
+
+  a { color: inherit; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    padding-top: clamp(22px, 4vw, 34px);
+  }
+  .topbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "Frank Ruhl Libre", serif;
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: 0.01em;
+  }
+  .wordmark .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 5px var(--accent-soft);
+  }
+  .lang-chip {
+    display: inline-flex;
+    gap: 6px;
+    font-family: "Karla", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 12px;
+  }
+  .lang-chip b { color: var(--ink); font-weight: 800; }
+  .lang-chip span { opacity: 0.5; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    padding-top: clamp(48px, 9vw, 96px);
+    padding-bottom: clamp(56px, 8vw, 88px);
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: clamp(32px, 6vw, 64px);
+    align-items: center;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-size: clamp(2.6rem, 5.4vw, 4.2rem);
+    letter-spacing: -0.01em;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero-sub {
+    margin-top: 22px;
+    font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+    color: var(--ink-soft);
+  }
+  .hero-meta {
+    margin-top: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-size: 0.86rem;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .hero-meta span { display: inline-flex; align-items: center; gap: 8px; }
+  .hero-meta svg { width: 15px; height: 15px; opacity: 0.7; }
+  .download-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 28px;
+    padding: 12px 18px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 800;
+    box-shadow: 0 10px 22px -12px rgba(222, 94, 119, 0.8);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .download-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 26px -12px rgba(222, 94, 119, 0.9);
+  }
+  .download-button:focus-visible {
+    outline: 3px solid var(--accent-soft);
+    outline-offset: 3px;
+  }
+  .download-button svg { width: 18px; height: 18px; }
+
+  /* ---------- hero mockup card ---------- */
+  .mock {
+    position: relative;
+    justify-self: center;
+    width: min(340px, 100%);
+    background: var(--surface);
+    border-radius: 26px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+    animation: float 7s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .mock { animation: none; } }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-9px); }
+  }
+  .mock-head { display: flex; align-items: center; gap: 12px; }
+  .mock-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(150deg, var(--accent), var(--sage));
+    flex-shrink: 0;
+  }
+  .mock-name { font-weight: 800; font-size: 0.98rem; }
+  .mock-since { font-size: 0.78rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .mock-tiles {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .mock-tile {
+    background: var(--bg-alt);
+    border-radius: 14px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .mock-tile svg { width: 17px; height: 17px; margin: 0 auto 6px; color: var(--accent); }
+  .mock-tile b { display: block; font-size: 0.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mock-tile small { font-size: 0.62rem; color: var(--ink-faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .mock-timer {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--accent-soft);
+    border-radius: 14px;
+    padding: 10px 14px;
+  }
+  .mock-timer-label { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 800; color: var(--accent); }
+  .mock-timer-label .pulse {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .mock-timer-label .pulse { animation: none; } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  .mock-timer-value { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 0.9rem; color: var(--accent); }
+  .mock-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 2px;
+    border-top: 1px solid var(--line);
+    font-size: 0.78rem;
+  }
+  .mock-row:first-of-type { border-top: none; margin-top: 16px; padding-top: 0; }
+  .mock-row-left { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-weight: 700; }
+  .mock-row-left svg { width: 14px; height: 14px; color: var(--ink-faint); }
+  .mock-row-right { color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+  /* ---------- horizon divider ---------- */
+  .horizon {
+    height: clamp(70px, 12vw, 130px);
+    position: relative;
+    overflow: hidden;
+    margin-top: -1px;
+  }
+  .horizon::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 160%;
+    aspect-ratio: 2 / 1;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 0%, var(--accent-soft) 0%, transparent 70%);
+    opacity: 0.9;
+  }
+
+  /* ---------- section shell ---------- */
+  section { padding-block: clamp(48px, 8vw, 88px); }
+  .section-head { max-width: 46ch; margin-bottom: clamp(30px, 5vw, 48px); }
+  .section-head .eyebrow { margin-bottom: 10px; }
+  .section-head h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+  .section-head p { margin-top: 14px; color: var(--ink-soft); font-size: 1.02rem; }
+
+  /* ---------- features ---------- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 24px 22px;
+  }
+  .feature-icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .feature-icon svg { width: 20px; height: 20px; color: var(--accent); }
+  .feature h3 { font-family: "Karla", sans-serif; font-size: 1.02rem; font-weight: 800; margin-bottom: 8px; }
+  .feature p { color: var(--ink-soft); font-size: 0.92rem; line-height: 1.55; }
+
+  /* ---------- vignettes ---------- */
+  .vignettes { display: flex; flex-direction: column; gap: 0; }
+  .vignette {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: clamp(16px, 4vw, 40px);
+    padding-block: 26px;
+    border-top: 1px solid var(--line);
+  }
+  .vignette:last-child { border-bottom: 1px solid var(--line); }
+  .vignette-time {
+    font-family: "Frank Ruhl Libre", serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    padding-top: 2px;
+  }
+  .vignette-time small {
+    display: block;
+    font-family: "Karla", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+  .vignette p { color: var(--ink-soft); max-width: 58ch; }
+
+  /* ---------- privacy panel ---------- */
+  .panel-wrap { padding-block: 0; }
+  .panel {
+    background: var(--panel-bg);
+    background-image: radial-gradient(ellipse 60% 90% at 85% 0%, var(--panel-bg-2), transparent 70%);
+    color: var(--panel-ink);
+    border-radius: 26px;
+    padding: clamp(32px, 6vw, 60px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(28px, 5vw, 56px);
+    align-items: center;
+  }
+  .panel .eyebrow { color: var(--accent); }
+  .panel h2 { color: var(--panel-ink); font-size: clamp(1.6rem, 3vw, 2.15rem); }
+  .panel p { color: var(--panel-ink-soft); margin-top: 16px; font-size: 1rem; }
+  .panel-list { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .panel-list li { display: flex; gap: 12px; align-items: flex-start; color: var(--panel-ink-soft); font-size: 0.92rem; }
+  .panel-list svg { width: 17px; height: 17px; color: var(--sage); flex-shrink: 0; margin-top: 2px; }
+  .panel-list b { color: var(--panel-ink); }
+  .panel-visual {
+    border: 1px solid var(--panel-line);
+    border-radius: 18px;
+    padding: 22px;
+    background: rgba(255,255,255,0.02);
+  }
+  .panel-visual-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-block: 12px;
+    border-top: 1px solid var(--panel-line);
+    font-size: 0.85rem;
+  }
+  .panel-visual-row:first-child { border-top: none; padding-top: 0; }
+  .panel-visual-row span:first-child { color: var(--panel-ink-soft); font-weight: 600; }
+  .panel-visual-row span:last-child { color: var(--sage); font-weight: 800; font-family: "Karla", sans-serif; }
+
+  /* ---------- maker note ---------- */
+  .maker {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 22px;
+    align-items: flex-start;
+    max-width: 68ch;
+  }
+  .maker-mark {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    /* background: linear-gradient(150deg, var(--accent), var(--sage)); */
+    background-image: url('https://avatars.githubusercontent.com/u/59839782?v=4');
+    background-size: cover;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .maker blockquote {
+    margin: 0;
+    font-family: "Frank Ruhl Libre", serif;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .maker cite {
+    display: block;
+    margin-top: 16px;
+    font-style: normal;
+    font-family: "Karla", sans-serif;
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--ink-soft);
+  }
+  .maker cite span { display: block; font-weight: 600; color: var(--ink-faint); margin-top: 2px; }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--line);
+    padding-block: 28px;
+  }
+  .footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+  }
+  .footer-row b { color: var(--ink-soft); }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; }
+    .mock { justify-self: stretch; width: 100%; max-width: 380px; margin: 0 auto; }
+    .features { grid-template-columns: repeat(2, 1fr); }
+    .panel { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .features { grid-template-columns: 1fr; }
+    .vignette { grid-template-columns: 1fr; gap: 6px; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="wrap topbar-row">
+    <div class="wordmark"><img class="dot" src="./assets/play_store_icon_512.png" alt="dot"> Baby Buddy Dashboard</div>
+    <div class="lang-chip"><b>EN</b><span>/</span><b>עברית</b></div>
+  </div>
+</div>
+
+<header class="hero wrap">
+  <div>
+    <span class="eyebrow">A mobile home for Baby Buddy</span>
+    <h1>Built for the <em>3&nbsp;AM</em> feed.</h1>
+    <p class="hero-sub">Everything you track about your baby — feeds, sleep, diapers, medicine, temperature, tummy time — in one calm timeline that every caregiver can see, add to, and trust.</p>
+    <div class="hero-meta">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/><path d="M11 18h2"/></svg>For Android</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Runs on your own Baby Buddy server</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>Currently in development</span>
+    </div>
+    <a class="download-button" href="https://github.com/MosheRW/baby-buddy-native/releases/download/2026.08.31-02/baby-buddy-2026.08.31-2.apk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v11"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download for Android</a>
+  </div>
+
+  <div class="mock" aria-hidden="true">
+    <div class="mock-head">
+      <div class="mock-avatar"></div>
+      <div>
+        <div class="mock-name">Noa</div>
+        <div class="mock-since">Last feed · 2h 14m ago</div>
+      </div>
+    </div>
+    <div class="mock-tiles">
+      <div class="mock-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3Z"/></svg>
+        <b>46m</b><small>Diaper</small>
+      </div>
+      <div class="mock-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5Z"/></svg>
+        <b>1h 20m</b><small>Sleep</small>
+      </div>
+      <div class="mock-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M12 14v8M9 22h6"/></svg>
+        <b>3h</b><small>Med due</small>
+      </div>
+    </div>
+    <div class="mock-timer">
+      <span class="mock-timer-label"><span class="pulse"></span>Feeding running</span>
+      <span class="mock-timer-value">12:04</span>
+    </div>
+    <div class="mock-row">
+      <span class="mock-row-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Bottle logged, 4 oz</span>
+      <span class="mock-row-right">by Dad</span>
+    </div>
+    <div class="mock-row">
+      <span class="mock-row-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Tummy time, 8 min</span>
+      <span class="mock-row-right">by Grandma</span>
+    </div>
+  </div>
+</header>
+
+<div class="horizon" aria-hidden="true"></div>
+
+<section class="wrap" id="features">
+  <div class="section-head">
+    <span class="eyebrow">What it does</span>
+    <h2>Small enough for one hand, honest enough for two parents.</h2>
+    <p>No dashboards to configure, no forms with fields you'll never use. Just what actually happens in a day with a baby.</p>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="20" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg></div>
+      <h3>Everything in one timeline</h3>
+      <p>Diapers, feeds, sleep, medicine, temperature, tummy time — one feed per child, in the order it actually happened.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+      <h3>Timers that don't lose their place</h3>
+      <p>Start a feed or a nap and walk away. It keeps counting on your lock screen and picks up right where you left it.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="9" r="3.4"/><circle cx="16.5" cy="10.5" r="2.6"/><path d="M4 19c.5-3 2.5-5 5-5s4.5 2 5 5"/></svg></div>
+      <h3>Room for every caregiver</h3>
+      <p>Partner, grandparent, sitter — everyone logs to the same server. A quiet weekly recap shows who did what.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 4 6.5v5C4 16.5 7.4 20.3 12 21c4.6-.7 8-4.5 8-9.5v-5L12 3Z"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <h3>Reminders that check twice</h3>
+      <p>Before a notification buzzes you, it re-checks the server. If someone else already handled it, yours stays quiet.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 2v4M16 2v4M4 10h16"/></svg></div>
+      <h3>Medicine, done carefully</h3>
+      <p>Doses, units, and 24-hour limits, with a plain-language read on when the next one's due — or overdue.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 3a13 13 0 0 0 0 18 13 13 0 0 0 0-18ZM3.5 9h17M3.5 15h17"/></svg></div>
+      <h3>Feels like it's yours</h3>
+      <p>Light or dark, English or עברית — right to left, right where it should be. On newer phones, it even borrows your wallpaper's color.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="day">
+  <div class="section-head">
+    <span class="eyebrow">A day, roughly</span>
+    <h2>What using it actually looks like.</h2>
+  </div>
+  <div class="vignettes">
+    <div class="vignette">
+      <div class="vignette-time">2:14<small>AM</small></div>
+      <p>The bottle timer's already running from the last feed. You log the ounces half-asleep, without a single screen that asks you something it doesn't need to.</p>
+    </div>
+    <div class="vignette">
+      <div class="vignette-time">7:40<small>AM</small></div>
+      <p>Grandma opens the same server on her own phone. She sees the whole night — every wake, every change — without anyone having to summarize it for her.</p>
+    </div>
+    <div class="vignette">
+      <div class="vignette-time">1:30<small>PM</small></div>
+      <p>Naptime. Tummy time gets its eight minutes logged with a tap, and the medicine card quietly counts down to the next dose in the background.</p>
+    </div>
+    <div class="vignette">
+      <div class="vignette-time">Sun<small>WEEKLY</small></div>
+      <p>A short recap of who logged what this week lands once. It's not a scoreboard — it's just nice to see the week laid out honestly.</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap panel-wrap">
+  <div class="panel">
+    <div>
+      <span class="eyebrow">Why self-hosted</span>
+      <h2>Your kid's data lives on your server. Full stop.</h2>
+      <p>Baby Buddy Dashboard is a phone app for <a href="https://github.com/babybuddy/babybuddy" style="text-decoration:underline; text-decoration-color: var(--panel-line);">Baby Buddy</a>, the open-source tracker you already run yourself — on your own hardware, or as a Home Assistant add-on. There's no separate account, no company reselling sleep patterns, no cloud copy of your baby's schedule sitting on someone else's server.</p>
+      <ul class="panel-list">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg><span><b>No subscription.</b> Point the app at your server and sign in — that's the whole setup.</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg><span><b>No stranger reads it.</b> Every request goes straight to the server you control.</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg><span><b>Nothing lost if we disappear.</b> Baby Buddy's data outlives any one app built on top of it.</span></li>
+      </ul>
+    </div>
+    <div class="panel-visual" aria-hidden="true">
+      <div class="panel-visual-row"><span>Server</span><span>yours</span></div>
+      <div class="panel-visual-row"><span>Account required</span><span>none</span></div>
+      <div class="panel-visual-row"><span>Ads</span><span>none</span></div>
+      <div class="panel-visual-row"><span>Data sold</span><span>never</span></div>
+      <div class="panel-visual-row"><span>Caregivers</span><span>as many as you add</span></div>
+    </div>
+  </div>
+</div>
+
+<section class="wrap" id="maker">
+  <div class="maker">
+    <div class="maker-mark" aria-hidden="true"></div>
+    <div>
+      <blockquote>"I built this for our own family first — passing a laptop back and forth to log a diaper change at 3&nbsp;AM was the last straw. This is the app I wanted to already exist."</blockquote>
+      <cite>Moshe Winberg<span>Maker of Baby Buddy Dashboard</span></cite>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-row">
+    <span><b>Baby Buddy Dashboard</b> — an independent companion app for Baby Buddy.</span>
+    <span>Designed &amp; built by Moshe Winberg</span>
+  </div>
+</footer>
