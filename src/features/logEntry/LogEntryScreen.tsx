@@ -20,6 +20,7 @@ import type { MainStackParamList } from '../../navigation/types';
 import { entryTypeLabel, entryTitle } from '../../lib/entryDisplay';
 import {
   amountUnit,
+  draftSaveError,
   draftToEntry,
   entryToDraft,
   medSuggestionPatch,
@@ -258,6 +259,9 @@ export function LogEntryScreen({ route, navigation }: Props) {
   };
 
   const save = () => {
+    // Guard against an invalid draft reaching the server (the buttons are also
+    // disabled, so this is defense-in-depth).
+    if (draftSaveError(draft, type)) return;
     // While a timer runs its duration isn't in the draft yet, so fold the
     // measured span in here rather than relying on a not-yet-committed patch.
     const spanVals = timerRunning ? spanPatch() : {};
@@ -297,6 +301,10 @@ export function LogEntryScreen({ route, navigation }: Props) {
   // Editing an existing entry is blocked unless it's yours or you're staff;
   // creating a new one is always allowed.
   const canEditEntry = !editingEntry || canModifyEntry(editingEntry, { userName, isStaff });
+
+  // Type-specific "can't save yet" reason (e.g. a diaper with neither pee nor
+  // poo). Shown inline and used to disable the save buttons.
+  const validationError = draftSaveError(draft, type);
 
   // Suggestions look across all children — a caregiver's tag vocabulary is
   // theirs — but never re-offer a tag already on this draft.
@@ -421,6 +429,16 @@ export function LogEntryScreen({ route, navigation }: Props) {
                 {errorMessage(saveEntry.error)}
               </AppText>
             ) : null}
+            {validationError && canEditEntry ? (
+              <AppText
+                size={fontSize.metaSm}
+                weight="700"
+                color={colors.danger}
+                style={styles.saveError}
+              >
+                {validationError}
+              </AppText>
+            ) : null}
             {!canEditEntry ? (
               <AppText
                 size={fontSize.metaSm}
@@ -457,7 +475,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
                     }
                     variant="accent"
                     flex={1}
-                    disabled={saveEntry.isPending}
+                    disabled={saveEntry.isPending || !!validationError}
                     onPress={() => save()}
                   />
                   <ActionButton
@@ -473,7 +491,7 @@ export function LogEntryScreen({ route, navigation }: Props) {
                   label={saveEntry.isPending ? t('common.saving') : t('common.save')}
                   variant="accent"
                   flex={2}
-                  disabled={saveEntry.isPending || !canEditEntry}
+                  disabled={saveEntry.isPending || !canEditEntry || !!validationError}
                   onPress={() => save()}
                 />
               )}

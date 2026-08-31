@@ -301,6 +301,20 @@ export function repeatLabel(schedule: MedicationSchedule): string {
     : i18n.t('med.repeatLabel.asNeeded');
 }
 
+// --- Validation -------------------------------------------------------------
+
+/**
+ * Reason the draft can't be saved as `type` yet, or `undefined` when it's
+ * valid. A diaper must record at least one of pee/poo — an empty diaper change
+ * is a mis-tap, not a loggable event, and Baby Buddy's own form requires it too.
+ */
+export function draftSaveError(draft: FormDraft, type: EntryType): string | undefined {
+  if (type === 'diaper' && !draft.pee && !draft.poo) {
+    return i18n.t('diaper.selectOne');
+  }
+  return undefined;
+}
+
 // --- Draft ⇄ Entry ----------------------------------------------------------
 
 interface ToEntryParams {

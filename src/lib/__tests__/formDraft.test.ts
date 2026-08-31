@@ -10,6 +10,7 @@ import {
   baselinePatch,
   defaultSleepType,
   diaperAmountLabel,
+  draftSaveError,
   draftToEntry,
   emptyDraft,
   entryToDraft,
@@ -36,6 +37,23 @@ const NOW = Date.parse('2026-07-19T10:00:00.000Z');
 function makeDraft(patch: Partial<ReturnType<typeof emptyDraft>> = {}) {
   return { ...emptyDraft(NOW), ...patch };
 }
+
+describe('draftSaveError', () => {
+  it('rejects a diaper with neither pee nor poo', () => {
+    expect(draftSaveError(makeDraft({ pee: false, poo: false }), 'diaper')).toBeTruthy();
+  });
+
+  it('allows a diaper with pee, poo, or both', () => {
+    expect(draftSaveError(makeDraft({ pee: true, poo: false }), 'diaper')).toBeUndefined();
+    expect(draftSaveError(makeDraft({ pee: false, poo: true }), 'diaper')).toBeUndefined();
+    expect(draftSaveError(makeDraft({ pee: true, poo: true }), 'diaper')).toBeUndefined();
+  });
+
+  it('does not gate other entry types on the diaper toggles', () => {
+    expect(draftSaveError(makeDraft({ pee: false, poo: false }), 'feeding')).toBeUndefined();
+    expect(draftSaveError(makeDraft({ pee: false, poo: false }), 'note')).toBeUndefined();
+  });
+});
 
 describe('emptyDraft', () => {
   it('seeds the amount from the child default food quantity', () => {

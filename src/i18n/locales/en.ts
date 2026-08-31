@@ -243,6 +243,7 @@ export const en = {
       poo: 'Poo amount',
       pee: 'Pee amount',
     },
+    selectOne: 'Select pee, poo, or both to save.',
   },
 
   medForm: {
