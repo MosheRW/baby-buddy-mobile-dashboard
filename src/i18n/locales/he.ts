@@ -638,4 +638,43 @@ export const he: Locals = {
     years_many: 'בן {{count}} שנים',
     years_other: 'בן {{count}} שנים',
   },
+
+  about: {
+    // שורת ניווט במסך ההגדרות.
+    navTitle: 'אודות',
+    navHint: 'קרדיטים, גרסה וקישורים.',
+    // מסך אודות.
+    title: 'אודות',
+    // עליי + על האפליקציה.
+    aboutMeTitle: 'עליי',
+    aboutMeBody:
+      'האפליקציה Baby Buddy Mobile Dashboard פותחה על ידי משה וינברג — הורה שרצה דרך מהירה ונוחה יותר לתעד את היום מהטלפון.',
+    linkedIn: 'פרופיל LinkedIn',
+    aboutAppTitle: 'על האפליקציה',
+    aboutAppBody:
+      'לוח בקרה נייד לשרת Baby Buddy מקומי. תיעוד חיתולים, האכלות, תרופות, שינה ועוד, עם סטטיסטיקות של הזמן שחלף במבט אחד.',
+    userManual: 'מדריך למשתמש',
+    // גרסה (הקשה כפולה פותחת את הכרזת הגרסה).
+    versionTitle: 'גרסה',
+    versionValue: 'גרסה {{version}}',
+    versionHint: 'הקישו פעמיים — או לחיצה ארוכה — כדי לפתוח את הכרזת הגרסה.',
+    // קבוצת קישורים.
+    linksTitle: 'קישורים',
+    webApp: 'אפליקציית ווב',
+    discussions: 'דיונים',
+    playStore: 'הורדה מ‑Google Play',
+    privacyPolicy: 'מדיניות פרטיות',
+    reportBug: 'דיווח על תקלה',
+    sourceCode: 'קוד המקור',
+    opensExternally: 'נפתח בדפדפן שלך',
+    // שיתוף.
+    shareTitle: 'שיתוף האפליקציה',
+    shareHint: 'ספרו למטפל נוסף על Baby Buddy.',
+    shareButton: 'שיתוף',
+    shareBody: 'Baby Buddy Mobile Dashboard — לוח בקרה בטלפון עבור Baby Buddy: {{url}}',
+    // תרומה (בגרסאות שאינן מ‑Play Store בלבד).
+    donateTitle: 'תמיכה בפיתוח',
+    donateHint: 'אם האפליקציה עוזרת לך, אפשר לקנות לי קפה.',
+    buyMeACoffee: 'קנו לי קפה',
+  },
 } as const;

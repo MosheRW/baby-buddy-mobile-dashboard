@@ -134,6 +134,26 @@ export function SettingsScreen({ navigation }: Props) {
           </Card>
         </Pressable>
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('about.navTitle')}
+          onPress={() => navigation.navigate('About')}
+        >
+          <Card style={styles.navRow}>
+            <View style={styles.navText}>
+              <AppText size={fontSize.bodySm} weight="800">
+                {t('about.navTitle')}
+              </AppText>
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('about.navHint')}
+              </AppText>
+            </View>
+            <View style={styles.chevron}>
+              <ChevronLeftGlyph size={20} color={colors.textMuted} />
+            </View>
+          </Card>
+        </Pressable>
+
         {/* Any real staff session — direct Baby Buddy or via the Home Assistant
             ingress (which serves the same admin web pages under session.baseUrl).
             Offline mode has no server to manage. */}

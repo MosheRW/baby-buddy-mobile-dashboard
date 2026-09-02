@@ -57,6 +57,8 @@ export type MainStackParamList = {
   Settings: undefined;
   Notifications: undefined;
   AdvancedSettings: undefined;
+  /** Credits, version, and links (About sub-screen of Settings). */
+  About: undefined;
   /** Admin-only: manage caregivers and generate join QR codes (Issue #34). */
   ShareInstance: undefined;
   KidEditor: KidEditorParams;

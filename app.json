@@ -28,6 +28,16 @@
       "favicon": "./assets/favicon.png"
     },
 
+    "extra": {
+      "about": {
+        "repo": "https://github.com/MosheRW/baby-buddy-mobile-dashboard",
+        "linkedIn": "",
+        "webApp": "",
+        "userManual": "",
+        "privacyPolicy": ""
+      }
+    },
+
     "plugins": [
       "expo-font",
       "expo-splash-screen",
