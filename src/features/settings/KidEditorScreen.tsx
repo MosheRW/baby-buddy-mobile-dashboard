@@ -3,12 +3,17 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { AppText, Card, Chip, ToggleSwitch } from '../../components';
+import { AppText, Card, Chip, Stepper, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import { useDynamicColorSupported } from '../../theme/dynamicColor';
 import type { MainStackParamList } from '../../navigation/types';
-import { useKidsStore } from '../../stores';
+import { useKidsStore, useNotificationStore, useSettingsStore } from '../../stores';
+import {
+  DEFAULT_DIAPER_INTERVAL_MINUTES,
+  DEFAULT_FOOD_INTERVAL_MINUTES,
+} from '../../lib/notifications';
+import { countdownLabel } from '../../lib/medication';
 import { useDashboardData } from '../../data/queries';
 import { AccentPicker } from './AccentPicker';
 import { ScheduleEditor } from './ScheduleEditor';
@@ -33,6 +38,15 @@ export function KidEditorScreen({ navigation, route }: Props) {
   const childSchedule = useKidsStore((s) => s.childSchedule);
   const setChildSchedule = useKidsStore((s) => s.setChildSchedule);
   const groups = useKidsStore((s) => s.groups);
+
+  const defaults = useSettingsStore((s) => s.defaultFoodMl);
+  const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
+  // Subscribing keeps the interval labels in step with the time-format
+  // preference (set on the parent Settings screen).
+  const timeFormat = useSettingsStore((s) => s.timeFormat);
+  const formatMinutes = (minutes: number) => countdownLabel(minutes * 60_000, timeFormat);
+  const perChild = useNotificationStore((s) => s.perChild);
+  const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
 
   const groupList = Object.values(groups).sort((a, b) => a.order - b.order);
   const currentGroup = childGroupId[childId] ?? null;
@@ -70,6 +84,19 @@ export function KidEditorScreen({ navigation, route }: Props) {
 
           <Card style={styles.section}>
             <AppText size={fontSize.bodySm} weight="800">
+              {t('settings.defaultFood')}
+            </AppText>
+            <Stepper
+              value={defaults[childId] ?? child.defaultFoodMl}
+              onChange={(v) => setDefaultFoodMl(childId, v)}
+              step={1}
+              min={0}
+              suffix={t('settings.mlSuffix')}
+            />
+          </Card>
+
+          <Card style={styles.section}>
+            <AppText size={fontSize.bodySm} weight="800">
               {t('advanced.accentColor')}
             </AppText>
             <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
@@ -101,6 +128,57 @@ export function KidEditorScreen({ navigation, route }: Props) {
                   onPress={() => setChildGroup(childId, group.id)}
                 />
               ))}
+            </View>
+          </Card>
+
+          {/* Per-child reminder thresholds. The on/off switches for these
+              reminders live on the Notifications screen; these numbers are the
+              child-specific part of that config, so they belong with the child.
+              The feeding interval also drives the dashboard food-total window. */}
+          <Card style={styles.section}>
+            <AppText size={fontSize.bodySm} weight="800">
+              {t('advanced.kidReminders')}
+            </AppText>
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {t('advanced.kidRemindersHint')}
+            </AppText>
+            <View style={styles.field}>
+              <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                {t('notifications.feedingInterval')}
+              </AppText>
+              <Stepper
+                value={perChild[childId]?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES}
+                onChange={(v) => setPerChildThreshold(childId, { foodMinIntervalMinutes: v })}
+                step={1}
+                min={30}
+                format={formatMinutes}
+                hoursMinutes
+              />
+            </View>
+            <View style={styles.field}>
+              <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                {t('notifications.maxGap')}
+              </AppText>
+              <Stepper
+                value={perChild[childId]?.diaperIntervalMinutes ?? DEFAULT_DIAPER_INTERVAL_MINUTES}
+                onChange={(v) => setPerChildThreshold(childId, { diaperIntervalMinutes: v })}
+                step={1}
+                min={30}
+                format={formatMinutes}
+                hoursMinutes
+              />
+            </View>
+            <View style={styles.field}>
+              <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                {t('notifications.targetAmount')}
+              </AppText>
+              <Stepper
+                value={perChild[childId]?.foodMinMl ?? 0}
+                onChange={(v) => setPerChildThreshold(childId, { foodMinMl: v })}
+                step={1}
+                min={0}
+                suffix={t('settings.mlSuffix')}
+              />
             </View>
           </Card>
 
@@ -146,6 +224,9 @@ const makeStyles = ({ colors }: AppTheme) =>
     chipWrap: {
       flexDirection: 'row',
       flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    field: {
       gap: spacing.sm,
     },
   });

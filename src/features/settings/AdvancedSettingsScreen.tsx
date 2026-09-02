@@ -70,6 +70,86 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
+            {t('advanced.kids')}
+          </AppText>
+          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+            {t('advanced.kidsHint')}
+          </AppText>
+          {children.map((child) => {
+            const tint = avatarTint(child.hue, scheme);
+            return (
+              <Pressable
+                key={child.id}
+                accessibilityRole="button"
+                onPress={() => navigation.navigate('KidEditor', { childId: child.id })}
+                style={styles.row}
+              >
+                <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+                  <AppText size={fontSize.body} weight="800" color={tint.fg}>
+                    {child.initial}
+                  </AppText>
+                </View>
+                <AppText size={fontSize.body} weight="700" style={styles.rowLabel}>
+                  {child.name}
+                </AppText>
+                {hidden[child.id] ? (
+                  <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
+                    {t('advanced.hiddenBadge')}
+                  </AppText>
+                ) : null}
+                <View style={styles.chevron}>
+                  <ChevronLeftGlyph size={18} color={colors.textMuted} />
+                </View>
+              </Pressable>
+            );
+          })}
+        </Card>
+
+        <Card style={styles.section}>
+          <AppText size={fontSize.bodySm} weight="800">
+            {t('advanced.groups')}
+          </AppText>
+          {groupList.length === 0 ? (
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {t('advanced.noGroups')}
+            </AppText>
+          ) : (
+            groupList.map((group) => (
+              <Pressable
+                key={group.id}
+                accessibilityRole="button"
+                onPress={() => navigation.navigate('GroupEditor', { groupId: group.id })}
+                style={styles.row}
+              >
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: (() => {
+                        const dotHue = groupDotHue(group.accentHue);
+                        return dotHue != null ? accentColors(dotHue, scheme).name : colors.neutral;
+                      })(),
+                    },
+                  ]}
+                />
+                <AppText size={fontSize.body} weight="700" style={styles.rowLabel}>
+                  {group.name}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('advanced.groupMembers', { count: memberCount(group.id) })}
+                </AppText>
+                <View style={styles.chevron}>
+                  <ChevronLeftGlyph size={18} color={colors.textMuted} />
+                </View>
+              </Pressable>
+            ))
+          )}
+          <ActionButton label={t('advanced.addGroup')} variant="neutral" onPress={createGroup} />
+        </Card>
+
+        {/* Options that apply across all children, below the per-child list. */}
+        <Card style={styles.section}>
+          <AppText size={fontSize.bodySm} weight="800">
             {t('settings.newChildren')}
           </AppText>
           <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
@@ -122,85 +202,6 @@ export function AdvancedSettingsScreen({ navigation }: Props) {
               </View>
             </View>
           ) : null}
-        </Card>
-
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('advanced.groups')}
-          </AppText>
-          {groupList.length === 0 ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('advanced.noGroups')}
-            </AppText>
-          ) : (
-            groupList.map((group) => (
-              <Pressable
-                key={group.id}
-                accessibilityRole="button"
-                onPress={() => navigation.navigate('GroupEditor', { groupId: group.id })}
-                style={styles.row}
-              >
-                <View
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor: (() => {
-                        const dotHue = groupDotHue(group.accentHue);
-                        return dotHue != null ? accentColors(dotHue, scheme).name : colors.neutral;
-                      })(),
-                    },
-                  ]}
-                />
-                <AppText size={fontSize.body} weight="700" style={styles.rowLabel}>
-                  {group.name}
-                </AppText>
-                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                  {t('advanced.groupMembers', { count: memberCount(group.id) })}
-                </AppText>
-                <View style={styles.chevron}>
-                  <ChevronLeftGlyph size={18} color={colors.textMuted} />
-                </View>
-              </Pressable>
-            ))
-          )}
-          <ActionButton label={t('advanced.addGroup')} variant="neutral" onPress={createGroup} />
-        </Card>
-
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('advanced.kids')}
-          </AppText>
-          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-            {t('advanced.kidsHint')}
-          </AppText>
-          {children.map((child) => {
-            const tint = avatarTint(child.hue, scheme);
-            return (
-              <Pressable
-                key={child.id}
-                accessibilityRole="button"
-                onPress={() => navigation.navigate('KidEditor', { childId: child.id })}
-                style={styles.row}
-              >
-                <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-                  <AppText size={fontSize.body} weight="800" color={tint.fg}>
-                    {child.initial}
-                  </AppText>
-                </View>
-                <AppText size={fontSize.body} weight="700" style={styles.rowLabel}>
-                  {child.name}
-                </AppText>
-                {hidden[child.id] ? (
-                  <AppText size={fontSize.metaSm} weight="700" color={colors.textMuted}>
-                    {t('advanced.hiddenBadge')}
-                  </AppText>
-                ) : null}
-                <View style={styles.chevron}>
-                  <ChevronLeftGlyph size={18} color={colors.textMuted} />
-                </View>
-              </Pressable>
-            );
-          })}
         </Card>
       </ScrollView>
     </SafeAreaView>

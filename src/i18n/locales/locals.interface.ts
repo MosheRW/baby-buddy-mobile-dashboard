@@ -331,6 +331,8 @@ export interface Locals {
 
     settings: {
         title: string,
+        display: string,
+        theme: string,
         children: string,
         mlSuffix: string,
         visibilityToggle: string,
@@ -389,6 +391,9 @@ export interface Locals {
         accentKidHint: string,
         group: string,
         groupNone: string,
+        // Per-child reminder timing (moved here from the Notifications screen).
+        kidReminders: string,
+        kidRemindersHint: string,
         // Group editor.
         groupName: string,
         accentGroupHint: string,
@@ -472,6 +477,11 @@ export interface Locals {
         navHint: string,
         // Notification settings screen.
         title: string,
+        // Group headings that break the long screen into scannable sections.
+        groupGeneral: string,
+        groupReminders: string,
+        groupOngoing: string,
+        groupDigest: string,
         enable: string,
         enableHint: string,
         blocked: string,

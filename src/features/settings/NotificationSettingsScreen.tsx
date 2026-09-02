@@ -8,14 +8,8 @@ import { ChevronLeftGlyph } from '../../components/glyphs';
 import { fontSize, spacing, useTheme, useThemedStyles, type AppTheme } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 import { useNotificationStore, useSettingsStore } from '../../stores';
-import {
-  DEFAULT_DIAPER_INTERVAL_MINUTES,
-  DEFAULT_FOOD_INTERVAL_MINUTES,
-  intervalStep,
-  type TimingPrefs,
-} from '../../lib/notifications';
+import { intervalStep, type TimingPrefs } from '../../lib/notifications';
 import { countdownLabel } from '../../lib/medication';
-import { useDashboardData } from '../../data/queries';
 import * as service from '../../notifications/service';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Notifications'>;
@@ -24,7 +18,6 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { children } = useDashboardData();
   // Subscribing keeps these interval labels in step with the time-format
   // preference (set on the parent Settings screen).
   const timeFormat = useSettingsStore((s) => s.timeFormat);
@@ -42,7 +35,6 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const diaperInterval = useNotificationStore((s) => s.diaperInterval);
   const foodMin = useNotificationStore((s) => s.foodMin);
   const weeklySummary = useNotificationStore((s) => s.weeklySummary);
-  const perChild = useNotificationStore((s) => s.perChild);
   const snoozeMinutes = useNotificationStore((s) => s.snoozeMinutes);
 
   const setMasterEnabled = useNotificationStore((s) => s.setMasterEnabled);
@@ -58,7 +50,6 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const setLiveMedEnabled = useNotificationStore((s) => s.setLiveMedEnabled);
   const setBackgroundRefreshEnabled = useNotificationStore((s) => s.setBackgroundRefreshEnabled);
   const setIntervalCaseEnabled = useNotificationStore((s) => s.setIntervalCaseEnabled);
-  const setPerChildThreshold = useNotificationStore((s) => s.setPerChildThreshold);
   const updateWeeklySummary = useNotificationStore((s) => s.updateWeeklySummary);
   const setSnoozeMinutes = useNotificationStore((s) => s.setSnoozeMinutes);
 
@@ -94,367 +85,316 @@ export function NotificationSettingsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.enable')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.enableHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch value={masterEnabled} onValueChange={onToggleMaster} />
-          </View>
-          {masterEnabled && permissionStatus === 'denied' ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.danger}>
-              {t('notifications.blocked')}
-            </AppText>
-          ) : null}
-          {masterEnabled && permissionStatus === 'unsupported' ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('notifications.unsupported')}
-            </AppText>
-          ) : null}
-        </Card>
+        {/* General: the master switch and cross-cutting delivery behaviour. */}
+        <View style={styles.group}>
+          <AppText size={fontSize.metaSm} weight="800" color={colors.textMuted} style={styles.groupHeading}>
+            {t('notifications.groupGeneral')}
+          </AppText>
 
-        <Card style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.backgroundTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.backgroundHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch
-              value={backgroundRefresh.enabled}
-              onValueChange={setBackgroundRefreshEnabled}
-              disabled={!masterEnabled}
-            />
-          </View>
-          {masterEnabled && backgroundRefresh.enabled && backgroundStatus === 'restricted' ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.danger}>
-              {t('notifications.backgroundRestricted')}
-            </AppText>
-          ) : null}
-          {masterEnabled && backgroundRefresh.enabled && backgroundStatus === 'unsupported' ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('notifications.backgroundUnsupported')}
-            </AppText>
-          ) : null}
-        </Card>
-
-        <CaseCard
-          title={t('notifications.scheduledMedsTitle')}
-          subtitle={t('notifications.scheduledMedsHint')}
-          enabled={scheduledMeds.enabled}
-          timing={scheduledMeds.timing}
-          disabled={!masterEnabled}
-          labels={timingLabels}
-          onToggle={(v) => setCaseEnabled('scheduledMeds', v)}
-          onTiming={(patch) => updateTiming('scheduledMeds', patch)}
-        />
-
-        <CaseCard
-          title={t('notifications.eligibilityTitle')}
-          subtitle={t('notifications.eligibilityHint')}
-          enabled={medEligibility.enabled}
-          timing={medEligibility.timing}
-          disabled={!masterEnabled}
-          labels={timingLabels}
-          onToggle={(v) => setCaseEnabled('medEligibility', v)}
-          onTiming={(patch) => updateTiming('medEligibility', patch)}
-        />
-
-        <Card style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.forgottenTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.forgottenHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch
-              value={forgottenTimer.enabled}
-              onValueChange={setForgottenTimerEnabled}
-              disabled={!masterEnabled}
-            />
-          </View>
-          {masterEnabled && forgottenTimer.enabled ? (
-            <View style={styles.childBlock}>
-              <View style={styles.field}>
-                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                  {t('notifications.forgottenGeneralLabel')}
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.enable')}
                 </AppText>
-                <Stepper
-                  value={forgottenTimer.thresholdMinutes}
-                  onChange={setForgottenTimerMinutes}
-                  step={1}
-                  min={5}
-                  format={formatMinutes}
-                  hoursMinutes
-                />
-              </View>
-              <View style={styles.field}>
-                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                  {t('notifications.forgottenSleepLabel')}
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.enableHint')}
                 </AppText>
-                <Stepper
-                  value={forgottenTimer.sleepThresholdMinutes}
-                  onChange={setForgottenTimerSleepMinutes}
-                  step={1}
-                  min={5}
-                  format={formatMinutes}
-                  hoursMinutes
-                />
               </View>
+              <ToggleSwitch value={masterEnabled} onValueChange={onToggleMaster} />
             </View>
-          ) : null}
-        </Card>
-
-        <Card style={styles.section}>
-          <View style={styles.rowText}>
-            <AppText size={fontSize.bodySm} weight="800">
-              {t('notifications.snoozeTitle')}
-            </AppText>
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('notifications.snoozeHint')}
-            </AppText>
-          </View>
-          <View style={styles.field}>
-            <Stepper
-              value={snoozeMinutes}
-              onChange={setSnoozeMinutes}
-              step={intervalStep(snoozeMinutes)}
-              min={1}
-              format={formatMinutes}
-              hoursMinutes
-              disabled={!masterEnabled}
-            />
-          </View>
-        </Card>
-
-        <Card style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.liveTitle')}
+            {masterEnabled && permissionStatus === 'denied' ? (
+              <AppText size={fontSize.metaSm} weight="600" color={colors.danger}>
+                {t('notifications.blocked')}
               </AppText>
+            ) : null}
+            {masterEnabled && permissionStatus === 'unsupported' ? (
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.liveHint')}
+                {t('notifications.unsupported')}
               </AppText>
-            </View>
-            <ToggleSwitch
-              value={liveTimer.enabled}
-              onValueChange={setLiveTimerEnabled}
-              disabled={!masterEnabled}
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.liveMedTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.liveMedHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch
-              value={liveMed.enabled}
-              onValueChange={setLiveMedEnabled}
-              disabled={!masterEnabled}
-            />
-          </View>
-        </Card>
+            ) : null}
+          </Card>
 
-        <Card style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.diaperTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.diaperHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch
-              value={diaperInterval.enabled}
-              onValueChange={(v) => setIntervalCaseEnabled('diaperInterval', v)}
-              disabled={!masterEnabled}
-            />
-          </View>
-          {masterEnabled && diaperInterval.enabled
-            ? children.map((child) => (
-                <View key={child.id} style={styles.childBlock}>
-                  <AppText size={fontSize.body} weight="700">
-                    {child.name}
-                  </AppText>
-                  <View style={styles.field}>
-                    <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                      {t('notifications.maxGap')}
-                    </AppText>
-                    <Stepper
-                      value={
-                        perChild[child.id]?.diaperIntervalMinutes ?? DEFAULT_DIAPER_INTERVAL_MINUTES
-                      }
-                      onChange={(v) => setPerChildThreshold(child.id, { diaperIntervalMinutes: v })}
-                      step={1}
-                      min={30}
-                      format={formatMinutes}
-                      hoursMinutes
-                    />
-                  </View>
-                </View>
-              ))
-            : null}
-        </Card>
-
-        {/* Always editable — the feeding interval also drives the dashboard
-            food-total window, so it stays reachable even with notifications off. */}
-        <Card style={styles.section}>
-          <View style={styles.rowText}>
-            <AppText size={fontSize.bodySm} weight="800">
-              {t('notifications.feedingScheduleTitle')}
-            </AppText>
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('notifications.feedingScheduleHint')}
-            </AppText>
-          </View>
-          {children.map((child) => (
-            <View key={child.id} style={styles.childBlock}>
-              <AppText size={fontSize.body} weight="700">
-                {child.name}
-              </AppText>
-              <View style={styles.field}>
-                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                  {t('notifications.feedingInterval')}
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.backgroundTitle')}
                 </AppText>
-                <Stepper
-                  value={
-                    perChild[child.id]?.foodMinIntervalMinutes ?? DEFAULT_FOOD_INTERVAL_MINUTES
-                  }
-                  onChange={(v) => setPerChildThreshold(child.id, { foodMinIntervalMinutes: v })}
-                  step={1}
-                  min={30}
-                  format={formatMinutes}
-                  hoursMinutes
-                />
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.backgroundHint')}
+                </AppText>
               </View>
+              <ToggleSwitch
+                value={backgroundRefresh.enabled}
+                onValueChange={setBackgroundRefreshEnabled}
+                disabled={!masterEnabled}
+              />
             </View>
-          ))}
-        </Card>
+            {masterEnabled && backgroundRefresh.enabled && backgroundStatus === 'restricted' ? (
+              <AppText size={fontSize.metaSm} weight="600" color={colors.danger}>
+                {t('notifications.backgroundRestricted')}
+              </AppText>
+            ) : null}
+            {masterEnabled && backgroundRefresh.enabled && backgroundStatus === 'unsupported' ? (
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('notifications.backgroundUnsupported')}
+              </AppText>
+            ) : null}
+          </Card>
 
-        <Card style={styles.section}>
-          <View style={styles.row}>
+          <Card style={styles.section}>
             <View style={styles.rowText}>
               <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.foodTitle')}
+                {t('notifications.snoozeTitle')}
               </AppText>
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.foodHint')}
+                {t('notifications.snoozeHint')}
               </AppText>
             </View>
-            <ToggleSwitch
-              value={foodMin.enabled}
-              onValueChange={(v) => setCaseEnabled('foodMin', v)}
-              disabled={!masterEnabled}
-            />
-          </View>
-          {/* Feeding gaps carry the same before/at/after model as the medication
-              cases (issue #45), but keep their own card rather than becoming a
-              CaseCard — the per-child target amount below has no equivalent there. */}
-          {masterEnabled && foodMin.enabled ? (
-            <TimingControls
-              timing={foodMin.timing}
-              labels={timingLabels}
-              onChange={(patch) => updateTiming('foodMin', patch)}
-            />
-          ) : null}
-          {masterEnabled && foodMin.enabled
-            ? children.map((child) => (
-                <View key={child.id} style={styles.childBlock}>
-                  <AppText size={fontSize.body} weight="700">
-                    {child.name}
-                  </AppText>
-                  <View style={styles.field}>
-                    <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                      {t('notifications.targetAmount')}
-                    </AppText>
-                    <Stepper
-                      value={perChild[child.id]?.foodMinMl ?? 0}
-                      onChange={(v) => setPerChildThreshold(child.id, { foodMinMl: v })}
-                      step={1}
-                      min={0}
-                      suffix={t('settings.mlSuffix')}
-                    />
-                  </View>
-                </View>
-              ))
-            : null}
-        </Card>
+            <View style={styles.field}>
+              <Stepper
+                value={snoozeMinutes}
+                onChange={setSnoozeMinutes}
+                step={intervalStep(snoozeMinutes)}
+                min={1}
+                format={formatMinutes}
+                hoursMinutes
+                disabled={!masterEnabled}
+              />
+            </View>
+          </Card>
+        </View>
 
-        <Card style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.weeklyTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.weeklyHint')}
-              </AppText>
-            </View>
-            <ToggleSwitch
-              value={weeklySummary.enabled}
-              onValueChange={(v) => updateWeeklySummary({ enabled: v })}
-              disabled={!masterEnabled}
-            />
-          </View>
-          {masterEnabled && weeklySummary.enabled ? (
-            <View style={styles.childBlock}>
-              <View style={styles.field}>
-                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                  {t('notifications.weeklyDay')}
-                </AppText>
-                <View style={styles.dayRow}>
-                  {WEEKDAYS.map((d) => (
-                    <Chip
-                      key={d}
-                      label={t(`notifications.weekdayShort.${d}`)}
-                      active={weeklySummary.weekday === d}
-                      onPress={() => updateWeeklySummary({ weekday: d })}
-                      style={styles.dayChip}
-                    />
-                  ))}
-                </View>
-              </View>
-              <View style={styles.field}>
-                <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                  {t('notifications.weeklyTime')}
-                </AppText>
-                <Stepper
-                  value={weeklySummary.hour}
-                  onChange={(v) => updateWeeklySummary({ hour: v })}
-                  step={1}
-                  min={0}
-                  max={23}
-                  suffix={t('notifications.weeklyHourSuffix')}
-                />
-              </View>
-            </View>
-          ) : null}
-          {/* Outside the enabled/master gates on purpose: reading the recap is a
-              local calculation, so it stays available even with notifications
-              off or permission denied. */}
-          <ActionButton
-            label={t('contribution.viewNow')}
-            variant="neutral"
-            onPress={() => navigation.navigate('Contribution')}
+        {/* Reminders: the per-event nudges. Their child-specific thresholds are
+            set per child in the Kid editor ("Children & groups"). */}
+        <View style={styles.group}>
+          <AppText size={fontSize.metaSm} weight="800" color={colors.textMuted} style={styles.groupHeading}>
+            {t('notifications.groupReminders')}
+          </AppText>
+
+          <CaseCard
+            title={t('notifications.scheduledMedsTitle')}
+            subtitle={t('notifications.scheduledMedsHint')}
+            enabled={scheduledMeds.enabled}
+            timing={scheduledMeds.timing}
+            disabled={!masterEnabled}
+            labels={timingLabels}
+            onToggle={(v) => setCaseEnabled('scheduledMeds', v)}
+            onTiming={(patch) => updateTiming('scheduledMeds', patch)}
           />
-        </Card>
+
+          <CaseCard
+            title={t('notifications.eligibilityTitle')}
+            subtitle={t('notifications.eligibilityHint')}
+            enabled={medEligibility.enabled}
+            timing={medEligibility.timing}
+            disabled={!masterEnabled}
+            labels={timingLabels}
+            onToggle={(v) => setCaseEnabled('medEligibility', v)}
+            onTiming={(patch) => updateTiming('medEligibility', patch)}
+          />
+
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.forgottenTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.forgottenHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={forgottenTimer.enabled}
+                onValueChange={setForgottenTimerEnabled}
+                disabled={!masterEnabled}
+              />
+            </View>
+            {masterEnabled && forgottenTimer.enabled ? (
+              <View style={styles.childBlock}>
+                <View style={styles.field}>
+                  <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                    {t('notifications.forgottenGeneralLabel')}
+                  </AppText>
+                  <Stepper
+                    value={forgottenTimer.thresholdMinutes}
+                    onChange={setForgottenTimerMinutes}
+                    step={1}
+                    min={5}
+                    format={formatMinutes}
+                    hoursMinutes
+                  />
+                </View>
+                <View style={styles.field}>
+                  <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                    {t('notifications.forgottenSleepLabel')}
+                  </AppText>
+                  <Stepper
+                    value={forgottenTimer.sleepThresholdMinutes}
+                    onChange={setForgottenTimerSleepMinutes}
+                    step={1}
+                    min={5}
+                    format={formatMinutes}
+                    hoursMinutes
+                  />
+                </View>
+              </View>
+            ) : null}
+          </Card>
+
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.diaperTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.diaperHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={diaperInterval.enabled}
+                onValueChange={(v) => setIntervalCaseEnabled('diaperInterval', v)}
+                disabled={!masterEnabled}
+              />
+            </View>
+          </Card>
+
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.foodTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.foodHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={foodMin.enabled}
+                onValueChange={(v) => setCaseEnabled('foodMin', v)}
+                disabled={!masterEnabled}
+              />
+            </View>
+            {/* Feeding gaps carry the same before/at/after model as the medication
+                cases (issue #45). The per-child target amount and feeding
+                interval are set per child in the Kid editor. */}
+            {masterEnabled && foodMin.enabled ? (
+              <TimingControls
+                timing={foodMin.timing}
+                labels={timingLabels}
+                onChange={(patch) => updateTiming('foodMin', patch)}
+              />
+            ) : null}
+          </Card>
+        </View>
+
+        {/* Ongoing: live notifications that persist while something is running. */}
+        <View style={styles.group}>
+          <AppText size={fontSize.metaSm} weight="800" color={colors.textMuted} style={styles.groupHeading}>
+            {t('notifications.groupOngoing')}
+          </AppText>
+
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.liveTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.liveHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={liveTimer.enabled}
+                onValueChange={setLiveTimerEnabled}
+                disabled={!masterEnabled}
+              />
+            </View>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.liveMedTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.liveMedHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={liveMed.enabled}
+                onValueChange={setLiveMedEnabled}
+                disabled={!masterEnabled}
+              />
+            </View>
+          </Card>
+        </View>
+
+        {/* Digest: the periodic recap. */}
+        <View style={styles.group}>
+          <AppText size={fontSize.metaSm} weight="800" color={colors.textMuted} style={styles.groupHeading}>
+            {t('notifications.groupDigest')}
+          </AppText>
+
+          <Card style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.rowText}>
+                <AppText size={fontSize.bodySm} weight="800">
+                  {t('notifications.weeklyTitle')}
+                </AppText>
+                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                  {t('notifications.weeklyHint')}
+                </AppText>
+              </View>
+              <ToggleSwitch
+                value={weeklySummary.enabled}
+                onValueChange={(v) => updateWeeklySummary({ enabled: v })}
+                disabled={!masterEnabled}
+              />
+            </View>
+            {masterEnabled && weeklySummary.enabled ? (
+              <View style={styles.childBlock}>
+                <View style={styles.field}>
+                  <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                    {t('notifications.weeklyDay')}
+                  </AppText>
+                  <View style={styles.dayRow}>
+                    {WEEKDAYS.map((d) => (
+                      <Chip
+                        key={d}
+                        label={t(`notifications.weekdayShort.${d}`)}
+                        active={weeklySummary.weekday === d}
+                        onPress={() => updateWeeklySummary({ weekday: d })}
+                        style={styles.dayChip}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.field}>
+                  <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
+                    {t('notifications.weeklyTime')}
+                  </AppText>
+                  <Stepper
+                    value={weeklySummary.hour}
+                    onChange={(v) => updateWeeklySummary({ hour: v })}
+                    step={1}
+                    min={0}
+                    max={23}
+                    suffix={t('notifications.weeklyHourSuffix')}
+                  />
+                </View>
+              </View>
+            ) : null}
+            {/* Outside the enabled/master gates on purpose: reading the recap is a
+                local calculation, so it stays available even with notifications
+                off or permission denied. */}
+            <ActionButton
+              label={t('contribution.viewNow')}
+              variant="neutral"
+              onPress={() => navigation.navigate('Contribution')}
+            />
+          </Card>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -602,6 +542,15 @@ const makeStyles = ({ colors }: AppTheme) =>
     content: {
       padding: spacing['2xl'],
       gap: spacing['2xl'],
+    },
+    // A titled group of cards. Cards sit close under their heading (gap lg),
+    // while the content's own gap (2xl) separates one group from the next.
+    group: {
+      gap: spacing.lg,
+    },
+    groupHeading: {
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     section: {
       gap: spacing.lg,
