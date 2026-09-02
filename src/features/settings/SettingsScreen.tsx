@@ -133,12 +133,6 @@ export function SettingsScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('AdvancedSettings')}
         />
 
-        <NavRow
-          title={t('about.navTitle')}
-          hint={t('about.navHint')}
-          onPress={() => navigation.navigate('About')}
-        />
-
         {/* Display: theme, dynamic colour, language, and time format — grouped
             because they're all "how the app looks and reads". */}
         <Card style={styles.section}>
@@ -228,8 +222,27 @@ export function SettingsScreen({ navigation }: Props) {
             still live in the Kid editor, reached via "Children & groups". */}
         {isLocal ? <LocalChildrenCard childList={children} /> : null}
 
+
+
+        <NavRow
+          title={t('about.navTitle')}
+          hint={t('about.navHint')}
+          onPress={() => navigation.navigate('About')}
+        />
+
+        {/* Any real staff session — direct Baby Buddy or via the Home Assistant
+            ingress (which serves the same admin web pages under session.baseUrl).
+            Offline mode has no server to manage. */}
+        {session?.isStaff && session.mode !== 'local' ? (
+          <NavRow
+            title={t('share.navTitle')}
+            hint={t('share.navHint')}
+            onPress={() => navigation.navigate('ShareInstance')}
+          />
+        ) : null}
+
         {/* Account: instance identity, sharing, and log out — grouped together
-            at the bottom, where these live conventionally. */}
+            at the bottom, where these live conventionally. */}
         {isLocal ? (
           <Card style={styles.section}>
             <AppText size={fontSize.bodySm} weight="800">
@@ -249,12 +262,14 @@ export function SettingsScreen({ navigation }: Props) {
             <AppText size={fontSize.bodySm} weight="600" color={colors.textMuted}>
               {session?.baseUrl ?? '—'}
             </AppText>
+
             {/* The HA path authenticates with a pasted token and never learns a
-                username, so it shows the (masked) token instead. */}
+                username, so it shows the (masked) token instead. */}
             {session?.userName ? (
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
                 {t('settings.loggedInAs', { name: session.userName })}
               </AppText>
+
             ) : session?.token ? (
               <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
                 {t('settings.accessToken', { token: maskToken(session.token) })}
@@ -263,16 +278,6 @@ export function SettingsScreen({ navigation }: Props) {
           </Card>
         )}
 
-        {/* Any real staff session — direct Baby Buddy or via the Home Assistant
-            ingress (which serves the same admin web pages under session.baseUrl).
-            Offline mode has no server to manage. */}
-        {session?.isStaff && session.mode !== 'local' ? (
-          <NavRow
-            title={t('share.navTitle')}
-            hint={t('share.navHint')}
-            onPress={() => navigation.navigate('ShareInstance')}
-          />
-        ) : null}
 
         <ActionButton
           label={t('settings.logOut')}
