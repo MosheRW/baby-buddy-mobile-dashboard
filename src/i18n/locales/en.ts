@@ -650,16 +650,15 @@ export const en: Locals = {
   },
 
   age: {
-    days_one: 'one day old',
+    days_one: 'a day old',
     days_two: 'two days old',
     days_other: '{{count}} days old',
-    months_one: 'one month old',
+    months_one: 'a month old',
     months_two: 'two months old',
     months_other: '{{count}} months old',
-    years_one: 'one year old',
+    years_one: 'a year old',
     years_two: 'two years old',
     years_other: '{{count}} years old',
   },
 } as const;
 
-// export type Resources = typeof en;
