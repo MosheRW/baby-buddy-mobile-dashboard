@@ -675,7 +675,7 @@ export const en: Locals = {
     // About me + about the app.
     aboutMeTitle: 'About me',
     aboutMeBody:
-      'Baby Buddy Mobile Dashboard was built by Moshe Winberg — a parent who wanted a faster, friendlier way to log the day from a phone.',
+      'Moshe Winberg is a full-stack developer who values order and clarity, building digital products with a precise and thoughtful approach. Among his projects is a mobile app designed to give users a simple, convenient, and secure experience.',
     linkedIn: 'LinkedIn profile',
     aboutAppTitle: 'About this app',
     aboutAppBody:

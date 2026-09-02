@@ -27,17 +27,15 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "extra": {
       "about": {
         "repo": "https://github.com/MosheRW/baby-buddy-mobile-dashboard",
-        "linkedIn": "",
+        "linkedIn": "https://www.linkedin.com/in/mosherwinberg/",
         "webApp": "",
-        "userManual": "",
+        "userManual": "https://github.com/MosheRW/baby-buddy-mobile-dashboard/wiki/user-manual",
         "privacyPolicy": ""
       }
     },
-
     "plugins": [
       "expo-font",
       "expo-splash-screen",
