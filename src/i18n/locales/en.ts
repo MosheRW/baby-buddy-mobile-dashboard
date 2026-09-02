@@ -333,7 +333,9 @@ export const en: Locals = {
 
   settings: {
     title: 'Settings',
-    children: 'Children & default food quantity',
+    display: 'Display',
+    theme: 'Theme',
+    children: 'Children',
     mlSuffix: ' ml',
     visibilityToggle: 'Show {{name}} on the dashboard',
     newChildren: 'New children',
@@ -371,11 +373,12 @@ export const en: Locals = {
   },
 
   advanced: {
-    // Settings-screen navigation row.
-    navTitle: 'Advanced',
-    navHint: 'Groups, colours, and visibility schedules.',
-    // Advanced settings screen.
-    title: 'Advanced',
+    // Settings-screen navigation row. (Route/keys keep the legacy `advanced`
+    // name; the screen now reads as "Children & groups".)
+    navTitle: 'Children & groups',
+    navHint: "Each child's colour, group, food, and reminders.",
+    // Children & groups screen.
+    title: 'Children & groups',
     groups: 'Groups',
     noGroups: 'No groups yet.',
     addGroup: 'Add group',
@@ -383,7 +386,7 @@ export const en: Locals = {
     groupMembers_one: 'one child',
     groupMembers_other: '{{count}} children',
     kids: 'Children',
-    kidsHint: 'Tap a child to set its colour, group, and visibility.',
+    kidsHint: 'Tap a child to set its colour, group, food, visibility, and reminders.',
     hiddenBadge: 'Hidden',
     // Kid editor.
     kidVisibility: 'Show on the dashboard',
@@ -393,6 +396,9 @@ export const en: Locals = {
     accentKidHint: 'Overrides the group colour for this child.',
     group: 'Group',
     groupNone: 'None',
+    // Per-child reminder timing (moved here from the Notifications screen).
+    kidReminders: 'Reminder timing',
+    kidRemindersHint: 'Applied when the matching reminder is turned on in Notifications.',
     // Group editor.
     groupName: 'Group name',
     accentGroupHint: 'Applied to members that don’t set their own colour.',
@@ -479,6 +485,11 @@ export const en: Locals = {
     navHint: 'Reminders for medications, timers, and more.',
     // Notification settings screen.
     title: 'Notifications',
+    // Group headings that break the long screen into scannable sections.
+    groupGeneral: 'General',
+    groupReminders: 'Reminders',
+    groupOngoing: 'Ongoing',
+    groupDigest: 'Digest',
     enable: 'Enable notifications',
     enableHint: 'Local reminders, scheduled on this device.',
     blocked: 'Notifications are blocked. Turn them on for Baby Buddy in your device settings.',

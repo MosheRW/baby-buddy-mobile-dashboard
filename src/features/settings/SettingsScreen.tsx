@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { ActionButton, AppText, Card, Chip, Stepper, TextField, ToggleSwitch } from '../../components';
+import { ActionButton, AppText, Card, Chip, TextField, ToggleSwitch } from '../../components';
 import { ChevronLeftGlyph } from '../../components/glyphs';
 import {
   avatarTint,
@@ -20,7 +20,6 @@ import type { MainStackParamList } from '../../navigation/types';
 import {
   THEME_PREFERENCES,
   useAuthStore,
-  useKidsStore,
   useLocaleStore,
   useSettingsStore,
   useThemeStore,
@@ -53,20 +52,47 @@ const TIME_FORMAT_LABEL_KEY: Record<TimeFormat, string> = {
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>;
 
+/** A single settings navigation row (label + hint + chevron into a sub-screen). */
+function NavRow({
+  title,
+  hint,
+  onPress,
+}: {
+  title: string;
+  hint: string;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress}>
+      <Card style={styles.navRow}>
+        <View style={styles.navText}>
+          <AppText size={fontSize.bodySm} weight="800">
+            {title}
+          </AppText>
+          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+            {hint}
+          </AppText>
+        </View>
+        <View style={styles.chevron}>
+          <ChevronLeftGlyph size={20} color={colors.textMuted} />
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
 export function SettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
-  const { scheme, colors } = useTheme();
+  const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const session = useAuthStore((s) => s.session);
   const queryClient = useQueryClient();
   const isLocal = session?.mode === 'local';
   const { children } = useDashboardData();
-  const defaults = useSettingsStore((s) => s.defaultFoodMl);
-  const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const setTimeFormat = useSettingsStore((s) => s.setTimeFormat);
-  const hidden = useKidsStore((s) => s.hidden);
-  const setHidden = useKidsStore((s) => s.setHidden);
   const setLanguage = useLocaleStore((s) => s.setLanguage);
   const activeLanguage = useEffectiveLanguage();
   const themePreference = useThemeStore((s) => s.preference);
@@ -74,8 +100,6 @@ export function SettingsScreen({ navigation }: Props) {
   const dynamicColorEnabled = useThemeStore((s) => s.dynamicColorEnabled);
   const setDynamicColorEnabled = useThemeStore((s) => s.setDynamicColorEnabled);
   const dynamicColorSupported = useDynamicColorSupported();
-
-  const defaultMl = (id: string, fallback: number) => defaults[id] ?? fallback;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -94,91 +118,50 @@ export function SettingsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('notifications.navTitle')}
+        <NavRow
+          title={t('notifications.navTitle')}
+          hint={t('notifications.navHint')}
           onPress={() => navigation.navigate('Notifications')}
-        >
-          <Card style={styles.navRow}>
-            <View style={styles.navText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('notifications.navTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('notifications.navHint')}
-              </AppText>
-            </View>
-            <View style={styles.chevron}>
-              <ChevronLeftGlyph size={20} color={colors.textMuted} />
-            </View>
-          </Card>
-        </Pressable>
+        />
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('advanced.navTitle')}
+        {/* Everything about an individual child — visibility, colour, group,
+            default food, and reminder timing — lives behind this row now, so a
+            caregiver configures one child in one place. */}
+        <NavRow
+          title={t('advanced.navTitle')}
+          hint={t('advanced.navHint')}
           onPress={() => navigation.navigate('AdvancedSettings')}
-        >
-          <Card style={styles.navRow}>
-            <View style={styles.navText}>
-              <AppText size={fontSize.bodySm} weight="800">
-                {t('advanced.navTitle')}
-              </AppText>
-              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                {t('advanced.navHint')}
-              </AppText>
-            </View>
-            <View style={styles.chevron}>
-              <ChevronLeftGlyph size={20} color={colors.textMuted} />
-            </View>
-          </Card>
-        </Pressable>
+        />
 
-        {/* Any real staff session — direct Baby Buddy or via the Home Assistant
-            ingress (which serves the same admin web pages under session.baseUrl).
-            Offline mode has no server to manage. */}
-        {session?.isStaff && session.mode !== 'local' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('share.navTitle')}
-            onPress={() => navigation.navigate('ShareInstance')}
-          >
-            <Card style={styles.navRow}>
-              <View style={styles.navText}>
-                <AppText size={fontSize.bodySm} weight="800">
-                  {t('share.navTitle')}
-                </AppText>
-                <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-                  {t('share.navHint')}
-                </AppText>
-              </View>
-              <View style={styles.chevron}>
-                <ChevronLeftGlyph size={20} color={colors.textMuted} />
-              </View>
-            </Card>
-          </Pressable>
-        ) : null}
-
+        {/* Display: theme, dynamic colour, language, and time format — grouped
+            because they're all "how the app looks and reads". */}
         <Card style={styles.section}>
           <AppText size={fontSize.bodySm} weight="800">
-            {t('settings.appearance')}
+            {t('settings.display')}
           </AppText>
-          <View style={styles.windowRow}>
-            {THEME_PREFERENCES.map((preference) => (
-              <Chip
-                key={preference}
-                label={t(APPEARANCE_LABEL_KEY[preference])}
-                active={themePreference === preference}
-                onPress={() => setThemePreference(preference)}
-              />
-            ))}
-          </View>
-          {/* Only "System" needs explaining — the other two say what they do. */}
-          {themePreference === 'system' ? (
-            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-              {t('settings.appearanceSystemHint')}
+
+          <View style={styles.fieldGroup}>
+            <AppText size={fontSize.body} weight="700">
+              {t('settings.theme')}
             </AppText>
-          ) : null}
+            <View style={styles.windowRow}>
+              {THEME_PREFERENCES.map((preference) => (
+                <Chip
+                  key={preference}
+                  label={t(APPEARANCE_LABEL_KEY[preference])}
+                  active={themePreference === preference}
+                  onPress={() => setThemePreference(preference)}
+                />
+              ))}
+            </View>
+            {/* Only "System" needs explaining — the other two say what they do. */}
+            {themePreference === 'system' ? (
+              <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+                {t('settings.appearanceSystemHint')}
+              </AppText>
+            ) : null}
+          </View>
+
           {/* Material You is Android-12+ only — meaningless elsewhere, so hidden rather than disabled. */}
           {dynamicColorSupported ? (
             <View style={styles.toggleRow}>
@@ -197,95 +180,50 @@ export function SettingsScreen({ navigation }: Props) {
               />
             </View>
           ) : null}
-        </Card>
 
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('settings.timeFormat')}
-          </AppText>
-          <View style={styles.windowRow}>
-            {TIME_FORMATS.map((format) => (
-              <Chip
-                key={format}
-                label={t(TIME_FORMAT_LABEL_KEY[format])}
-                active={timeFormat === format}
-                onPress={() => setTimeFormat(format)}
-              />
-            ))}
+          <View style={styles.fieldGroup}>
+            <AppText size={fontSize.body} weight="700">
+              {t('settings.language')}
+            </AppText>
+            <View style={styles.windowRow}>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <Chip
+                  key={lang}
+                  label={t(LANGUAGE_LABEL_KEY[lang])}
+                  active={activeLanguage === lang}
+                  onPress={() => setLanguage(lang)}
+                />
+              ))}
+            </View>
           </View>
-          <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
-            {t('settings.timeFormatHint')}
-          </AppText>
-        </Card>
 
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('settings.language')}
-          </AppText>
-          <View style={styles.windowRow}>
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <Chip
-                key={lang}
-                label={t(LANGUAGE_LABEL_KEY[lang])}
-                active={activeLanguage === lang}
-                onPress={() => setLanguage(lang)}
-              />
-            ))}
+          <View style={styles.fieldGroup}>
+            <AppText size={fontSize.body} weight="700">
+              {t('settings.timeFormat')}
+            </AppText>
+            <View style={styles.windowRow}>
+              {TIME_FORMATS.map((format) => (
+                <Chip
+                  key={format}
+                  label={t(TIME_FORMAT_LABEL_KEY[format])}
+                  active={timeFormat === format}
+                  onPress={() => setTimeFormat(format)}
+                />
+              ))}
+            </View>
+            <AppText size={fontSize.metaSm} weight="600" color={colors.textMuted}>
+              {t('settings.timeFormatHint')}
+            </AppText>
           </View>
         </Card>
 
-        {isLocal ? (
-          <LocalChildrenCard childList={children} />
-        ) : (
-        <Card style={styles.section}>
-          <AppText size={fontSize.bodySm} weight="800">
-            {t('settings.children')}
-          </AppText>
-          {children.map((child) => {
-            const tint = avatarTint(child.hue, scheme);
-            const isVisible = !hidden[child.id];
-            return (
-              <View key={child.id} style={styles.childRow}>
-                <View style={styles.childHeader}>
-                  <View style={styles.childInfo}>
-                    <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-                      <AppText size={fontSize.body} weight="800" color={tint.fg}>
-                        {child.initial}
-                      </AppText>
-                    </View>
-                    <AppText
-                      size={fontSize.body}
-                      weight="700"
-                      numberOfLines={1}
-                      style={styles.childName}
-                    >
-                      {child.name}
-                    </AppText>
-                  </View>
-                  <ToggleSwitch
-                    value={isVisible}
-                    onValueChange={(visible) => setHidden(child.id, !visible)}
-                    accessibilityLabel={t('settings.visibilityToggle', { name: child.name })}
-                  />
-                </View>
-                <View style={styles.field}>
-                  <AppText size={fontSize.metaSm} weight="700" color={colors.textSecondary}>
-                    {t('settings.defaultFood')}
-                  </AppText>
-                  <Stepper
-                    value={defaultMl(child.id, child.defaultFoodMl)}
-                    onChange={(v) => setDefaultFoodMl(child.id, v)}
-                    step={1}
-                    min={0}
-                    suffix={t('settings.mlSuffix')}
-                  />
-                </View>
-              </View>
-            );
-          })}
-        </Card>
-        )}
+        {/* Offline mode has no server to create children, so it keeps a local
+            roster editor (rename / re-date / add / remove). Per-child settings
+            still live in the Kid editor, reached via "Children & groups". */}
+        {isLocal ? <LocalChildrenCard childList={children} /> : null}
 
+        {/* Account: instance identity, sharing, and log out — grouped together
+            at the bottom, where these live conventionally. */}
         {isLocal ? (
           <Card style={styles.section}>
             <AppText size={fontSize.bodySm} weight="800">
@@ -319,6 +257,17 @@ export function SettingsScreen({ navigation }: Props) {
           </Card>
         )}
 
+        {/* Any real staff session — direct Baby Buddy or via the Home Assistant
+            ingress (which serves the same admin web pages under session.baseUrl).
+            Offline mode has no server to manage. */}
+        {session?.isStaff && session.mode !== 'local' ? (
+          <NavRow
+            title={t('share.navTitle')}
+            hint={t('share.navHint')}
+            onPress={() => navigation.navigate('ShareInstance')}
+          />
+        ) : null}
+
         <ActionButton
           label={t('settings.logOut')}
           variant="danger"
@@ -333,10 +282,11 @@ export function SettingsScreen({ navigation }: Props) {
 }
 
 /**
- * Offline-mode children card: unlike the server-backed card, there's no server
- * to create children, so this one is a full editor — rename, re-date, add and
- * remove children stored on the device. Child writes invalidate the children
- * query so the dashboard reflects them immediately.
+ * Offline-mode children roster: unlike a server, there's nothing remote to
+ * create children, so this is a lightweight local editor — rename, re-date,
+ * add and remove children stored on the device. Everything else about a child
+ * (visibility, food, colour, group, reminders) lives in the Kid editor. Child
+ * writes invalidate the children query so the dashboard reflects them at once.
  */
 function LocalChildrenCard({ childList }: { childList: Child[] }) {
   const { t } = useTranslation();
@@ -345,10 +295,6 @@ function LocalChildrenCard({ childList }: { childList: Child[] }) {
   const addChild = useLocalDataStore((s) => s.addChild);
   const updateChild = useLocalDataStore((s) => s.updateChild);
   const removeChild = useLocalDataStore((s) => s.removeChild);
-  const hidden = useKidsStore((s) => s.hidden);
-  const setHidden = useKidsStore((s) => s.setHidden);
-  const defaults = useSettingsStore((s) => s.defaultFoodMl);
-  const setDefaultFoodMl = useSettingsStore((s) => s.setDefaultFoodMl);
   const queryClient = useQueryClient();
   const refreshChildren = () =>
     void queryClient.invalidateQueries({ queryKey: queryKeys.children });
@@ -399,30 +345,6 @@ function LocalChildrenCard({ childList }: { childList: Child[] }) {
                 refreshChildren();
               }}
             />
-            <View style={styles.toggleRow}>
-              <AppText size={fontSize.body} weight="700">
-                {t('settings.showOnDashboard')}
-              </AppText>
-              <ToggleSwitch
-                value={!hidden[child.id]}
-                onValueChange={(visible) => setHidden(child.id, !visible)}
-                accessibilityLabel={t('settings.visibilityToggle', { name: child.name })}
-              />
-            </View>
-            <View style={styles.toggleRow}>
-              <AppText size={fontSize.body} weight="700">
-                {t('settings.defaultFood')}
-              </AppText>
-              <View style={styles.stepperWrap}>
-                <Stepper
-                  value={defaults[child.id] ?? child.defaultFoodMl}
-                  onChange={(v) => setDefaultFoodMl(child.id, v)}
-                  step={1}
-                  min={0}
-                  suffix={t('settings.mlSuffix')}
-                />
-              </View>
-            </View>
             {/* Keep at least one child — offline logging needs something to log against. */}
             {childList.length > 1 ? (
               <ActionButton
@@ -491,29 +413,12 @@ const makeStyles = ({ colors }: AppTheme) =>
       // The only chevron glyph points left; flip it to point into the sub-screen.
       transform: [{ rotate: '180deg' }],
     },
-    windowRow: {
-      flexDirection: 'row',
+    // A labelled control (sub-heading + its chips/hint) inside the Display card.
+    fieldGroup: {
       gap: spacing.sm,
     },
-    // The food stepper sits on its own line below the name+toggle header, so a
-    // long child name never collides with the toggle and the "120 ml" value has
-    // the full card width — no wrapping, at any screen size.
-    childRow: {
-      gap: spacing.lg,
-      paddingTop: spacing.lg,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.neutral,
-    },
-    childHeader: {
+    windowRow: {
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.lg,
-    },
-    childName: {
-      flexShrink: 1,
-    },
-    field: {
       gap: spacing.sm,
     },
     localChild: {
@@ -530,21 +435,12 @@ const makeStyles = ({ colors }: AppTheme) =>
     localChildName: {
       flex: 1,
     },
-    childInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.lg,
-      flex: 1,
-    },
     avatar: {
       width: 38,
       height: 38,
       borderRadius: 19,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    stepperWrap: {
-      width: 150,
     },
     toggleRow: {
       flexDirection: 'row',
