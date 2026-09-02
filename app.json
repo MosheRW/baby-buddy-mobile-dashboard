@@ -2,7 +2,7 @@
   "expo": {
     "name": "Baby Buddy",
     "slug": "baby-buddy-mobile-dashboard",
-    "version": "2026.08.31-3",
+    "version": "2026.08.02-1",
     "orientation": "portrait",
     "icon": "./assets/play_store_icon_512.png",
     "userInterfaceStyle": "automatic",
@@ -26,6 +26,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+
+    "extra": {
+      "about": {
+        "repo": "https://github.com/MosheRW/baby-buddy-mobile-dashboard",
+        "linkedIn": "",
+        "webApp": "",
+        "userManual": "",
+        "privacyPolicy": ""
+      }
     },
 
     "plugins": [

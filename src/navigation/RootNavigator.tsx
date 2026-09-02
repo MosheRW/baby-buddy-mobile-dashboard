@@ -18,6 +18,7 @@ import { LogEntryScreen } from '../features/logEntry/LogEntryScreen';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
 import { NotificationSettingsScreen } from '../features/settings/NotificationSettingsScreen';
 import { AdvancedSettingsScreen } from '../features/settings/AdvancedSettingsScreen';
+import { AboutScreen } from '../features/settings/AboutScreen';
 import { KidEditorScreen } from '../features/settings/KidEditorScreen';
 import { GroupEditorScreen } from '../features/settings/GroupEditorScreen';
 import { DeleteConfirmSheet } from '../features/deleteSheet/DeleteConfirmSheet';
@@ -75,6 +76,7 @@ export function RootNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Notifications" component={NotificationSettingsScreen} />
             <Stack.Screen name="AdvancedSettings" component={AdvancedSettingsScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
             <Stack.Screen name="ShareInstance" component={ShareInstanceScreen} />
             <Stack.Screen name="KidEditor" component={KidEditorScreen} />
             <Stack.Screen name="GroupEditor" component={GroupEditorScreen} />

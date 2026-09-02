@@ -665,5 +665,44 @@ export const en: Locals = {
     years_one: 'a year old',
     years_other: '{{count}} years old',
   },
+
+  about: {
+    // Settings-screen navigation row.
+    navTitle: 'About',
+    navHint: 'Credits, version, and links.',
+    // About screen.
+    title: 'About',
+    // About me + about the app.
+    aboutMeTitle: 'About me',
+    aboutMeBody:
+      'Baby Buddy Mobile Dashboard was built by Moshe Winberg — a parent who wanted a faster, friendlier way to log the day from a phone.',
+    linkedIn: 'LinkedIn profile',
+    aboutAppTitle: 'About this app',
+    aboutAppBody:
+      'A mobile dashboard for a self-hosted Baby Buddy server. Log diapers, feedings, medications, sleep and more, and see time-since-last stats at a glance.',
+    userManual: 'User manual',
+    // Version (double-tap opens the release announcement).
+    versionTitle: 'Version',
+    versionValue: 'Version {{version}}',
+    versionHint: 'Tap twice — or press and hold — to open the release announcement.',
+    // Links group.
+    linksTitle: 'Links',
+    webApp: 'Web app',
+    discussions: 'Discussions',
+    playStore: 'Get it on Google Play',
+    privacyPolicy: 'Privacy policy',
+    reportBug: 'Report a bug',
+    sourceCode: 'Source code',
+    opensExternally: 'Opens in your browser',
+    // Share.
+    shareTitle: 'Share this app',
+    shareHint: 'Tell another caregiver about Baby Buddy.',
+    shareButton: 'Share',
+    shareBody: 'Baby Buddy Mobile Dashboard — a phone dashboard for Baby Buddy: {{url}}',
+    // Donate (non–Play Store builds only).
+    donateTitle: 'Support development',
+    donateHint: 'If this app helps you, you can buy me a coffee.',
+    buyMeACoffee: 'Buy me a coffee',
+  },
 } as const;
 

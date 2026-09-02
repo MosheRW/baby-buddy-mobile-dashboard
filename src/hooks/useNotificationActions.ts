@@ -6,7 +6,8 @@
  * (`PlannedNotification.actions`) and registered as categories by
  * `src/notifications/service.ts`; this is the other half — what each one *does*:
  *
- *  - `ok`             — nothing; the OS dismisses the notification on any action tap.
+ *  - `ok`             — acknowledge; dismisses the notification from the tray
+ *                       (Android doesn't auto-dismiss on a non-foregrounding action).
  *  - `remind-later`   — postpone the reminder by `snoozeMinutes`.
  *  - `remind-on-time` — offered on a *before* reminder when the "at" offset is off;
  *                       records a promotion so the planner emits that anchor's
@@ -63,7 +64,12 @@ function parseTimerAction(action: string): { verb: 'cancel' | 'end'; type: Timer
 function handleAction(event: service.NotificationActionEvent): void {
   const { actionIdentifier: action, id, childId } = event;
 
-  if (action === service.ACTION_OK) return;
+  if (action === service.ACTION_OK) {
+    // Android doesn't auto-dismiss a notification when a non-foregrounding action
+    // button is tapped, so "OK" (acknowledge) has to clear it from the tray itself.
+    void service.dismissDeliveredAsync(id);
+    return;
+  }
 
   if (action === service.ACTION_REMIND_LATER) {
     const minutes = useNotificationStore.getState().snoozeMinutes;

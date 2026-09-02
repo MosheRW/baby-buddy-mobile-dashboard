@@ -644,5 +644,41 @@ export interface Locals {
 
     age: PluralForms<'days'> & PluralForms<'months'> & PluralForms<'years'>,
 
+    about: {
+        // Settings-screen navigation row.
+        navTitle: string,
+        navHint: string,
+        // About screen.
+        title: string,
+        // About me + about the app.
+        aboutMeTitle: string,
+        aboutMeBody: string,
+        linkedIn: string,
+        aboutAppTitle: string,
+        aboutAppBody: string,
+        userManual: string,
+        // Version (double-tap opens the release announcement).
+        versionTitle: string,
+        versionValue: string,
+        versionHint: string,
+        // Links group.
+        linksTitle: string,
+        webApp: string,
+        discussions: string,
+        playStore: string,
+        privacyPolicy: string,
+        reportBug: string,
+        sourceCode: string,
+        opensExternally: string,
+        // Share.
+        shareTitle: string,
+        shareHint: string,
+        shareButton: string,
+        shareBody: string,
+        // Donate (non–Play Store builds only).
+        donateTitle: string,
+        donateHint: string,
+        buyMeACoffee: string,
+    },
 
 }

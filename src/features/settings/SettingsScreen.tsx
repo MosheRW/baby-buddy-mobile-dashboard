@@ -133,6 +133,12 @@ export function SettingsScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('AdvancedSettings')}
         />
 
+        <NavRow
+          title={t('about.navTitle')}
+          hint={t('about.navHint')}
+          onPress={() => navigation.navigate('About')}
+        />
+
         {/* Display: theme, dynamic colour, language, and time format — grouped
             because they're all "how the app looks and reads". */}
         <Card style={styles.section}>
