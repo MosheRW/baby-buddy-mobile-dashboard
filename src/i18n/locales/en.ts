@@ -673,7 +673,7 @@ export const en: Locals = {
     // Version (double-tap opens the release announcement).
     versionTitle: 'Version',
     versionValue: 'Version {{version}}',
-    versionHint: 'Tap twice to open the release announcement.',
+    versionHint: 'Tap twice — or press and hold — to open the release announcement.',
     // Links group.
     linksTitle: 'Links',
     webApp: 'Web app',

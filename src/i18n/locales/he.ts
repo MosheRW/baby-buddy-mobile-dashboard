@@ -657,7 +657,7 @@ export const he: Locals = {
     // גרסה (הקשה כפולה פותחת את הכרזת הגרסה).
     versionTitle: 'גרסה',
     versionValue: 'גרסה {{version}}',
-    versionHint: 'הקישו פעמיים כדי לפתוח את הכרזת הגרסה.',
+    versionHint: 'הקישו פעמיים — או לחיצה ארוכה — כדי לפתוח את הכרזת הגרסה.',
     // קבוצת קישורים.
     linksTitle: 'קישורים',
     webApp: 'אפליקציית ווב',

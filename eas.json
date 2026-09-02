@@ -27,9 +27,6 @@
       "autoIncrement": false,
       "android": {
         "buildType": "app-bundle"
-      },
-      "env": {
-        "EXPO_PUBLIC_BUY_ME_A_COFFEE": ""
       }
     }
   },

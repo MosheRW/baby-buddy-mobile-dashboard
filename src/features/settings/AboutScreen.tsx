@@ -34,13 +34,17 @@ export function AboutScreen({ navigation }: Props) {
   const styles = useThemedStyles(makeStyles);
   const lastTap = useRef(0);
 
+  // Long-press is the accessible alternate: it opens the announcement in one
+  // gesture, without the timing a double-tap needs (which assistive services
+  // that don't deliver two rapid presses can't produce).
+  const openAnnouncement = () => openUrl(aboutLinks.discussionsAnnouncements);
   // "Touch it twice" opens the release announcement. A ref (not state) keeps the
   // timing without re-rendering the row between the two taps.
   const onVersionPress = () => {
     const now = Date.now();
     if (now - lastTap.current < DOUBLE_TAP_MS) {
       lastTap.current = 0;
-      openUrl(aboutLinks.discussionsAnnouncements);
+      openAnnouncement();
     } else {
       lastTap.current = now;
     }
@@ -95,6 +99,7 @@ export function AboutScreen({ navigation }: Props) {
             accessibilityLabel={t('about.versionValue', { version: appVersion })}
             accessibilityHint={t('about.versionHint')}
             onPress={onVersionPress}
+            onLongPress={openAnnouncement}
           >
             <AppText size={fontSize.bodySm} weight="800">
               {t('about.versionTitle')}
