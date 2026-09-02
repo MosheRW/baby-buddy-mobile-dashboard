@@ -32,7 +32,19 @@
       "Bash(sed -i \"s/import { ParseError, rawRequest, request } from '.\\\\/client';/import { ParseError, rawRequest, request, serverNow } from '.\\\\/client';/\" src/api/babybuddy.ts)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Dell\\\\Prog\\\\baby-buddy-mobile-dashboard\\\\package.json' | Select-String datetimepicker\")"
+      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Dell\\\\Prog\\\\baby-buddy-mobile-dashboard\\\\package.json' | Select-String datetimepicker\")",
+      "PowerShell(Get-CimInstance *)",
+      "Bash(adb -s 192.168.68.52:40205 logcat -c)",
+      "Bash(adb -s 192.168.68.52:40205 logcat -d -t 1200)",
+      "Bash(wc -l C:/Users/Dell/.claude/jobs/26a9d423/tmp/logcat_dump.txt)",
+      "Read(//c/Users/Dell/**)",
+      "Bash(command -v jq)",
+      "Bash(command -v node)",
+      "Bash(command -v python)",
+      "Bash(command -v python3)",
+      "mcp__claude_ai_Expo__collect_app_logs",
+      "Bash(timeout 15 adb devices 2>&1)",
+      "Bash(node *)"
     ]
   }
 }
