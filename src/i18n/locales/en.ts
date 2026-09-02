@@ -95,7 +95,6 @@ export const en: Locals = {
     addTag: 'Add tag {{tag}}',
     switchToChild: 'Switch to {{name}}',
     showHidden_one: 'Show one hidden child',
-    showHidden_two: 'Show two hidden children',
     showHidden_other: 'Show {{count}} hidden children',
   },
 
@@ -157,7 +156,6 @@ export const en: Locals = {
     breakdownTitle: 'Medication · last 24h',
     breakdownEmpty: 'Nothing given in the last 24 hours.',
     doses_one: 'one dose',
-    doses_two: 'two doses',
     doses_other: '{{count}} doses',
     maxReached: ' · max dose reached',
     stillAvailable: ' · {{amount}} still available',
@@ -304,6 +302,7 @@ export const en: Locals = {
     addTagOffer: '+ {{tag}}',
     addTagPlaceholder: 'Add a tag',
     addTagButton: 'Add',
+    removeTag: 'Remove tag {{tag}}',
     saveDetails: 'Save details',
     saveAndEnd: 'Save and end {{activity}}',
     // The two modals a notification action button can open this form with
@@ -382,7 +381,6 @@ export const en: Locals = {
     addGroup: 'Add group',
     newGroupName: 'New group',
     groupMembers_one: 'one child',
-    groupMembers_two: 'two children',
     groupMembers_other: '{{count}} children',
     kids: 'Children',
     kidsHint: 'Tap a child to set its colour, group, and visibility.',
@@ -614,7 +612,6 @@ export const en: Locals = {
     empty: 'Nothing was logged in the last {{days}} days.',
     noUser: "Your account name isn't available, so your share can't be worked out.",
     hiddenNote_one: 'one hidden child is not counted.',
-    hiddenNote_two: 'two hidden children are not counted.',
     hiddenNote_other: '{{count}} hidden children are not counted.',
   },
 
@@ -651,13 +648,10 @@ export const en: Locals = {
 
   age: {
     days_one: 'a day old',
-    days_two: 'two days old',
     days_other: '{{count}} days old',
     months_one: 'a month old',
-    months_two: 'two months old',
     months_other: '{{count}} months old',
     years_one: 'a year old',
-    years_two: 'two years old',
     years_other: '{{count}} years old',
   },
 } as const;

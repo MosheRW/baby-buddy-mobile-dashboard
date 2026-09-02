@@ -27,7 +27,7 @@ interface TagRowProps {
  * are free-text with an × to remove. A text input + Add button appends new ones.
  */
 export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
-    const { t } = useTranslation();
+  const { t } = useTranslation();
   const [draft, setDraft] = useState('');
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -55,7 +55,7 @@ export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
             </AppText>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Remove tag ${tag}`}
+              accessibilityLabel={t('logEntry.removeTag', { tag })}
               hitSlop={8}
               onPress={() => onRemove(i)}
             >

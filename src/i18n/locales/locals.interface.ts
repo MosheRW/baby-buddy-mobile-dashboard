@@ -1,3 +1,15 @@
+/**
+ * i18next CLDR plural forms for a stem key. `_one`/`_other` are the forms
+ * every locale's rule needs; `_two`/`_many` only apply to locales whose CLDR
+ * rule produces them (Hebrew), so they're optional rather than required —
+ * see `REQUIRED_FORMS` in `src/i18n/__tests__/locale-parity.test.ts`.
+ */
+type PluralForms<Stem extends string> = {
+    [K in `${Stem}_one` | `${Stem}_other`]: string;
+} & {
+    [K in `${Stem}_two` | `${Stem}_many`]?: string;
+};
+
 export interface Locals {
     common: {
         save: string,
@@ -44,13 +56,13 @@ export interface Locals {
         addOnUrl: string,
         serverUrlPlaceholder: string,
         httpWarning: string,
-        addOnUrlPlaceholder: 'http://homeassistant.local:8123/addon-slug',
+        addOnUrlPlaceholder: string,
         apiKey: string,
         apiKeyPlaceholder: string,
         username: string,
         usernamePlaceholder: string,
         password: string,
-        passwordPlaceholder: '••••••••',
+        passwordPlaceholder: string,
         haHint: string,
         enterServerUrl: string,
         passwordFallback: string,
@@ -82,10 +94,7 @@ export interface Locals {
         filterByTag: string,
         addTag: string,
         switchToChild: string,
-        showHidden_one: string,
-        showHidden_two: string,
-        showHidden_other: string,
-    },
+    } & PluralForms<'showHidden'>,
 
     filter: {
         all: string,
@@ -144,13 +153,10 @@ export interface Locals {
         },
         breakdownTitle: string,
         breakdownEmpty: string,
-        doses_one: string,
-        doses_two: string,
-        doses_other: string,
         maxReached: string,
         stillAvailable: string,
         noLimit: string,
-    },
+    } & PluralForms<'doses'>,
 
     entryType: {
         diaper: string,
@@ -294,6 +300,7 @@ export interface Locals {
         addTagOffer: string,
         addTagPlaceholder: string,
         addTagButton: string,
+        removeTag: string,
         saveDetails: string,
         saveAndEnd: string,
         // The two modals a notification action button can open this form with
@@ -312,7 +319,7 @@ export interface Locals {
     },
 
     dateTime: {
-        placeholder: 'YYYY-MM-DD HH:mm',
+        placeholder: string,
         dateAria: string,
         timeAria: string,
     },
@@ -337,8 +344,8 @@ export interface Locals {
         accessToken: string,
         logOut: string,
         language: string,
-        languageEnglish: 'English',
-        languageHebrew: 'עברית',
+        languageEnglish: string,
+        languageHebrew: string,
         appearance: string,
         appearanceSystem: string,
         appearanceLight: string,
@@ -371,9 +378,6 @@ export interface Locals {
         noGroups: string,
         addGroup: string,
         newGroupName: string,
-        groupMembers_one: string,
-        groupMembers_two: string,
-        groupMembers_other: string,
         kids: string,
         kidsHint: string,
         hiddenBadge: string,
@@ -398,7 +402,7 @@ export interface Locals {
         shakeHint: string,
         shakeDuration: string,
         shakeMinSuffix: string,
-    },
+    } & PluralForms<'groupMembers'>,
 
     share: {
         // Settings-screen navigation row (admin only).
@@ -499,7 +503,7 @@ export interface Locals {
         weeklyHint: string,
         weeklyDay: string,
         weeklyTime: string,
-        weeklyHourSuffix: ':00',
+        weeklyHourSuffix: string,
         weekdayShort: {
             0: string,
             1: string,
@@ -595,10 +599,7 @@ export interface Locals {
         byGroup: string,
         empty: string,
         noUser: string,
-        hiddenNote_one: string,
-        hiddenNote_two: string,
-        hiddenNote_other: string,
-    },
+    } & PluralForms<'hiddenNote'>,
 
     // User-facing failure titles, shown as error cards in the dashboard carousel.
     // The body is the underlying `errorMessage(...)`, so these are just the "what
@@ -631,17 +632,7 @@ export interface Locals {
         minutes: string,
     },
 
-    age: {
-        days_one: string,
-        days_two: string,
-        days_other: string,
-        months_one: string,
-        months_two: string,
-        months_other: string,
-        years_one: string,
-        years_two: string,
-        years_other: string,
-    },
+    age: PluralForms<'days'> & PluralForms<'months'> & PluralForms<'years'>,
 
 
 }
