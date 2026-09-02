@@ -41,10 +41,18 @@ export function effectiveLanguage(): AppLanguage {
  * body against i18next's default language rather than the user's — English copy
  * for a Hebrew user. Awaitable so callers can be sure `i18n.t` sees the switched
  * language before they build; a no-op when it's already active.
+ *
+ * A failed `changeLanguage` (a corrupted persisted override, an i18n init edge
+ * case) is swallowed with a warning: the worst outcome is a reminder built in the
+ * currently-active language, which must never fail the whole headless notification
+ * sync — scheduling English copy is far better than scheduling nothing.
  */
 export async function applyEffectiveLanguage(): Promise<void> {
   const language = effectiveLanguage();
-  if (i18n.language !== language) {
+  if (i18n.language === language) return;
+  try {
     await i18n.changeLanguage(language);
+  } catch (err) {
+    console.warn('[useAppLanguage] changeLanguage failed:', err);
   }
 }
