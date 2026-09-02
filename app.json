@@ -11,6 +11,7 @@
       "bundleIdentifier": "com.mosherw.babybuddy"
     },
     "android": {
+      "jsEngine": "hermes",
       "package": "com.mosherw.babybuddy",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EF",
@@ -26,6 +27,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "plugins": [
       "expo-font",
       "expo-splash-screen",
