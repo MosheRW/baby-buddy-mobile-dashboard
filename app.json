@@ -44,6 +44,10 @@
       "@react-native-community/datetimepicker",
       "expo-background-task",
       [
+        "./plugins/withAndroidOutputName.js",
+        "baby-buddy-mobile-dashboard"
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow Baby Buddy to use the camera to scan a sign-in QR code."
