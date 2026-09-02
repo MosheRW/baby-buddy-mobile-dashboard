@@ -21,6 +21,7 @@
 import type { Child, Entry } from '../api/types';
 import { queryClient } from '../data/queryClient';
 import { queryKeys, refreshServerData } from '../data/queries';
+import { applyEffectiveLanguage } from '../hooks/useAppLanguage';
 import { activeDeferrals, buildNotifications } from '../lib/notifications';
 import { reconcileTimers, type RunningTimer } from '../lib/timers';
 import { visibleChildren } from '../lib/visibility';
@@ -51,6 +52,12 @@ export async function runScheduledNotificationSync(): Promise<boolean> {
     await service.syncScheduledAsync([]);
     return false;
   }
+
+  // This headless path has no React tree, so `useSyncAppLanguage` never runs and
+  // i18next would still sit on its default language — every reminder body built
+  // below would come out in English for a Hebrew user. Apply the user's effective
+  // language imperatively before building anything.
+  await applyEffectiveLanguage();
 
   // Plan-time validation: never build from cache we haven't confirmed. On failure
   // we still build (offline must not silently mean "no reminders"), but flag the
