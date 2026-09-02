@@ -124,7 +124,7 @@ To **edit** an existing entry, open it from the activity feed with the pencil; t
 - Choose the **kind**: breast milk, formula, fortified breast milk, or **solid food** (with a solid‑food type).
 - The **method** options adjust to the kind (e.g. left/right breast, bottle). Pick one.
 - Enter an **amount** (in ml, convertible to grams for solids) **or** a **duration** — the form swaps between them sensibly.
-- A **gauge** shows the amount against your per‑child default so you can see "more or less than usual" at a glance. Set that default in Settings.
+- A **gauge** shows the amount against your per‑child default so you can see "more or less than usual" at a glance. Set that default per child under **Settings → Children & groups → (tap the child) → Default food quantity**.
 
 <p align="center"><img src="screenshots/11-entry-feeding.png" alt="Feeding entry form with kind, method, and amount" width="300"></p>
 
@@ -184,17 +184,19 @@ Each child card shows medication rows with plain‑language timing:
 
 > Notifications require a proper dev/EAS build. In the Expo Go preview or on web they do nothing.
 
-<p align="center"><img src="screenshots/21-notifications.png" alt="Notification Settings screen with per-category toggles and timing options" width="300"></p>
+<p align="center"><img src="screenshots/21-notifications.png" alt="Notifications screen with grouped toggles and timing options" width="300"></p>
 
-Open **Settings → Notification Settings** to turn categories on/off and tune them:
+Open **Settings → Notifications** to turn categories on/off and tune them. The screen is split into **General**, **Reminders**, **Ongoing**, and **Digest** sections:
 
 - **Scheduled medication** — reminders when a scheduled dose is due, with a "before / at / after" timing model.
 - **Medication eligibility** — a nudge when an as‑needed med becomes allowed again.
 - **Forgotten timer** — before / at / after a timer has been running "too long".
-- **Diaper interval** — if it's been a while since the last change.
-- **Minimum feed** — if a child hasn't fed within your minimum window.
+- **Diaper changes** — if it's been a while since the last change.
+- **Feeding gaps** — if a child hasn't fed within your expected window.
 - **Live timer / medication countdown** — an always‑on notification with a real per‑second ticking clock: counting **up** for a running timer, or **down** to an upcoming scheduled dose (only in the last 15 minutes before it's due, never negative).
 - **Weekly summary** — once a week, a recap of what **you** logged over the last seven days and how your share compares to the other caregivers on the same server. Choose the day and hour, or open **"View this week's summary"** any time (it works even with notifications off). Hidden children are excluded from the recap.
+
+The toggles here just turn each reminder on or off. The per‑child timing behind the diaper and feeding reminders — *how long* counts as too long between changes or feeds, and each child's target feed amount — lives in the child's own editor (**Settings → Children & groups → tap a child → Reminder timing**), so different children can have different thresholds.
 
 Some reminders carry **action buttons** — e.g. "remind later", "add now", "stop/end timer", "remind me on time" — which open the right pre‑filled form or snooze the reminder. The exact buttons depend on the reminder and which timing options you've enabled.
 
@@ -204,20 +206,29 @@ Some reminders carry **action buttons** — e.g. "remind later", "add now", "sto
 
 All of this is **on your device only** — Baby Buddy has no concept of hiding or grouping children.
 
-### Quick hide
+Everything about your children lives behind **Settings → Children & groups**.
 
-In **Settings → Children**, flip a child's toggle to hide them from the dashboard.
+### Children & groups
 
-### Advanced
+The screen is laid out top to bottom as:
 
-Open **Settings → Advanced Settings** for:
-
-- **Default visibility for new children** — whether a newly‑appearing child shows or hides by default.
-- **Shake to reveal** — enable shaking the phone to briefly reveal hidden children, and set how long the reveal lasts. (Works where the accelerometer is available; the "Show N hidden" chip is always there as a fallback.)
+- **Children** — a row per child. Tap one to open its editor (see below).
 - **Groups** — create groups and assign each child to one. Groups can have their own colour accent and schedule.
-- **Per‑child editor** — set a colour **accent** (a curated palette, or **"match phone"** for Material You), assign a group, set a **schedule**, or hide the child.
+- **New children** — whether a newly‑appearing child shows or hides on the dashboard by default.
+- **Shake to reveal** — enable shaking the phone to briefly reveal hidden children, and set how long the reveal lasts. (Works where the accelerometer is available; the "Show N hidden" chip is always there as a fallback.)
 
-<p align="center"><img src="screenshots/22-advanced.png" alt="Advanced Settings: default visibility, shake to reveal, groups, and the per-child list" width="300"></p>
+<p align="center"><img src="screenshots/22-advanced.png" alt="Children & groups: the per-child list, groups, new-child default, and shake to reveal" width="300"></p>
+
+### The child editor
+
+Tapping a child opens a single screen for everything about that one child:
+
+- **Show on the dashboard** — the hide/show toggle (this is where you quickly hide a child).
+- **Default food quantity** — the baseline the feeding gauge compares against.
+- **Accent colour** — a curated palette, or **"match phone"** for Material You; overrides the group colour for this child.
+- **Group** — which group the child belongs to.
+- **Reminder timing** — the child's own feeding interval, diaper gap, and target amount (used when the matching reminder is turned on in Notifications).
+- **Schedule** — hide the child during a daily time window (see below).
 
 ### Schedules
 
@@ -229,21 +240,26 @@ Colour precedence is: your explicit per‑child pick → the child's group accen
 
 ## 10. Appearance, language & time format
 
-<p align="center"><img src="screenshots/20-settings.png" alt="Settings screen: appearance, time format, language, statistics, and per-child defaults" width="300"></p>
+<p align="center"><img src="screenshots/20-settings.png" alt="Settings screen: the Display section (theme, language, time format) with the account controls below" width="300"></p>
 
-In **Settings**:
+On the main **Settings** screen, these all live together in one **Display** section:
 
-- **Appearance** — **Light**, **Dark**, or **System** (follow the phone). On Android 12+, a **Material You** toggle recolours the app's accent from your wallpaper.
-- **Time format** — text ("46m ago") or digital.
+- **Theme** — **Light**, **Dark**, or **System** (follow the phone).
+- **Match phone color scheme** — on Android 12+, recolours the buttons and header from your wallpaper (Material You). Hidden on devices that don't support it.
 - **Language** — **English** or **Hebrew** (with right‑to‑left text). Defaults to your Baby Buddy profile language; your pick here overrides it.
-- **Stats** — e.g. exclude inactive days from averages.
-- **Per‑child default food amount** — the baseline the feeding gauge compares against.
+- **Time format** — text ("2h 30m") or digital ("2:30").
+
+The per‑child food default that the feeding gauge compares against now lives in each child's editor — see [Children & groups](#9-multiple-children-hiding-groups-colours--schedules).
+
+### About
+
+**Settings → About** gathers the app's credits, the installed **version** (tap it twice, or press and hold, to open that release's announcement), a link to this **user manual**, and quick links — web app, Google Play, discussions, privacy policy, report a bug, and source code. There's also a **Share this app** button to tell another caregiver about it.
 
 ## 11. Sharing your instance with another caregiver
 
-If your account is a **staff/admin** account on the server (offline mode has no server to share), **Settings → Share Instance** lets you invite another caregiver:
+If your account is a **staff/admin** account on the server (offline mode has no server to share), **Settings → Share this server** lets you invite another caregiver:
 
-1. Open **Share Instance**.
+1. Open **Share this server**.
 2. Show the generated **QR code** / join code to the other caregiver.
 3. On their phone, from the login screen they tap **Scan QR** and scan it to sign in.
 
@@ -255,7 +271,7 @@ Offline (Local) mode stores children, entries, and timers entirely on your devic
 
 Differences from the online modes:
 
-- You manage children directly in **Settings → Children**: rename, change birth date, add, or remove them (at least one child is always kept). There's no server to create them for you.
+- A **Children** card appears on the main Settings screen (offline only) where you manage the roster directly: rename, change birth date, add, or remove children (at least one is always kept). There's no server to create them for you. Everything else about a child — colour, group, visibility, food default, reminder timing, schedule — is still in **Settings → Children & groups**.
 - There's nothing to share and no notifications validated against a server (they're based purely on your local data).
 - Entries you log are stamped as logged by "Me".
 
