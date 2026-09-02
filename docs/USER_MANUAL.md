@@ -230,6 +230,8 @@ Tapping a child opens a single screen for everything about that one child:
 - **Reminder timing** — the child's own feeding interval, diaper gap, and target amount (used when the matching reminder is turned on in Notifications).
 - **Schedule** — hide the child during a daily time window (see below).
 
+<p align="center"><img src="screenshots/23-kid-editor.png" alt="A child's editor: visibility, default food quantity, accent colour, group, reminder timing, and schedule" width="300"></p>
+
 ### Schedules
 
 A schedule hides a child during a **daily time window** on chosen **weekdays** (e.g. hide during nursery hours). A window that crosses midnight is supported; leaving weekdays empty means every day. The dashboard re‑checks schedules about once a minute, so a child appears/disappears at the boundary automatically.
@@ -254,6 +256,8 @@ The per‑child food default that the feeding gauge compares against now lives i
 ### About
 
 **Settings → About** gathers the app's credits, the installed **version** (tap it twice, or press and hold, to open that release's announcement), a link to this **user manual**, and quick links — web app, Google Play, discussions, privacy policy, report a bug, and source code. There's also a **Share this app** button to tell another caregiver about it.
+
+<p align="center"><img src="screenshots/24-about.png" alt="About screen: about me, about this app, version, links, and Share this app" width="300"></p>
 
 ## 11. Sharing your instance with another caregiver
 
