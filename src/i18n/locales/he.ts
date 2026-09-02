@@ -1,3 +1,4 @@
+import { Locals } from "./locals.interface";
 /**
  * Hebrew translations. Mirrors the key shape of `en.ts`. Hebrew is right-to-
  * left; the app flips text alignment (not full layout mirroring) when this
@@ -6,7 +7,7 @@
  * Interpolation placeholders ({{...}}) must match `en.ts` exactly. Pluralized
  * keys carry the Hebrew CLDR forms (one/two/many/other).
  */
-export const he = {
+export const he: Locals = {
   common: {
     save: 'שמירה',
     saving: 'שומר…',
@@ -93,7 +94,6 @@ export const he = {
     switchToChild: 'מעבר אל {{name}}',
     showHidden_one: 'הצגת ילד מוסתר אחד',
     showHidden_two: 'הצגת שני ילדים מוסתרים',
-    showHidden_many: 'הצגת {{count}} ילדים מוסתרים',
     showHidden_other: 'הצגת {{count}} ילדים מוסתרים',
   },
 
@@ -155,7 +155,6 @@ export const he = {
     breakdownEmpty: 'לא ניתן דבר ב-24 השעות האחרונות.',
     doses_one: 'מנה אחת',
     doses_two: 'שתי מנות',
-    doses_many: '{{count}} מנות',
     doses_other: '{{count}} מנות',
     maxReached: ' · הגעת למינון המרבי',
     stillAvailable: ' · נותרו {{amount}}',
@@ -373,7 +372,6 @@ export const he = {
     newGroupName: 'קבוצה חדשה',
     groupMembers_one: 'ילד אחד',
     groupMembers_two: 'שני ילדים',
-    groupMembers_many: '{{count}} ילדים',
     groupMembers_other: '{{count}} ילדים',
     kids: 'ילדים',
     kidsHint: 'הקישו על ילד כדי להגדיר צבע, קבוצה ותצוגה.',
@@ -588,7 +586,6 @@ export const he = {
     noUser: 'שם המשתמש שלכם אינו זמין, ולכן לא ניתן לחשב את החלק שלכם.',
     hiddenNote_one: 'ילד מוסתר אחד אינו נספר.',
     hiddenNote_two: 'שני ילדים מוסתרים אינם נספרים.',
-    hiddenNote_many: '{{count}} ילדים מוסתרים אינם נספרים.',
     hiddenNote_other: '{{count}} ילדים מוסתרים אינם נספרים.',
   },
 
@@ -623,15 +620,12 @@ export const he = {
   age: {
     days_one: 'בן יום',
     days_two: 'בן יומיים',
-    days_many: 'בן {{count}} ימים',
     days_other: 'בן {{count}} ימים',
     months_one: 'בן חודש',
     months_two: 'בן חודשיים',
-    months_many: 'בן {{count}} חודשים',
     months_other: 'בן {{count}} חודשים',
     years_one: 'בן שנה',
     years_two: 'בן שנתיים',
-    years_many: 'בן {{count}} שנים',
     years_other: 'בן {{count}} שנים',
   },
 } as const;
