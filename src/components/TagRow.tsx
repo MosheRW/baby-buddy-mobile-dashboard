@@ -11,6 +11,7 @@ import {
   weightFamily,
   type AppTheme,
 } from '../theme';
+import { useTranslation } from 'react-i18next';
 
 interface TagRowProps {
   /** The auto-generated "by {name}" author tag, always shown first, non-removable. */
@@ -26,6 +27,7 @@ interface TagRowProps {
  * are free-text with an × to remove. A text input + Add button appends new ones.
  */
 export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState('');
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -53,7 +55,7 @@ export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
             </AppText>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Remove tag ${tag}`}
+              accessibilityLabel={t('logEntry.removeTag', { tag })}
               hitSlop={8}
               onPress={() => onRemove(i)}
             >
@@ -67,7 +69,7 @@ export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
           value={draft}
           onChangeText={setDraft}
           onSubmitEditing={commit}
-          placeholder="Add a tag"
+          placeholder={t('logEntry.addTagPlaceholder')}
           placeholderTextColor={colors.textMuted}
           returnKeyType="done"
           style={styles.input}
@@ -78,7 +80,7 @@ export function TagRow({ authorTag, tags, onAdd, onRemove }: TagRowProps) {
           style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
         >
           <AppText size={fontSize.bodySm} weight="800" color={colors.onAccent}>
-            Add
+            {t('logEntry.addTagButton')}
           </AppText>
         </Pressable>
       </View>

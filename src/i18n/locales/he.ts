@@ -1,3 +1,4 @@
+import { Locals } from "./locals.interface";
 /**
  * Hebrew translations. Mirrors the key shape of `en.ts`. Hebrew is right-to-
  * left; the app flips text alignment (not full layout mirroring) when this
@@ -6,7 +7,7 @@
  * Interpolation placeholders ({{...}}) must match `en.ts` exactly. Pluralized
  * keys carry the Hebrew CLDR forms (one/two/many/other).
  */
-export const he = {
+export const he: Locals = {
   common: {
     save: 'שמירה',
     saving: 'שומר…',
@@ -229,17 +230,17 @@ export const he = {
 
   diaper: {
     contents: 'תכולה',
-    pee: 'השתנה',
-    poo: 'יציאה',
+    pee: 'פיפי',
+    poo: 'קקי',
     pooColor: 'צבע יציאה',
     pooColorAria: 'צבע יציאה {{color}}',
     amountSuffix: ' / 10',
     amountLabel: {
       both: 'כמות',
-      poo: 'כמות יציאה',
-      pee: 'כמות השתנה',
+      poo: 'כמות קקי',
+      pee: 'כמות פיפי',
     },
-    selectOne: 'יש לבחור השתנה, יציאה או שניהם כדי לשמור.',
+    selectOne: 'יש לבחור פיפי, קקי או שניהם כדי לשמור.',
   },
 
   medForm: {
@@ -299,6 +300,9 @@ export const he = {
     notePlaceholder: 'הערה (רשות)',
     tags: 'תגיות',
     addTagOffer: '+ {{tag}}',
+    addTagPlaceholder: 'הוסף תגית',
+    addTagButton: 'הוסף',
+    removeTag: 'הסרת תגית {{tag}}',
     saveDetails: 'שמירת פרטים',
     saveAndEnd: 'שמירה וסיום {{activity}}',
     cancelTimerTitle: 'לבטל את טיימר ה{{activity}}?',
