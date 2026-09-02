@@ -228,17 +228,17 @@ export const he: Locals = {
 
   diaper: {
     contents: 'תכולה',
-    pee: 'השתנה',
-    poo: 'יציאה',
+    pee: 'פיפי',
+    poo: 'קקי',
     pooColor: 'צבע יציאה',
     pooColorAria: 'צבע יציאה {{color}}',
     amountSuffix: ' / 10',
     amountLabel: {
       both: 'כמות',
-      poo: 'כמות יציאה',
-      pee: 'כמות השתנה',
+      poo: 'כמות קקי',
+      pee: 'כמות פיפי',
     },
-    selectOne: 'יש לבחור השתנה, יציאה או שניהם כדי לשמור.',
+    selectOne: 'יש לבחור פיפי, קקי או שניהם כדי לשמור.',
   },
 
   medForm: {
