@@ -1,3 +1,5 @@
+import { Locals } from "./locals.interface";
+
 /**
  * English translations — the single source of truth for user-facing copy.
  *
@@ -7,7 +9,7 @@
  * byte identical to what the pure functions used to return. `he.ts` mirrors
  * this shape.
  */
-export const en = {
+export const en: Locals = {
   common: {
     save: 'Save',
     saving: 'Saving…',
@@ -43,7 +45,7 @@ export const en = {
   },
 
   login: {
-    title: 'Baby Buddy Dashboard',
+    title: 'Baby Buddy Mobile Dashboard',
     subtitle: 'Connect to your server',
     modeBabyBuddy: 'Baby Buddy server',
     modeHomeAssistant: 'Home Assistant',
@@ -92,7 +94,8 @@ export const en = {
     filterByTag: 'Filter by tag {{tag}}',
     addTag: 'Add tag {{tag}}',
     switchToChild: 'Switch to {{name}}',
-    showHidden_one: 'Show {{count}} hidden child',
+    showHidden_one: 'Show one hidden child',
+    showHidden_two: 'Show two hidden children',
     showHidden_other: 'Show {{count}} hidden children',
   },
 
@@ -153,7 +156,8 @@ export const en = {
     },
     breakdownTitle: 'Medication · last 24h',
     breakdownEmpty: 'Nothing given in the last 24 hours.',
-    doses_one: '{{count}} dose',
+    doses_one: 'one dose',
+    doses_two: 'two doses',
     doses_other: '{{count}} doses',
     maxReached: ' · max dose reached',
     stillAvailable: ' · {{amount}} still available',
@@ -375,7 +379,8 @@ export const en = {
     noGroups: 'No groups yet.',
     addGroup: 'Add group',
     newGroupName: 'New group',
-    groupMembers_one: '{{count}} child',
+    groupMembers_one: 'one child',
+    groupMembers_two: 'two children',
     groupMembers_other: '{{count}} children',
     kids: 'Children',
     kidsHint: 'Tap a child to set its colour, group, and visibility.',
@@ -606,7 +611,8 @@ export const en = {
     byGroup: 'By group',
     empty: 'Nothing was logged in the last {{days}} days.',
     noUser: "Your account name isn't available, so your share can't be worked out.",
-    hiddenNote_one: '{{count}} hidden child is not counted.',
+    hiddenNote_one: 'one hidden child is not counted.',
+    hiddenNote_two: 'two hidden children are not counted.',
     hiddenNote_other: '{{count}} hidden children are not counted.',
   },
 
@@ -642,13 +648,16 @@ export const en = {
   },
 
   age: {
-    days_one: '{{count}} day old',
+    days_one: 'one day old',
+    days_two: 'two days old',
     days_other: '{{count}} days old',
-    months_one: '{{count}} month old',
+    months_one: 'one month old',
+    months_two: 'two months old',
     months_other: '{{count}} months old',
-    years_one: '{{count}} year old',
+    years_one: 'one year old',
+    years_two: 'two years old',
     years_other: '{{count}} years old',
   },
 } as const;
 
-export type Resources = typeof en;
+// export type Resources = typeof en;
