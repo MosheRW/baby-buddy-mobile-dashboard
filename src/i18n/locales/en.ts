@@ -302,6 +302,8 @@ export const en: Locals = {
     notePlaceholder: 'Optional note',
     tags: 'Tags',
     addTagOffer: '+ {{tag}}',
+    addTagPlaceholder: 'Add a tag',
+    addTagButton: 'Add',
     saveDetails: 'Save details',
     saveAndEnd: 'Save and end {{activity}}',
     // The two modals a notification action button can open this form with

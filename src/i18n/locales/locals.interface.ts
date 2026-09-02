@@ -289,8 +289,11 @@ export interface Locals {
         endTime: string,
         note: string,
         notePlaceholder: string,
+        // tags
         tags: string,
         addTagOffer: string,
+        addTagPlaceholder: string,
+        addTagButton: string,
         saveDetails: string,
         saveAndEnd: string,
         // The two modals a notification action button can open this form with

@@ -298,6 +298,8 @@ export const he: Locals = {
     notePlaceholder: 'הערה (רשות)',
     tags: 'תגיות',
     addTagOffer: '+ {{tag}}',
+    addTagPlaceholder: 'הוסף תגית',
+    addTagButton: 'הוסף',
     saveDetails: 'שמירת פרטים',
     saveAndEnd: 'שמירה וסיום {{activity}}',
     cancelTimerTitle: 'לבטל את טיימר ה{{activity}}?',
