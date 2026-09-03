@@ -13,6 +13,9 @@
     "android": {
       "jsEngine": "hermes",
       "package": "com.mosherw.babybuddy",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.mosherw.babybuddy",
       "versionCode": 1,
       "adaptiveIcon": {
