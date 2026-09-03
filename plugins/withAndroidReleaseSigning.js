@@ -22,7 +22,11 @@ module.exports = function withAndroidReleaseSigning(config) {
     let contents = config.modResults.contents;
 
     // 1. Add a `release` block inside signingConfigs, if one isn't already there.
-    const hasReleaseSigningConfig = /signingConfigs\s*\{[\s\S]*?release\s*\{/.test(contents);
+    //    Detect via a marker unique to the block we insert. A structural regex
+    //    like /signingConfigs\s*\{[\s\S]*?release\s*\{/ false-positives on the
+    //    `release {` inside `buildTypes`, which skips this insert while step 2
+    //    still rewrites the reference — leaving a dangling signingConfigs.release.
+    const hasReleaseSigningConfig = contents.includes('storeFile file(MYAPP_UPLOAD_STORE_FILE)');
 
     if (!hasReleaseSigningConfig) {
       contents = contents.replace(
