@@ -2,7 +2,7 @@
   "expo": {
     "name": "Baby Buddy",
     "slug": "baby-buddy-mobile-dashboard",
-    "version": "2026.08.03-02",
+    "version": "2026.08.03-03",
     "orientation": "portrait",
     "icon": "./assets/play_store_icon_512.png",
     "userInterfaceStyle": "automatic",
@@ -11,14 +11,13 @@
       "bundleIdentifier": "com.mosherw.babybuddy"
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "jsEngine": "hermes",
       "package": "com.mosherw.babybuddy",
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.ACTIVITY_RECOGNITION"
       ],
-      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.mosherw.babybuddy",
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EF",
         "foregroundImage": "./assets/ic_launcher_foreground_432.png",
@@ -40,7 +39,8 @@
         "webApp": "",
         "userManual": "https://github.com/MosheRW/baby-buddy-mobile-dashboard/wiki/user-manual",
         "privacyPolicy": ""
-      }
+      },
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.mosherw.babybuddy"
     },
     "plugins": [
       "expo-font",
