@@ -87,3 +87,5 @@ yarn-error.*
 # ignore silently drops newly-added Kotlin/resource files from commits).
 modules/**/build/
 .env
+my-upload-key.keystore
+variables-for-bundle
