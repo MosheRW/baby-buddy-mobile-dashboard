@@ -83,6 +83,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
-    "test:live": "jest --config jest.integration.config.js --runInBand"
+    "test:live": "jest --config jest.integration.config.js --runInBand",
+    "signing:deploy": "bash scripts/deploy-signing-vars.sh"
   }
 }
