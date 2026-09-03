@@ -1,0 +1,45 @@
+A warm, fast dashboard for logging your baby's day — diapers, feedings, medications, temperature, tummy time, and sleep — for one child or several.
+
+Connect it to your own Baby Buddy server, run it through the Home Assistant add-on, or use it completely offline on your phone with no server at all. Your data stays yours.
+
+Note: this is an independent, third-party client for a Baby Buddy server. It is not affiliated with or endorsed by the Baby Buddy project.
+
+LOG EVERYTHING IN SECONDS
+One tap on the dashboard opens a form already set to the right child and type:
+• Diaper — pee and poo tracked separately, with colour and consistency
+• Feeding — breast, bottle, or solids, by amount or by duration
+• Medication — dose, unit, route, and scheduling
+• Temperature, tummy time, sleep, and free-text notes
+
+SEE "HOW LONG SINCE…" AT A GLANCE
+Each child's card shows the time since the last diaper, feed, and sleep, updating on its own — alongside a 24-hour food summary and a food-trend bar.
+
+STAY ON TOP OF MEDICATIONS
+The app tells you when a dose is due, overdue, or allowed again, tracks 24-hour limits, and lets you log a repeat dose with a single tap.
+
+TIMERS THAT DON'T STOP WHEN YOU CLOSE THE APP
+Start a feeding, sleep, or tummy-time timer and finish it later — it turns into a ready-to-save entry, with a live countdown in your notification shade.
+
+REMINDERS THAT STAY HONEST
+Medication-due nudges, forgotten-timer alerts, diaper-interval and minimum-feed reminders, a live ticking countdown to the next dose, and a weekly summary. Every reminder is re-checked against the server before it shows, so it never nags you about something another caregiver already handled.
+
+TAILOR IT TO YOUR FAMILY
+Hide children, group them, give each a colour, and set schedules that quietly hide a child during set hours. Shake the phone to peek at hidden children.
+
+MAKE IT YOURS TO LOOK AT
+• Light, dark, or follow-the-system theming
+• Optional Material You colour from your wallpaper (Android 12+)
+• English or Hebrew (right-to-left), following your Baby Buddy profile by default
+
+HOW YOU CONNECT
+Choose one when you first sign in, and switch later by signing out:
+• Baby Buddy — you host Baby Buddy yourself (server URL + username/password, an API key, or a QR login)
+• Home Assistant — you run the Baby Buddy add-on (add-on URL + a long-lived access token)
+• Offline — no server at all; just name your first child on the way in
+
+PRIVACY & YOUR DATA
+• Your password is never stored. It is used once to obtain an access token, which is then kept in your phone's secure storage.
+• In offline mode, everything you log stays on your device — no account, no network.
+• In the online modes, your data lives on your own server; the app only talks to the server you point it at.
+
+Free and open source, licensed under the GNU General Public License v3.0.
