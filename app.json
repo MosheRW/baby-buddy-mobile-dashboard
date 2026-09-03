@@ -16,7 +16,8 @@
       "package": "com.mosherw.babybuddy",
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.HIGH_SAMPLING_RATE_SENSORS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EF",
