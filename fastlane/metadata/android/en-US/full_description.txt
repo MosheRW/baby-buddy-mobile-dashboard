@@ -6,7 +6,7 @@ Note: this is an independent, third-party client for a Baby Buddy server. It is 
 
 LOG EVERYTHING IN SECONDS
 One tap on the dashboard opens a form already set to the right child and type:
-• Diaper — pee and poo tracked separately, with colour and consistency
+• Diaper — pee and poo tracked separately, with color and consistency
 • Feeding — breast, bottle, or solids, by amount or by duration
 • Medication — dose, unit, route, and scheduling
 • Temperature, tummy time, sleep, and free-text notes
@@ -24,11 +24,11 @@ REMINDERS THAT STAY HONEST
 Medication-due nudges, forgotten-timer alerts, diaper-interval and minimum-feed reminders, a live ticking countdown to the next dose, and a weekly summary. Every reminder is re-checked against the server before it shows, so it never nags you about something another caregiver already handled.
 
 TAILOR IT TO YOUR FAMILY
-Hide children, group them, give each a colour, and set schedules that quietly hide a child during set hours. Shake the phone to peek at hidden children.
+Hide children, group them, give each a color, and set schedules that quietly hide a child during set hours. Shake the phone to peek at hidden children.
 
 MAKE IT YOURS TO LOOK AT
 • Light, dark, or follow-the-system theming
-• Optional Material You colour from your wallpaper (Android 12+)
+• Optional Material You color from your wallpaper (Android 12+)
 • English or Hebrew (right-to-left), following your Baby Buddy profile by default
 
 HOW YOU CONNECT
