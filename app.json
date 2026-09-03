@@ -13,6 +13,8 @@
     "android": {
       "jsEngine": "hermes",
       "package": "com.mosherw.babybuddy",
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.mosherw.babybuddy",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#F7F3EF",
         "foregroundImage": "./assets/ic_launcher_foreground_432.png",
