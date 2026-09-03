@@ -196,7 +196,7 @@ Open **Settings → Notifications** to turn categories on/off and tune them. The
 - **Live timer / medication countdown** — an always‑on notification with a real per‑second ticking clock: counting **up** for a running timer, or **down** to an upcoming scheduled dose (only in the last 15 minutes before it's due, never negative).
 - **Weekly summary** — once a week, a recap of what **you** logged over the last seven days and how your share compares to the other caregivers on the same server. Choose the day and hour, or open **"View this week's summary"** any time (it works even with notifications off). Hidden children are excluded from the recap.
 
-The toggles here just turn each reminder on or off. The per‑child timing behind the diaper and feeding reminders — *how long* counts as too long between changes or feeds, and each child's target feed amount — lives in the child's own editor (**Settings → Children & groups → tap a child → Reminder timing**), so different children can have different thresholds.
+The toggles here just turn each reminder on or off. The per‑child timing behind the diaper and feeding reminders — *how long* counts as too long between changes or feeds, and each child's target amount — lives in the child's own editor (**Settings → Children & groups → tap a child → Reminder timing**), so different children can have different thresholds.
 
 Some reminders carry **action buttons** — e.g. "remind later", "add now", "stop/end timer", "remind me on time" — which open the right pre‑filled form or snooze the reminder. The exact buttons depend on the reminder and which timing options you've enabled.
 
@@ -206,7 +206,7 @@ Some reminders carry **action buttons** — e.g. "remind later", "add now", "sto
 
 All of this is **on your device only** — Baby Buddy has no concept of hiding or grouping children.
 
-Everything about your children lives behind **Settings → Children & groups**.
+Your per‑child settings live behind **Settings → Children & groups**. (In offline mode, the roster itself — names and birth dates — is a separate **Children** card on the main Settings screen; see [Offline mode](#12-offline-mode).)
 
 ### Children & groups
 
