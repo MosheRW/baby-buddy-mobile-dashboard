@@ -29,7 +29,7 @@ Hide children, group them, give each a color, and set schedules that quietly hid
 MAKE IT YOURS TO LOOK AT
 • Light, dark, or follow-the-system theming
 • Optional Material You color from your wallpaper (Android 12+)
-• English or Hebrew (right-to-left), following your Baby Buddy profile by default
+• English (left-to-right) or Hebrew (right-to-left), following your Baby Buddy profile by default
 
 HOW YOU CONNECT
 Choose one when you first sign in, and switch later by signing out:
