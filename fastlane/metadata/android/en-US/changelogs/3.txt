@@ -1,0 +1,6 @@
+• The app now speaks your language — full English and Hebrew support, including notifications.
+• Settings reorganized around each child, with a new About section.
+• Splash screen now shows reliably.
+• Notifications dismiss when you tap OK.
+• Improved privacy: removed permissions the app doesn't use.
+• Bug fixes and polish.
