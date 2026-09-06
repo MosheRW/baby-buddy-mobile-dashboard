@@ -89,3 +89,6 @@ modules/**/build/
 .env
 my-upload-key.keystore
 variables-for-bundle
+
+# Claude Code internal worktrees
+.claude/worktrees/
